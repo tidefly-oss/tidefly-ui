@@ -3,7 +3,7 @@
   import { onDestroy } from 'svelte';
   import type { Terminal as TerminalType } from '@xterm/xterm';
   import type { FitAddon as FitAddonType } from '@xterm/addon-fit';
-  import {tokenStore} from "$lib/api/client.ts";
+  import {tokenStore} from "$lib/api/client.js";
 
   type Props = {
     containerId: string;

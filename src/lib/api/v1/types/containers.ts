@@ -50,3 +50,11 @@ export type DeployComposeResponse = {
     containers: string[];
     urls?:      Record<string, string>;
 };
+
+export type ResourceLimits = {
+    cpu_cores:      number;
+    memory_mb:      number;
+    memory_swap_mb: number;
+    restart_policy: string;
+    max_retries:    number;
+};
