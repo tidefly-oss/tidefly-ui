@@ -32,12 +32,6 @@
     ...restProps
   }: ComponentProps<typeof Sidebar.Root> = $props();
 
-  onMount(() => {
-    projectsStore.load();
-    systemStore.load();
-    systemStore.startPolling(60_000);
-  });
-
   onDestroy(() => systemStore.stopPolling());
 
   let activeProjectId = $state<string | null>(null);
@@ -55,6 +49,13 @@
           visibleProjects[0] ??
           null,
   );
+
+  $effect(() => {
+    if (!auth.user) return;
+    projectsStore.load();
+    systemStore.load();
+    systemStore.startPolling(60_000);
+  });
 
   $effect(() => {
     const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);

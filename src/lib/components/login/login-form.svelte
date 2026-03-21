@@ -1,10 +1,11 @@
 <script lang="ts">
-    import { authApi } from '$lib/api/auth';
+    import { authApi } from '$lib/api/v1/auth';
     import { Button } from "$lib/components/ui/button/index.js";
     import { Field, FieldGroup, FieldLabel, FieldSeparator, FieldDescription } from "$lib/components/ui/field/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { cn, type WithElementRef } from "$lib/utils.js";
     import type { HTMLFormAttributes } from "svelte/elements";
+    import {goto} from "$app/navigation";
 
     let {
         ref = $bindable(null),
@@ -19,16 +20,14 @@
     let error    = $state("");
     let loading  = $state(false);
 
-    async function handleSubmit(e: SubmitEvent) {
-        e.preventDefault();
+    async function handleSubmit() {
         error = "";
         loading = true;
-
         try {
             await authApi.login({ email, password });
-            // Cookie ist jetzt gesetzt — hard reload zu /dashboard
-            window.location.assign('/dashboard');
-        } catch {
+            await goto('/dashboard');
+        } catch (e) {
+            console.error('Login error:', e);
             error = "Login fehlgeschlagen";
         } finally {
             loading = false;
@@ -39,7 +38,7 @@
 <form
         class={cn("flex flex-col gap-6", className)}
         bind:this={ref}
-        onsubmit={handleSubmit}
+        onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}
         {...restProps}
 >
     <FieldGroup>

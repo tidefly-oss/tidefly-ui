@@ -3,6 +3,7 @@
   import { onDestroy } from 'svelte';
   import type { Terminal as TerminalType } from '@xterm/xterm';
   import type { FitAddon as FitAddonType } from '@xterm/addon-fit';
+  import {tokenStore} from "$lib/api/client.ts";
 
   type Props = {
     containerId: string;
@@ -102,9 +103,9 @@
     connecting = true;
     exited = false;
 
-    // Vite proxy leitet /api WebSocket-Requests weiter (ws: true in vite.config.ts)
+    const token = tokenStore.get();
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${proto}//${window.location.host}/api/v1/containers/${containerId}/exec`;
+    const url = `${proto}//${window.location.host}/api/v1/containers/${containerId}/exec${token ? `?token=${encodeURIComponent(token)}` : ''}`;
     ws = new WebSocket(url);
 
     ws.onopen = () => {

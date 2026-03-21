@@ -22,15 +22,14 @@
   import { onDestroy, onMount } from "svelte";
   import type { User } from "$lib/api/v1/types";
 
-  let { children, data }: { children: Snippet, data: { user: User } } = $props();
+  let { children }: { children: Snippet } = $props();
 
   const queryClient = initQueryClient();
 
-  onMount(() => {
-    auth.setUser(data.user);
+  $effect(() => {
     theme.init();
     dockerEventsStore.connect();
-  });
+  })
 
   onDestroy(() => {
     dockerEventsStore.disconnect();
@@ -86,15 +85,15 @@
                         {...props}
                 >
                   <Avatar class="size-8">
-                    <AvatarFallback class="text-xs">{getUserInitials(data.user)}</AvatarFallback>
+                    <AvatarFallback class="text-xs">{getUserInitials(auth.user)}</AvatarFallback>
                   </Avatar>
                 </Button>
               {/snippet}
             </DropdownMenu.Trigger>
             <DropdownMenu.Content align="end" class="w-56">
               <div class="px-3 py-2">
-                <p class="text-sm font-medium">{data.user?.name ?? ""}</p>
-                <p class="text-muted-foreground truncate text-xs">{data.user?.email ?? ""}</p>
+                <p class="text-sm font-medium">{auth.user?.name ?? ""}</p>
+                <p class="text-muted-foreground truncate text-xs">{auth.user?.email ?? ""}</p>
               </div>
               <DropdownMenu.Separator />
               <DropdownMenu.Item onSelect={() => goto("/dashboard/settings/profile")}>

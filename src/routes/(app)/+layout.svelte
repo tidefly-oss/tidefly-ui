@@ -1,12 +1,20 @@
 <script lang="ts">
     import { auth } from '$lib/stores/auth.svelte';
-    import type { User } from '$lib/api/v1/types';
     import type { Snippet } from 'svelte';
     import { goto } from '$app/navigation';
+    import { onMount } from 'svelte';
 
-    let { children, data }: { children: Snippet, data: { user: User } } = $props();
+    let { children }: { children: Snippet } = $props();
+    let ready = $state(false);
 
-    auth.setUser(data.user);
+    onMount(async () => {
+        await auth.init();
+        if (!auth.user) {
+            await goto('/login');
+            return;
+        }
+        ready = true;
+    });
 
     $effect(() => {
         if (auth.mustChangePassword) {
@@ -15,4 +23,6 @@
     });
 </script>
 
-{@render children()}
+{#if ready}
+    {@render children()}
+{/if}

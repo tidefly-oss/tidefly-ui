@@ -1,4 +1,5 @@
-import { authApi } from '$lib/api/auth';
+import { authApi } from '$lib/api/v1/auth';
+import { tokenStore } from '$lib/api/client.js';
 import type { LoginPayload, User } from '$lib/api/v1/types';
 
 function createAuthStore() {
@@ -24,13 +25,27 @@ function createAuthStore() {
             initialized = true;
         },
 
+        // Called on app boot — tries to restore session via refresh cookie.
+        // If the HttpOnly cookie is still valid, we get a new access token silently.
         async init() {
             if (initialized) return;
             loading = true;
             try {
-                const res = await authApi.me();
-                user = res.user;
+                const res = await fetch('/api/v1/auth/refresh', {  // kein VITE_API_URL prefix
+                    method:      'POST',
+                    credentials: 'include',
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    tokenStore.set(data.access_token);
+                    const meRes = await authApi.me();
+                    user = meRes.user;
+                } else {
+                    tokenStore.clear();
+                    user = null;
+                }
             } catch {
+                tokenStore.clear();
                 user = null;
             } finally {
                 loading     = false;
@@ -54,9 +69,11 @@ function createAuthStore() {
             loading = true;
             try {
                 await authApi.login(payload);
+                // Direkt redirecten — auth.init() holt User nach Reload via Refresh Cookie
                 window.location.assign('/dashboard');
-            } finally {
+            } catch (e) {
                 loading = false;
+                throw e;
             }
         },
 
@@ -68,6 +85,7 @@ function createAuthStore() {
                 user        = null;
                 loading     = false;
                 initialized = false;
+                tokenStore.clear();
                 window.location.href = '/login';
             }
         },

@@ -1,10 +1,11 @@
 import { getQueryClient } from '$lib/query';
+import { tokenStore } from '$lib/api/client';
 import type { ContainerStatus } from '$lib/api/v1/types';
 
 type ContainerEventType =
-  | 'start' | 'stop' | 'die' | 'kill'
-  | 'restart' | 'pause' | 'unpause'
-  | 'destroy' | 'create' | 'oom';
+    | 'start' | 'stop' | 'die' | 'kill'
+    | 'restart' | 'pause' | 'unpause'
+    | 'destroy' | 'create' | 'oom';
 
 interface ContainerEvent {
   type: ContainerEventType;
@@ -25,7 +26,15 @@ class DockerEventsStore {
   }
 
   private _connect() {
-    const source = new EventSource('http://localhost:8181/api/v1/events/stream', { withCredentials: true });
+    const token = tokenStore.get();
+    if (!token) {
+      // Retry when token is available
+      this.reconnectTimer = setTimeout(() => this._connect(), 1000);
+      return;
+    }
+
+    const url = `/api/v1/events/stream?token=${encodeURIComponent(token)}`;
+    const source = new EventSource(url, { withCredentials: true });
 
     source.addEventListener('container', (e: MessageEvent) => {
       try {
@@ -61,26 +70,20 @@ class DockerEventsStore {
       pause: 'paused',
     };
 
-    if (evt.type === 'destroy') {
-      qc.invalidateQueries({ queryKey: ['containers'] });
-      return;
-    }
-
-    if (evt.type === 'create') {
-      qc.invalidateQueries({ queryKey: ['containers'] });
+    if (evt.type === 'destroy' || evt.type === 'create') {
+      void qc.invalidateQueries({ queryKey: ['containers'] });
       return;
     }
 
     const newStatus = statusMap[evt.type];
     if (newStatus) {
-      // Optimistic update im Cache
       qc.setQueryData<{ id: string; status: ContainerStatus }[]>(
-        ['containers'],
-        (old) => old?.map((c) => c.id === evt.container_id ? { ...c, status: newStatus } : c) ?? [],
+          ['containers'],
+          (old) => old?.map((c) => c.id === evt.container_id ? { ...c, status: newStatus } : c) ?? [],
       );
       qc.setQueryData<{ id: string; status: ContainerStatus }>(
-        ['container', evt.container_id],
-        (old) => old ? { ...old, status: newStatus } : old,
+          ['container', evt.container_id],
+          (old) => old ? { ...old, status: newStatus } : old,
       );
     }
   }

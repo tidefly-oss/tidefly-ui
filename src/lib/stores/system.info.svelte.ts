@@ -1,7 +1,5 @@
 import type {SystemInfo} from "$lib/api/v1/types";
-
-const base = import.meta.env.VITE_API_URL ?? '';
-
+import { systemApi } from '$lib/api/v1/system';
 
 function formatUptime(seconds: number): string {
 	if (!seconds) return '—';
@@ -19,9 +17,7 @@ function createSystemInfoStore() {
 
 	async function load() {
 		try {
-			const res = await fetch(`${base}/api/v1/system/info`, { credentials: 'include' })
-			if (!res.ok) return;
-			info = await res.json();
+			info = await systemApi.info();
 		} catch {}
 	}
 

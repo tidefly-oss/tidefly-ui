@@ -3,48 +3,50 @@
 export type ContainerStatus = 'running' | 'stopped' | 'paused' | 'exited' | 'created';
 
 export interface Port {
-	host_ip:        string;
-	host_port:      number;
-	container_port: number;
-	protocol:       string;
+    host_ip: string;
+    host_port: number;
+    container_port: number;
+    protocol: string;
 }
 
 export interface Mount {
-	source:      string;
-	destination: string;
-	mode:        string;
-	rw:          boolean;
+    source: string;
+    destination: string;
+    mode: string;
+    rw: boolean;
 }
 
 export interface Container {
-	id:       string;
-	name:     string;
-	image:    string;
-	status:   ContainerStatus;
-	state:    string;
-	created:  string;
-	ports:    Port[];
-	labels?:  Record<string, string>;
-	mounts?:  Mount[];
-	networks?: string[];
+    id: string;
+    name: string;
+    image: string;
+    status: ContainerStatus;
+    state: string;
+    created: string;
+    ports: Port[];
+    labels?: Record<string, string>;
+    mounts?: Mount[];
+    networks?: string[];
 }
 
 export interface ContainerDetails extends Container {
-	command:        string;
-	entrypoint:     string[];
-	env:            string[];
-	mounts:         Mount[];
-	networks:       string[];
-	restart_policy: string;
+    command: string;
+    entrypoint: string[];
+    env: string[];
+    mounts: Mount[];
+    networks: string[];
+    restart_policy: string;
 }
 
 export type DeployComposeRequest = {
-  compose:    string;
-  stack_name: string;
-  project_id?: string;
+    compose: string;
+    stack_name: string;
+    project_id?: string;
+    expose?: boolean;
 };
 
 export type DeployComposeResponse = {
-  stack_id:   string;
-  containers: string[];
+    stack_id:   string;
+    containers: string[];
+    urls?:      Record<string, string>;
 };

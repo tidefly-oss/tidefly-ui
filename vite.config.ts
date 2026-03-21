@@ -8,5 +8,15 @@ export default defineConfig(({mode}) => {
 
     const BACKEND = env.VITE_API_URL || 'http://localhost:8181';
 
-    return {plugins: [tailwindcss(), sveltekit()]};
+    return {
+        plugins: [tailwindcss(), sveltekit()],
+        server: {
+            proxy: {
+                '/api': {
+                    target: 'http://localhost:8181',
+                    changeOrigin: true,
+                },
+            },
+        },
+    };
 });
