@@ -25,4 +25,6 @@ export const containersApi = {
     logsUrl:  (id: string) => withToken(`/api/v1/containers/${id}/logs`),
     statsUrl: (id: string) => withToken(`/api/v1/containers/${id}/stats`),
     dockerfileBuildUrl: ()  => withToken(`/api/v1/containers/dockerfile`),
+    getResources:    (id: string) => api.get<ResourceLimits>(`/api/v1/containers/${id}/resources`),
+    updateResources: (id: string, body: ResourceLimits) => api.patch<{ message: string; restart_required: boolean }>(`/api/v1/containers/${id}/resources`, body),
 };
