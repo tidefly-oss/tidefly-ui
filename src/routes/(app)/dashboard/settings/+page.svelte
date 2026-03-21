@@ -1,7 +1,6 @@
 <script lang="ts">
     import GeneralSettings from '$lib/components/settings/GeneralSettings.svelte';
     import SmtpSettings from '$lib/components/settings/SmtpSettings.svelte';
-    import SecuritySettings from '$lib/components/settings/SecuritySettings.svelte';
     import AboutSettings from '$lib/components/settings/AboutSettings.svelte';
     import {SlidersHorizontalIcon, MailIcon, ShieldIcon, InfoIcon, BellIcon} from '@lucide/svelte';
     import NotificationsSettings from "$lib/components/settings/NotificationsSettings.svelte";
@@ -11,7 +10,6 @@
     const tabs: { id: Tab; label: string; icon: any }[] = [
         { id: 'general',  label: 'General',  icon: SlidersHorizontalIcon },
         { id: 'smtp',     label: 'SMTP',     icon: MailIcon              },
-        { id: 'security', label: 'Security', icon: ShieldIcon            },
         { id: 'notifications', label: 'Notifications', icon: BellIcon    },
         { id: 'about',    label: 'About',    icon: InfoIcon              },
     ];
@@ -50,8 +48,6 @@
             <GeneralSettings />
         {:else if activeTab === 'smtp'}
             <SmtpSettings />
-        {:else if activeTab === 'security'}
-            <SecuritySettings />
         {:else if activeTab === 'about'}
             <AboutSettings />
         {:else if activeTab === 'notifications'}
