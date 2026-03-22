@@ -8,17 +8,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Discord, Slack & Email notification settings UI with test buttons per channel
-- Webhook management — create, list, update, delete per project
-- 2-step webhook creation dialog with provider-specific setup guides
-- Webhook delivery history with status, commit, branch, duration, error details
-- Version displayed in sidebar footer and About settings page
-- Sidebar restructure — Webhooks under Source group alongside Git Integrations
+
+#### Authentication
+- JWT-based auth with access token in memory and refresh token in HttpOnly cookie
+- `tokenStore` — in-memory access token, never touches localStorage/sessionStorage
+- Auto-refresh on 401 with singleton promise — prevents parallel refresh races
+- `auth.init()` — restores session on app boot via refresh cookie
+- Vite proxy configured for same-origin requests — fixes HttpOnly cookie in dev
+
+#### Deploy — Caddy Expose
+- Expose toggle on Dockerfile deploy wizard (Step 2) — clickable card UI
+- Expose toggle on Compose deploy wizard — same card style
+- Container port + optional custom domain fields when expose is enabled
+- Public URLs shown in success step after expose deploy
+- `withToken()` helper adds `?token=` to SSE/WebSocket URLs
+
+#### Settings
+- Proxy Domain section in General Settings — admin can change Control Plane base domain
+- Clear warning: "This is the Control Plane domain only — Worker nodes manage their own routing"
+- Registration Mode removed from UI — admin manages users directly
 
 ### Changed
-- Removed Vite dev proxy — all requests go directly to `VITE_API_URL`
-- All raw `fetch('/api/...')` calls replaced with central `api` client from `$lib/api`
-- SSE stores use `${import.meta.env.VITE_API_URL}` prefix
+
+#### Auth
+- SSR disabled globally (`ssr = false`) — dashboard is fully client-side
+- `hooks.server.ts` simplified — only checks for `tfy_rt` refresh cookie, no API calls
+- Root `+layout.server.ts` removed — no server-side user loading
+- Dashboard `+layout.svelte` uses `auth.init()` + `ready` flag — children not rendered until token is in memory
+- Login form uses `goto()` for redirect instead of `window.location` — prevents page reload issues
+- `app-sidebar.svelte` loads stores reactively on `auth.user` — fixes 401 race on dashboard load
+
+#### API Client
+- All auth endpoints use relative URLs (no `VITE_API_URL` prefix) — go through Vite proxy
+- `system.info.svelte.ts` migrated from raw `fetch` to `systemApi.info()` — adds Bearer token
+- `ResourceLimits.svelte` migrated from raw `fetch` to `containersApi.getResources/updateResources`
+- `containersApi` extended with `getResources`, `updateResources`, `ResourceLimits` type export
+- `logsUrl`, `statsUrl`, `dockerfileBuildUrl` use `withToken()` for SSE/WebSocket auth
+
+#### Notifications / Events
+- `events.svelte.ts` — connects only when `auth.user` is set, token in URL
+- `notifications.svelte.ts` — token in SSE URL, no raw `VITE_API_URL`
+
+### Fixed
+- 401 on `/api/v1/system/info` — was using raw fetch without Bearer token
+- 401 on resource limits GET/PATCH — raw fetch replaced with api client
+- 401 on EventSource streams — `?token=` query param added
+- 500 on WebSocket terminal — `echo.UnwrapResponse()` used to get hijackable ResponseWriter
+- Dashboard refresh 500 — SSR disabled, all auth client-side
+- Cookie not set in dev — `SameSite: Lax`, `Secure: false`, Vite proxy for same-origin
+- Login redirect — `goto('/dashboard')` after successful auth.init()
 
 ---
 
@@ -39,18 +77,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Git integration wizard (GitHub, GitLab, Gitea/Forgejo, Bitbucket)
 - RBAC — admin and member role UI
 - User management page
-- Admin settings page (system, SMTP, S3, notifications)
+- Admin settings page (system, SMTP, notifications)
 - TanStack Query migration for all server state
 - shadcn-svelte component library
+- Discord, Slack & Email notification settings UI
+- Webhook management per project
+- Version displayed in sidebar footer and About settings page
 
 ---
 
 ## Roadmap
 
 ### Next Up
-- [ ] In-app update notifications
+- [ ] Multi-node Worker UI
 - [ ] Custom domain management UI
-- [ ] Deployment Templates marketplace
+- [ ] In-app update notifications
 
 ### Later
 - [ ] Two-factor authentication UI
