@@ -1,0 +1,50 @@
+version: 2
+updates:
+  # ─── Frontend (pnpm) ───────────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Berlin"
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - javascript
+    groups:
+      svelte-ecosystem:
+        patterns:
+          - "svelte*"
+          - "@sveltejs/*"
+      shadcn-radix:
+        patterns:
+          - "@radix-ui/*"
+          - "bits-ui"
+          - "shadcn-svelte"
+      tanstack:
+        patterns:
+          - "@tanstack/*"
+      minor-patch:
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # ─── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: "Europe/Berlin"
+    labels:
+      - dependencies
+      - github-actions
+    groups:
+      actions:
+        patterns:
+          - "*"
