@@ -17,7 +17,7 @@
     let { webhook, ondelete, onrotate, onloaddeliveries }: {
         webhook: Webhook;
         ondelete: (id: string) => Promise<void>;
-        onrotate: (id: string) => Promise<string>;
+        onrotate: (id: string) => Promise<{ secret: string }>;
         onloaddeliveries: (id: string) => Promise<WebhookDelivery[]>;
     } = $props();
 
@@ -52,7 +52,7 @@
         rotating = true;
         newSecret = null;
         try {
-            newSecret = await onrotate(webhook.id);
+            newSecret = (await onrotate(webhook.id)).secret;
         } finally {
             rotating = false;
         }

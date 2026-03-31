@@ -181,7 +181,7 @@
           <!-- Base URL (GitLab optional) -->
           {#if selectedProvider === "gitlab"}
             <div class="space-y-1.5">
-              <label class="text-xs font-medium">
+              <label for="gitlab-base-url" class="text-xs font-medium">
                 Base URL <span class="text-muted-foreground">(leave empty for gitlab.com)</span>
               </label>
               <input type="url" placeholder="https://gitlab.example.com" bind:value={baseURL}

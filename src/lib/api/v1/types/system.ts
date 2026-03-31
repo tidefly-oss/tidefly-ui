@@ -65,6 +65,7 @@ export interface UsedPortEntry {
 	container_id: string;
 	container_name: string;
 	protocol: string;
+	host_ip?: string;
 }
 
 export interface UsedPortsResponse {

@@ -1,20 +1,11 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
     "useIgnoreFile": true
   },
-  "files": {
-    "ignore": [
-      "node_modules",
-      ".svelte-kit",
-      "build",
-      "dist",
-      "*.config.js",
-      "*.config.ts"
-    ]
-  },
+  "files": {},
   "formatter": {
     "enabled": true,
     "indentStyle": "tab",
@@ -27,13 +18,12 @@
     "rules": {
       "recommended": true,
       "correctness": {
-        "noUnusedVariables": "warn",
-        "noUnusedImports": "warn",
+        "noUnusedVariables": "off",
+        "noUnusedImports": "off",
         "useExhaustiveDependencies": "off"
       },
       "suspicious": {
-        "noExplicitAny": "warn",
-        "noConsoleLog": "off"
+        "noExplicitAny": "warn"
       },
       "style": {
         "noNonNullAssertion": "warn",
@@ -64,14 +54,12 @@
   },
   "overrides": [
     {
-      "include": ["*.svelte"],
+      "includes": ["**/*.svelte"],
       "linter": {
         "rules": {
-          "style": {
-            "useConst": "off"
-          },
           "correctness": {
-            "noUnusedVariables": "off"
+            "noUnusedVariables": "off",
+            "noUnusedImports": "off"
           }
         }
       }

@@ -1,13 +1,9 @@
 <script lang="ts">
-    import { Button } from "$lib/components/ui/button/index.js";
     import {
-        BoxIcon,
         CodeIcon,
-        ContainerIcon,
         DatabaseIcon,
         GitBranchIcon,
         LayersIcon,
-        PlusIcon,
         ServerIcon,
     } from "@lucide/svelte";
 

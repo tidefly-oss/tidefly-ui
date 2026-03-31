@@ -299,13 +299,12 @@
                     </p>
                     <ol class="space-y-1.5">
                         {#each guideSteps as s, i (i)}
-                            <li
+                            <button
                                     class="flex gap-2.5 items-start p-2.5 rounded-lg border cursor-pointer transition-colors
                                        {guideStep === i
                                            ? 'bg-primary/5 border-primary/30'
                                            : 'bg-card hover:bg-muted/40'}"
                                     onclick={() => (guideStep = i)}
-                                    role="button"
                                     tabindex="0"
                                     onkeydown={(e) => e.key === 'Enter' && (guideStep = i)}
                             >
@@ -325,7 +324,7 @@
                                     {guideStep === i ? 'text-foreground font-medium' : 'text-muted-foreground'}">
                                     {s}
                                 </span>
-                            </li>
+                            </button>
                         {/each}
                     </ol>
 

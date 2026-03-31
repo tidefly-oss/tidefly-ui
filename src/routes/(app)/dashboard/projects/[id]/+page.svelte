@@ -2,22 +2,17 @@
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
   import { ApiError } from "$lib/api/client";
-  import type { Container, ContainerStatus } from "$lib/api/v1/types";
+  import type { ContainerStatus } from "$lib/api/v1/types";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
   import { Badge } from "$lib/components/ui/badge/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
-  import { projectsStore } from "$lib/stores/projects.svelte";
+  import { projectsApi } from "$lib/api";
+  import { projectKeys, projectQueries } from "$lib/queries/projects.js";
+  import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
   import {
-    ArrowLeftIcon,
-    CheckIcon,
-    CircleIcon,
-    ContainerIcon,
-    Loader,
-    PencilIcon,
-    Trash2Icon,
-    XIcon,
+    ArrowLeftIcon, CheckIcon, CircleIcon, ContainerIcon,
+    Loader, PencilIcon, Trash2Icon, XIcon,
   } from "@lucide/svelte";
-  import { onMount } from "svelte";
 
   const COLORS = [
     "#6366f1", "#8b5cf6", "#ec4899", "#ef4444", "#f97316",
@@ -25,14 +20,17 @@
     "#64748b", "#78716c",
   ];
 
+  const qc = useQueryClient();
   const id = $derived(page.params.id ?? "");
-  const project = $derived(
-          projectsStore.projects.find((p) => p.id === id) ?? null,
-  );
 
-  let containers  = $state<Container[]>([]);
-  let loading     = $state(true);
-  let error       = $state<string | null>(null);
+  const projectQuery = createQuery(() => projectQueries.detail(id));
+  const containersQuery = createQuery(() => projectQueries.containers(id));
+
+  const project = $derived(projectQuery.data ?? null);
+  const containers = $derived(containersQuery.data ?? []);
+  const loading = $derived(projectQuery.isPending);
+  const error = $derived(projectQuery.error?.message ?? null);
+
   let deleting    = $state(false);
   let editing     = $state(false);
   let showDelete  = $state(false);
@@ -40,23 +38,35 @@
   let editName        = $state("");
   let editDescription = $state("");
   let editColor       = $state("");
-  let saving          = $state(false);
   let editError       = $state<string | null>(null);
 
-  onMount(async () => { await load(); });
+  const updateMut = createMutation(() => ({
+    mutationFn: (data: { name: string; description?: string; color: string }) =>
+            projectsApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: projectKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: projectKeys.all() });
+      editing = false;
+    },
+    onError: (e: unknown) => {
+      editError = e instanceof ApiError ? e.message : "Failed to update project";
+    },
+  }));
 
-  async function load() {
-    loading = true;
-    error   = null;
-    try {
-      await projectsStore.get(id);
-      containers = await projectsStore.listContainers(id);
-    } catch (e) {
-      error = e instanceof ApiError ? e.message : "Failed to load project";
-    } finally {
-      loading = false;
-    }
-  }
+  const deleteMut = createMutation(() => ({
+    mutationFn: () => projectsApi.delete(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: projectKeys.all() });
+      goto("/dashboard/projects");
+    },
+    onError: (e: unknown) => {
+      console.error(e);
+      deleting = false;
+      showDelete = false;
+    },
+  }));
+
+  const saving = $derived(updateMut.isPending);
 
   function startEdit() {
     if (!project) return;
@@ -69,32 +79,17 @@
 
   async function saveEdit() {
     if (!editName.trim()) { editError = "Name is required"; return; }
-    saving    = true;
     editError = null;
-    try {
-      await projectsStore.update(id, {
-        name:        editName.trim(),
-        description: editDescription.trim() || undefined,
-        color:       editColor,
-      });
-      editing = false;
-    } catch (e) {
-      editError = e instanceof ApiError ? e.message : "Failed to update project";
-    } finally {
-      saving = false;
-    }
+    updateMut.mutate({
+      name:        editName.trim(),
+      description: editDescription.trim() || undefined,
+      color:       editColor,
+    });
   }
 
   async function confirmDelete() {
     deleting = true;
-    try {
-      await projectsStore.remove(id);
-      goto("/dashboard/projects");
-    } catch (e) {
-      console.error(e);
-      deleting  = false;
-      showDelete = false;
-    }
+    deleteMut.mutate();
   }
 
   const statusDot: Record<ContainerStatus, string> = {

@@ -1,10 +1,9 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import {
-    deployApi,
-    type Service,
-    type ServiceStatus,
+    deployApi
   } from "$lib/api/v1/deploy";
+  import type { Service, ServiceStatus } from "$lib/api/v1/types";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import {

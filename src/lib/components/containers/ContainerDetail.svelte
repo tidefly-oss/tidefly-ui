@@ -27,28 +27,19 @@
     import ContainerResourceLimits from "./ContainerResourceLimits.svelte";
     import ContainerStats from "./ContainerStats.svelte";
     import ContainerTerminalPanel from "./ContainerTerminalPanel.svelte";
-
+ 
     let { initialData }: { initialData: ContainerDetails } = $props();
-
+ 
     const queryClient = useQueryClient();
-
+ 
     const isAdmin = $derived(auth.user?.role === "admin");
-
-    // Admins can always delete. Members can delete managed containers (project or service).
-    // Backend enforces actual membership — this controls button visibility only.
-    const canDelete = $derived(
-        isAdmin ||
-        !!container.labels?.["tidefly.project"] ||
-        !!container.labels?.["tidefly.service"],
-    );
-
-
+ 
     const query = createQuery(() => ({
         queryKey: ["container", initialData.id],
         queryFn: () => containersApi.get(initialData.id),
         initialData,
     }));
-
+ 
     const actionMutation = createMutation(() => ({
         mutationFn: async (action: "start" | "stop" | "restart" | "delete") => {
             if (action === "start") return containersApi.start(initialData.id);
@@ -76,19 +67,26 @@
             queryClient.invalidateQueries({ queryKey: ["container", initialData.id] });
         },
     }));
-
+ 
     type Tab = "overview" | "logs" | "stats" | "resources" | "terminal";
     const validTabs: Tab[] = ["overview", "logs", "stats", "resources", "terminal"];
-
+ 
     function getInitialTab(): Tab {
         const t = $page.url.searchParams.get("tab") as Tab;
         return validTabs.includes(t) ? t : "overview";
     }
-
+ 
     let tab = $state<Tab>(getInitialTab());
-
+ 
     const container = $derived(query.data ?? initialData);
-
+ 
+    // canDelete must be after container
+    const canDelete = $derived(
+        isAdmin ||
+        !!container.labels?.["tidefly.project"] ||
+        !!container.labels?.["tidefly.service"],
+    );
+ 
     const statusDot: Record<ContainerStatus, string> = {
         running: "#22c55e",
         stopped: "#6b7280",
@@ -96,7 +94,7 @@
         paused:  "#f59e0b",
         created: "#3b82f6",
     };
-
+ 
     function formatDate(iso: string) {
         return new Date(iso).toLocaleString("de-DE");
     }

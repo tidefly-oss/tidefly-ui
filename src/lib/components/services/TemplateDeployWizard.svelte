@@ -4,31 +4,29 @@
     import {deployApi} from "$lib/api/v1/deploy";
     import {templatesApi} from "$lib/api/v1/templates";
     import {Button} from "$lib/components/ui/button/index.js";
-    import {projectsStore} from "$lib/stores/projects.svelte";
+    import {projectQueries} from "$lib/queries/projects.js";
     import {auth} from "$lib/stores/auth.svelte";
     import PortInput from "$lib/components/services/PortInput.svelte";
     import {
-        CheckIcon,
-        ChevronRightIcon,
-        CircleIcon,
-        CopyIcon,
-        DatabaseIcon,
-        EyeIcon,
-        FolderIcon,
-        LoaderIcon,
+        CheckIcon, ChevronRightIcon, CircleIcon, CopyIcon,
+        DatabaseIcon, EyeIcon, FolderIcon, LoaderIcon,
     } from "@lucide/svelte";
-    import {useQueryClient} from "@tanstack/svelte-query";
+    import {createQuery, useQueryClient} from "@tanstack/svelte-query";
     import type {DeployResult, ServiceTemplate, TemplateField, TemplateSummary} from "$lib/api/v1/types";
 
     let {summaries}: { summaries: TemplateSummary[] } = $props();
 
     const qc = useQueryClient();
 
+    const projectsQuery = createQuery(() => ({
+        ...projectQueries.list(),
+        enabled: !!auth.user,
+    }));
+
     const isAdmin = $derived(auth.user?.role === 'admin');
+    const allProjects = $derived(projectsQuery.data ?? []);
     const visibleProjects = $derived(
-        isAdmin
-            ? projectsStore.projects
-            : projectsStore.projects.filter(p => auth.projectIds.includes(p.id))
+        isAdmin ? allProjects : allProjects.filter(p => auth.projectIds.includes(p.id))
     );
 
     type Step = "pick" | "configure" | "deploying" | "done";
@@ -86,9 +84,7 @@
             (f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== "",
         ),
     );
-    const selectedProject = $derived(
-        visibleProjects.find((p) => p.id === projectId),
-    );
+    const selectedProject = $derived(visibleProjects.find((p) => p.id === projectId));
 
     async function deploy() {
         if (!selected || !isValid) return;
@@ -125,9 +121,7 @@
     }
 
     const categoryLabel: Record<string, string> = {
-        database: "Databases",
-        cache: "Caches",
-        messaging: "Messaging",
+        database: "Databases", cache: "Caches", messaging: "Messaging",
     };
     const categoryColor: Record<string, string> = {
         database: "bg-blue-500/10 text-blue-500",
@@ -136,7 +130,7 @@
     };
 </script>
 
-<div class="space-y-4 w-full" class:max-w-2xl={step !== "pick"} class:mx-auto={step === "deploying"}>
+<div class="w-full {step !== 'pick' ? 'max-w-2xl mx-auto' : ''} space-y-4">
     {#if step === "pick"}
         <div>
             <h1 class="text-lg font-semibold">Deploy a Service</h1>
@@ -155,31 +149,30 @@
                                 disabled={loadingDetail}
                                 class="bg-card border rounded-xl p-4 text-left hover:border-primary/50 hover:shadow-sm transition-all group flex flex-col gap-3 disabled:opacity-50"
                         >
-                            <div class="flex items-start justify-between">
-                                <div class="rounded-lg p-2 {categoryColor[tmpl.category] ?? 'bg-muted text-muted-foreground'}">
+                            <span class="flex items-start justify-between">
+                                <span class="rounded-lg p-2 {categoryColor[tmpl.category] ?? 'bg-muted text-muted-foreground'}">
                                     {#if loadingDetail}
-                                        <LoaderIcon class="size-4 animate-spin"/>
+                                        <LoaderIcon class="size-4 animate-spin" />
                                     {:else}
-                                        <DatabaseIcon class="size-4"/>
+                                        <DatabaseIcon class="size-4" />
                                     {/if}
-                                </div>
-                                <ChevronRightIcon
-                                        class="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"/>
-                            </div>
-                            <div>
-                                <div class="font-medium text-sm">{tmpl.name}</div>
-                                <div class="text-xs text-muted-foreground mt-0.5 line-clamp-2">{tmpl.description}</div>
-                            </div>
-                            <div class="flex gap-1 flex-wrap mt-auto">
+                                </span>
+                                <ChevronRightIcon class="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </span>
+                            <span class="flex flex-col gap-0.5">
+                                <span class="font-medium text-sm">{tmpl.name}</span>
+                                <span class="text-xs text-muted-foreground line-clamp-2">{tmpl.description}</span>
+                            </span>
+                            <span class="flex gap-1 flex-wrap mt-auto">
                                 {#each tmpl.versions.slice(0, 3) as v}
-                  <span class="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
-                    {v}{v === tmpl.default_version ? " ✓" : ""}
-                  </span>
+                                    <span class="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                                        {v}{v === tmpl.default_version ? " ✓" : ""}
+                                    </span>
                                 {/each}
                                 {#if tmpl.versions.length > 3}
                                     <span class="text-xs text-muted-foreground">+{tmpl.versions.length - 3}</span>
                                 {/if}
-                            </div>
+                            </span>
                         </button>
                     {/each}
                 </div>
@@ -195,12 +188,18 @@
         <!-- Project picker -->
         <div class="bg-card border rounded-xl overflow-hidden">
             <div class="px-4 py-3 border-b text-sm font-medium flex items-center gap-2">
-                <FolderIcon class="size-3.5"/>
+                <FolderIcon class="size-3.5" />
                 Project
                 <span class="text-destructive ml-0.5">*</span>
             </div>
             <div class="p-4">
-                {#if visibleProjects.length === 0}
+                {#if projectsQuery.isPending}
+                    <div class="flex gap-2">
+                        {#each Array(2) as _, i (i)}
+                            <div class="h-7 w-20 bg-muted rounded-lg animate-pulse"></div>
+                        {/each}
+                    </div>
+                {:else if visibleProjects.length === 0}
                     <p class="text-sm text-muted-foreground">
                         {#if isAdmin}
                             No projects yet. <a href="/dashboard/projects/new" class="text-primary hover:underline">Create one first.</a>
@@ -214,10 +213,10 @@
                             <button
                                     onclick={() => (projectId = p.id)}
                                     class="flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg border transition-colors {projectId === p.id
-                  ? 'border-primary bg-primary/5 text-primary'
-                  : 'hover:border-primary/40 text-muted-foreground'}"
+                                    ? 'border-primary bg-primary/5 text-primary'
+                                    : 'hover:border-primary/40 text-muted-foreground'}"
                             >
-                                <CircleIcon class="size-2 fill-current" style="color: {p.color}"/>
+                                <CircleIcon class="size-2 fill-current" style="color: {p.color}" />
                                 {p.name}
                             </button>
                         {/each}
@@ -240,8 +239,8 @@
                         <button
                                 onclick={() => (version = v)}
                                 class="px-3 py-1.5 text-xs font-mono rounded-lg border transition-colors {version === v
-                ? 'border-primary bg-primary/5 text-primary'
-                : 'hover:border-primary/40 text-muted-foreground'}"
+                                ? 'border-primary bg-primary/5 text-primary'
+                                : 'hover:border-primary/40 text-muted-foreground'}"
                         >
                             {v}{v === selected.default_version ? " (default)" : ""}
                         </button>
@@ -301,7 +300,7 @@
 
         {#if credentialFields.length > 0}
             <div class="bg-muted/40 border border-dashed rounded-xl p-4 flex gap-3">
-                <EyeIcon class="size-4 text-muted-foreground shrink-0 mt-0.5"/>
+                <EyeIcon class="size-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div class="text-xs text-muted-foreground">
                     <span class="font-medium text-foreground">Auto-generated: </span>
                     {credentialFields.map((f: TemplateField) => f.label).join(", ")} — shown once after deploy.
@@ -322,7 +321,7 @@
 
     {:else if step === "deploying"}
         <div class="bg-card border rounded-xl px-4 py-16 flex flex-col items-center gap-4 text-center">
-            <LoaderIcon class="size-8 text-primary animate-spin"/>
+            <LoaderIcon class="size-8 text-primary animate-spin" />
             <div>
                 <p class="font-medium text-sm">Deploying {selected?.name}…</p>
                 <p class="text-xs text-muted-foreground mt-1">
@@ -344,7 +343,7 @@
         {#if (result.credentials ?? []).length > 0}
             <div class="bg-card border rounded-xl overflow-hidden">
                 <div class="px-4 py-3 border-b flex items-center gap-2">
-                    <EyeIcon class="size-3.5 text-amber-500"/>
+                    <EyeIcon class="size-3.5 text-amber-500" />
                     <span class="text-sm font-medium">Credentials</span>
                     <span class="text-xs text-muted-foreground ml-auto">Copy and store securely</span>
                 </div>
@@ -360,9 +359,9 @@
                                     class="shrink-0 p-1.5 rounded hover:bg-muted transition-colors"
                             >
                                 {#if copiedKey === cred.key}
-                                    <CheckIcon class="size-3.5 text-green-500"/>
+                                    <CheckIcon class="size-3.5 text-green-500" />
                                 {:else}
-                                    <CopyIcon class="size-3.5 text-muted-foreground"/>
+                                    <CopyIcon class="size-3.5 text-muted-foreground" />
                                 {/if}
                             </button>
                         </div>
@@ -377,7 +376,7 @@
 
         <div class="flex justify-end">
             <Button onclick={markShown}>
-                <CheckIcon class="size-3.5 mr-1.5"/>
+                <CheckIcon class="size-3.5 mr-1.5" />
                 Done
             </Button>
         </div>
