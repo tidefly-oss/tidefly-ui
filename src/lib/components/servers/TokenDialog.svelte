@@ -1,77 +1,71 @@
 <script lang="ts">
-    import { agentApi } from "$lib/api/v1/agent/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import * as Alert from "$lib/components/ui/alert/index.js";
-    import * as Dialog from "$lib/components/ui/dialog/index.js";
-    import { createMutation } from "@tanstack/svelte-query";
-    import {
-        CheckIcon,
-        ClipboardIcon,
-        KeyIcon,
-        Loader,
-        TerminalIcon,
-    } from "@lucide/svelte";
+import { CheckIcon, ClipboardIcon, KeyIcon, Loader, TerminalIcon } from "@lucide/svelte";
+import { createMutation } from "@tanstack/svelte-query";
+import { agentApi } from "$lib/api/v1/agent/index.js";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
 
-    interface Props {
-        open: boolean;
-        onTokenCreated: () => void;
-    }
+interface Props {
+	open: boolean;
+	onTokenCreated: () => void;
+}
 
-    let { open = $bindable(), onTokenCreated }: Props = $props();
+let { open = $bindable(), onTokenCreated }: Props = $props();
 
-    let tokenLabel = $state("");
-    let createdToken = $state<string | null>(null);
-    let createdExpiresAt = $state<string | null>(null);
-    let tokenCopied = $state(false);
-    let cmdCopied = $state(false);
+let tokenLabel = $state("");
+let createdToken = $state<string | null>(null);
+let createdExpiresAt = $state<string | null>(null);
+let tokenCopied = $state(false);
+let cmdCopied = $state(false);
 
-    const createTokenMutation = createMutation(() => ({
-        mutationFn: () => agentApi.createToken({ label: tokenLabel }),
-        onSuccess: (data) => {
-            createdToken = data.token;
-            createdExpiresAt = data.expires_at;
-            tokenLabel = "";
-            onTokenCreated();
-        },
-    }));
+const createTokenMutation = createMutation(() => ({
+	mutationFn: () => agentApi.createToken({ label: tokenLabel }),
+	onSuccess: (data) => {
+		createdToken = data.token;
+		createdExpiresAt = data.expires_at;
+		tokenLabel = "";
+		onTokenCreated();
+	},
+}));
 
-    function copyToken() {
-        if (!createdToken) return;
-        navigator.clipboard.writeText(createdToken);
-        tokenCopied = true;
-        setTimeout(() => (tokenCopied = false), 2000);
-    }
+function copyToken() {
+	if (!createdToken) return;
+	navigator.clipboard.writeText(createdToken);
+	tokenCopied = true;
+	setTimeout(() => (tokenCopied = false), 2000);
+}
 
-    function copyCmd() {
-        navigator.clipboard.writeText(installCmd);
-        cmdCopied = true;
-        setTimeout(() => (cmdCopied = false), 2000);
-    }
+function copyCmd() {
+	navigator.clipboard.writeText(installCmd);
+	cmdCopied = true;
+	setTimeout(() => (cmdCopied = false), 2000);
+}
 
-    function close() {
-        open = false;
-        // reset after close animation
-        setTimeout(() => {
-            createdToken = null;
-            createdExpiresAt = null;
-            tokenLabel = "";
-            createTokenMutation.reset();
-        }, 200);
-    }
+function close() {
+	open = false;
+	// reset after close animation
+	setTimeout(() => {
+		createdToken = null;
+		createdExpiresAt = null;
+		tokenLabel = "";
+		createTokenMutation.reset();
+	}, 200);
+}
 
-    const installCmd = $derived(
-        createdToken
-            ? `curl -fsSL https://raw.githubusercontent.com/tidefly-oss/tidefly-agent/main/scripts/install.sh | sudo PLANE_TOKEN=${createdToken} PLANE_ENDPOINT=YOUR_PLANE_HOST:7443 sh`
-            : ""
-    );
+const installCmd = $derived(
+	createdToken
+		? `curl -fsSL https://raw.githubusercontent.com/tidefly-oss/tidefly-agent/main/scripts/install.sh | sudo PLANE_TOKEN=${createdToken} PLANE_ENDPOINT=YOUR_PLANE_HOST:7443 sh`
+		: ""
+);
 
-    function expiresIn(dateStr: string | null) {
-        if (!dateStr) return "";
-        const diff = new Date(dateStr).getTime() - Date.now();
-        const hrs = Math.floor(diff / 3_600_000);
-        if (hrs < 1) return "less than 1 hour";
-        return `${hrs} hour${hrs > 1 ? "s" : ""}`;
-    }
+function expiresIn(dateStr: string | null) {
+	if (!dateStr) return "";
+	const diff = new Date(dateStr).getTime() - Date.now();
+	const hrs = Math.floor(diff / 3_600_000);
+	if (hrs < 1) return "less than 1 hour";
+	return `${hrs} hour${hrs > 1 ? "s" : ""}`;
+}
 </script>
 
 <Dialog.Root {open} onOpenChange={(v) => { if (!v) close(); }}>

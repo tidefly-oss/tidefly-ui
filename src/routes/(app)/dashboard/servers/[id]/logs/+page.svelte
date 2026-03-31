@@ -1,103 +1,106 @@
 <script lang="ts">
-    import { page } from "$app/state";
-    import { agentApi, type WorkerContainer, type WorkerNode } from "$lib/api/v1/agent";
-    import { createQuery } from "@tanstack/svelte-query";
-    import { ChevronDownIcon, ContainerIcon, TerminalIcon } from "@lucide/svelte";
-    import { onDestroy, tick } from "svelte";
+import { ChevronDownIcon, ContainerIcon, TerminalIcon } from "@lucide/svelte";
+import { createQuery } from "@tanstack/svelte-query";
+import { onDestroy, tick } from "svelte";
+import { page } from "$app/state";
+import { agentApi, type WorkerContainer, type WorkerNode } from "$lib/api/v1/agent";
 
-    const workerId = $derived(page.params.id ?? "");
+const workerId = $derived(page.params.id ?? "");
 
-    const workerQuery = createQuery(() => ({
-        queryKey: ["workers"],
-        queryFn: () => agentApi.listWorkers(),
-        staleTime: 30_000,
-    }));
+const workerQuery = createQuery(() => ({
+	queryKey: ["workers"],
+	queryFn: () => agentApi.listWorkers(),
+	staleTime: 30_000,
+}));
 
-    const worker = $derived(
-        (workerQuery.data ?? []).find((w: WorkerNode) => w.id === workerId) ?? null
-    );
+const worker = $derived(
+	(workerQuery.data ?? []).find((w: WorkerNode) => w.id === workerId) ?? null
+);
 
-    const containersQuery = createQuery(() => ({
-        queryKey: ["worker-containers", workerId],
-        queryFn: () => agentApi.listContainers(workerId),
-        enabled: !!workerId,
-        staleTime: 10_000,
-        refetchInterval: 15_000,
-    }));
+const containersQuery = createQuery(() => ({
+	queryKey: ["worker-containers", workerId],
+	queryFn: () => agentApi.listContainers(workerId),
+	enabled: !!workerId,
+	staleTime: 10_000,
+	refetchInterval: 15_000,
+}));
 
-    const containers = $derived(
-        (containersQuery.data ?? []).filter(
-            (ct) => ct.labels?.["tidefly.internal"] !== "true"
-        )
-    );
+const containers = $derived(
+	(containersQuery.data ?? []).filter((ct) => ct.labels?.["tidefly.internal"] !== "true")
+);
 
-    let selectedContainer = $state<WorkerContainer | null>(null);
-    type LogEntry = { stream: "stdout" | "stderr"; line: string };
-    let logs = $state<LogEntry[]>([]);
-    let logsEs: EventSource | null = null;
-    let streaming = $state(false);
-    let autoScroll = $state(true);
-    let logsContainer = $state<HTMLElement | null>(null);
+let selectedContainer = $state<WorkerContainer | null>(null);
+type LogEntry = { stream: "stdout" | "stderr"; line: string };
+let logs = $state<LogEntry[]>([]);
+let logsEs: EventSource | null = null;
+let streaming = $state(false);
+let autoScroll = $state(true);
+let logsContainer = $state<HTMLElement | null>(null);
 
-    function scrollToBottom() {
-        if (logsContainer && autoScroll)
-            logsContainer.scrollTop = logsContainer.scrollHeight;
-    }
+function scrollToBottom() {
+	if (logsContainer && autoScroll) logsContainer.scrollTop = logsContainer.scrollHeight;
+}
 
-    function startStream(container: WorkerContainer) {
-        stopStream();
-        selectedContainer = container;
-        logs = [];
-        const url = agentApi.workerLogsUrl(workerId, container.id) + "&tail=500&follow=true";
-        logsEs = new EventSource(url);
-        streaming = true;
-        logsEs.addEventListener("log", async (e) => {
-            try {
-                const entry = JSON.parse(e.data);
-                logs = [...logs, entry].slice(-2000);
-                await tick();
-                scrollToBottom();
-            } catch { /* ignore */ }
-        });
-        logsEs.addEventListener("done", () => { streaming = false; });
-        logsEs.onerror = () => { streaming = false; };
-    }
+function startStream(container: WorkerContainer) {
+	stopStream();
+	selectedContainer = container;
+	logs = [];
+	const url = `${agentApi.workerLogsUrl(workerId, container.id)}&tail=500&follow=true`;
+	logsEs = new EventSource(url);
+	streaming = true;
+	logsEs.addEventListener("log", async (e) => {
+		try {
+			const entry = JSON.parse(e.data);
+			logs = [...logs, entry].slice(-2000);
+			await tick();
+			scrollToBottom();
+		} catch {
+			/* ignore */
+		}
+	});
+	logsEs.addEventListener("done", () => {
+		streaming = false;
+	});
+	logsEs.onerror = () => {
+		streaming = false;
+	};
+}
 
-    function stopStream() {
-        logsEs?.close();
-        logsEs = null;
-        streaming = false;
-    }
+function stopStream() {
+	logsEs?.close();
+	logsEs = null;
+	streaming = false;
+}
 
-    function handleScroll() {
-        if (!logsContainer) return;
-        const { scrollTop, scrollHeight, clientHeight } = logsContainer;
-        autoScroll = scrollHeight - scrollTop - clientHeight < 40;
-    }
+function handleScroll() {
+	if (!logsContainer) return;
+	const { scrollTop, scrollHeight, clientHeight } = logsContainer;
+	autoScroll = scrollHeight - scrollTop - clientHeight < 40;
+}
 
-    function jumpToBottom() {
-        if (logsContainer) {
-            logsContainer.scrollTop = logsContainer.scrollHeight;
-            autoScroll = true;
-        }
-    }
+function jumpToBottom() {
+	if (logsContainer) {
+		logsContainer.scrollTop = logsContainer.scrollHeight;
+		autoScroll = true;
+	}
+}
 
-    function logLineClass(line: string, stream: string): string {
-        if (stream === "stderr") return "text-red-400";
-        const l = line.toLowerCase();
-        if (/\b(error|fatal|fail|exception)\b/.test(l)) return "text-red-400";
-        if (/\b(warn|warning)\b/.test(l)) return "text-amber-400";
-        if (/\b(info|notice)\b/.test(l)) return "text-sky-300";
-        if (/\b(debug|trace)\b/.test(l)) return "text-zinc-500";
-        if (/\b(success|ok|ready|started|running)\b/.test(l)) return "text-green-400";
-        return "text-zinc-300";
-    }
+function logLineClass(line: string, stream: string): string {
+	if (stream === "stderr") return "text-red-400";
+	const l = line.toLowerCase();
+	if (/\b(error|fatal|fail|exception)\b/.test(l)) return "text-red-400";
+	if (/\b(warn|warning)\b/.test(l)) return "text-amber-400";
+	if (/\b(info|notice)\b/.test(l)) return "text-sky-300";
+	if (/\b(debug|trace)\b/.test(l)) return "text-zinc-500";
+	if (/\b(success|ok|ready|started|running)\b/.test(l)) return "text-green-400";
+	return "text-zinc-300";
+}
 
-    function containerName(name: string) {
-        return name.startsWith("/") ? name.slice(1) : name;
-    }
+function containerName(name: string) {
+	return name.startsWith("/") ? name.slice(1) : name;
+}
 
-    onDestroy(() => stopStream());
+onDestroy(() => stopStream());
 </script>
 
 <div class="space-y-6">

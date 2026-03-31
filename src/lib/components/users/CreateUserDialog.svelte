@@ -1,48 +1,48 @@
 <script lang="ts">
-    import { adminApi } from '$lib/api/v1/admin';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import * as Dialog from '$lib/components/ui/dialog/index.js';
-    import { ShieldIcon, UserIcon, EyeIcon, EyeOffIcon, ClipboardIcon } from '@lucide/svelte';
-    import { createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import { toast } from 'svelte-sonner';
-    import type { AdminUser, UserRole } from '$lib/api/v1/types';
+import { ClipboardIcon, EyeIcon, EyeOffIcon, ShieldIcon, UserIcon } from "@lucide/svelte";
+import { createMutation, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import type { AdminUser, UserRole } from "$lib/api/v1/types";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    let { open = $bindable(false) }: { open?: boolean } = $props();
+let { open = $bindable(false) }: { open?: boolean } = $props();
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    let createEmail  = $state('');
-    let createName   = $state('');
-    let createRole   = $state<UserRole>('member');
-    let tempPassword = $state<string | null>(null);
-    let showTemp     = $state(false);
+let createEmail = $state("");
+let createName = $state("");
+let createRole = $state<UserRole>("member");
+let tempPassword = $state<string | null>(null);
+let showTemp = $state(false);
 
-    const createMut = createMutation(() => ({
-        mutationFn: () => adminApi.createUser({ email: createEmail, name: createName, role: createRole }),
-        onSuccess: (data) => {
-            qc.invalidateQueries({ queryKey: ['admin-users'] });
-            tempPassword = data.temp_password;
-            createEmail  = '';
-            createName   = '';
-            createRole   = 'member';
-            toast.success('User created');
-        },
-        onError: () => toast.error('Failed to create user'),
-    }));
+const createMut = createMutation(() => ({
+	mutationFn: () => adminApi.createUser({ email: createEmail, name: createName, role: createRole }),
+	onSuccess: (data) => {
+		qc.invalidateQueries({ queryKey: ["admin-users"] });
+		tempPassword = data.temp_password;
+		createEmail = "";
+		createName = "";
+		createRole = "member";
+		toast.success("User created");
+	},
+	onError: () => toast.error("Failed to create user"),
+}));
 
-    function onClose() {
-        open         = false;
-        tempPassword = null;
-        showTemp     = false;
-    }
+function onClose() {
+	open = false;
+	tempPassword = null;
+	showTemp = false;
+}
 
-    async function copyTemp() {
-        if (!tempPassword) return;
-        await navigator.clipboard.writeText(tempPassword);
-        toast.success('Copied to clipboard');
-    }
+async function copyTemp() {
+	if (!tempPassword) return;
+	await navigator.clipboard.writeText(tempPassword);
+	toast.success("Copied to clipboard");
+}
 </script>
 
 <Dialog.Root bind:open onOpenChange={(o) => { if (!o) onClose(); }}>

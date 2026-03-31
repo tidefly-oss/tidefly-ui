@@ -1,173 +1,180 @@
 <script lang="ts">
-  import '@xterm/xterm/css/xterm.css';
-  import { onDestroy } from 'svelte';
-  import type { Terminal as TerminalType } from '@xterm/xterm';
-  import type { FitAddon as FitAddonType } from '@xterm/addon-fit';
-  import {tokenStore} from "$lib/api/client.js";
+import "@xterm/xterm/css/xterm.css";
+import type { FitAddon as FitAddonType } from "@xterm/addon-fit";
+import type { Terminal as TerminalType } from "@xterm/xterm";
+import { onDestroy } from "svelte";
+import { tokenStore } from "$lib/api/client.js";
 
-  type Props = {
-    containerId: string;
-    containerStatus: string;
-  };
+type Props = {
+	containerId: string;
+	containerStatus: string;
+};
 
-  let { containerId, containerStatus }: Props = $props();
+let { containerId, containerStatus }: Props = $props();
 
-  let terminalEl = $state<HTMLElement | null>(null);
-  let term: TerminalType | null = null;
-  let fitAddon: FitAddonType | null = null;
-  let ws: WebSocket | null = null;
+let terminalEl = $state<HTMLElement | null>(null);
+let term: TerminalType | null = null;
+let fitAddon: FitAddonType | null = null;
+let ws: WebSocket | null = null;
 
-  let connected = $state(false);
-  let connecting = $state(false);
-  let exited = $state(false);
-  let termCols = $state(80);
-  let termRows = $state(24);
-  let detectedShell = $state('bash → sh');
-  let resizeObserver: ResizeObserver | null = null;
+let connected = $state(false);
+let connecting = $state(false);
+let exited = $state(false);
+let termCols = $state(80);
+let termRows = $state(24);
+let detectedShell = $state("bash → sh");
+let resizeObserver: ResizeObserver | null = null;
 
-  const isRunning = $derived(containerStatus === 'running');
+const isRunning = $derived(containerStatus === "running");
 
-  $effect(() => {
-    if (terminalEl && isRunning && !term) {
-      initTerminal();
-    }
-  });
+$effect(() => {
+	if (terminalEl && isRunning && !term) {
+		initTerminal();
+	}
+});
 
-  onDestroy(() => {
-    cleanup();
-  });
+onDestroy(() => {
+	cleanup();
+});
 
-  async function initTerminal() {
-    if (!terminalEl || term) return;
+async function initTerminal() {
+	if (!terminalEl || term) return;
 
-    const { Terminal } = await import('@xterm/xterm');
-    const { FitAddon } = await import('@xterm/addon-fit');
-    const { WebLinksAddon } = await import('@xterm/addon-web-links');
+	const { Terminal } = await import("@xterm/xterm");
+	const { FitAddon } = await import("@xterm/addon-fit");
+	const { WebLinksAddon } = await import("@xterm/addon-web-links");
 
-    term = new Terminal({
-      theme: {
-        background: '#0d1117',
-        foreground: '#c9d1d9',
-        cursor: '#58a6ff',
-        cursorAccent: '#0d1117',
-        black: '#484f58',
-        red: '#ff7b72',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#39c5cf',
-        white: '#b1bac4',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#56d4dd',
-        brightWhite: '#f0f6fc',
-      },
-      fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "Menlo", monospace',
-      fontSize: 13,
-      lineHeight: 1.4,
-      cursorBlink: true,
-      cursorStyle: 'block',
-      scrollback: 5000,
-    });
+	term = new Terminal({
+		theme: {
+			background: "#0d1117",
+			foreground: "#c9d1d9",
+			cursor: "#58a6ff",
+			cursorAccent: "#0d1117",
+			black: "#484f58",
+			red: "#ff7b72",
+			green: "#3fb950",
+			yellow: "#d29922",
+			blue: "#58a6ff",
+			magenta: "#bc8cff",
+			cyan: "#39c5cf",
+			white: "#b1bac4",
+			brightBlack: "#6e7681",
+			brightRed: "#ffa198",
+			brightGreen: "#56d364",
+			brightYellow: "#e3b341",
+			brightBlue: "#79c0ff",
+			brightMagenta: "#d2a8ff",
+			brightCyan: "#56d4dd",
+			brightWhite: "#f0f6fc",
+		},
+		fontFamily: '"Cascadia Code", "Fira Code", "JetBrains Mono", "Menlo", monospace',
+		fontSize: 13,
+		lineHeight: 1.4,
+		cursorBlink: true,
+		cursorStyle: "block",
+		scrollback: 5000,
+	});
 
-    fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.loadAddon(new WebLinksAddon());
-    term.open(terminalEl);
-    fitAddon.fit();
-    termCols = term.cols;
-    termRows = term.rows;
+	fitAddon = new FitAddon();
+	term.loadAddon(fitAddon);
+	term.loadAddon(new WebLinksAddon());
+	term.open(terminalEl);
+	fitAddon.fit();
+	termCols = term.cols;
+	termRows = term.rows;
 
-    resizeObserver = new ResizeObserver(() => {
-      fitAddon?.fit();
-      if (term) {
-        termCols = term.cols;
-        termRows = term.rows;
-        if (ws?.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
-        }
-      }
-    });
-    resizeObserver.observe(terminalEl);
+	resizeObserver = new ResizeObserver(() => {
+		fitAddon?.fit();
+		if (term) {
+			termCols = term.cols;
+			termRows = term.rows;
+			if (ws?.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+			}
+		}
+	});
+	resizeObserver.observe(terminalEl);
 
-    connectWebSocket();
-  }
+	connectWebSocket();
+}
 
-  function connectWebSocket() {
-    if (!term) return;
-    connecting = true;
-    exited = false;
+function connectWebSocket() {
+	if (!term) return;
+	connecting = true;
+	exited = false;
 
-    const token = tokenStore.get();
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const url = `${proto}//${window.location.host}/api/v1/containers/${containerId}/exec${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-    ws = new WebSocket(url);
+	const token = tokenStore.get();
+	const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+	const url = `${proto}//${window.location.host}/api/v1/containers/${containerId}/exec${token ? `?token=${encodeURIComponent(token)}` : ""}`;
+	ws = new WebSocket(url);
 
-    ws.onopen = () => {
-      connected = true;
-      connecting = false;
-      if (term) {
-        ws!.send(JSON.stringify({ type: 'resize', cols: term.cols, rows: term.rows }));
-      }
-    };
+	ws.onopen = () => {
+		connected = true;
+		connecting = false;
+		if (term) {
+			ws?.send(JSON.stringify({ type: "resize", cols: term.cols, rows: term.rows }));
+		}
+	};
 
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'output' && term) {
-          term.write(msg.data);
-        } else if (msg.type === 'shell') {
-          // Shell-Name vom Backend — z.B. "/bin/bash", "/bin/sh", "redis-cli"
-          const name = msg.data.split('/').pop() ?? msg.data;
-          detectedShell = name;
-        } else if (msg.type === 'exit') {
-          connected = false;
-          exited = true;
-          term?.write('\r\n\x1b[33m[process exited]\x1b[0m\r\n');
-        }
-      } catch {}
-    };
+	ws.onmessage = (event) => {
+		try {
+			const msg = JSON.parse(event.data);
+			if (msg.type === "output" && term) {
+				term.write(msg.data);
+			} else if (msg.type === "shell") {
+				// Shell-Name vom Backend — z.B. "/bin/bash", "/bin/sh", "redis-cli"
+				const name = msg.data.split("/").pop() ?? msg.data;
+				detectedShell = name;
+			} else if (msg.type === "exit") {
+				connected = false;
+				exited = true;
+				term?.write("\r\n\x1b[33m[process exited]\x1b[0m\r\n");
+			}
+		} catch {}
+	};
 
-    ws.onclose = () => { connected = false; connecting = false; };
-    ws.onerror = () => {
-      connected = false;
-      connecting = false;
-      term?.write('\r\n\x1b[31m[connection error]\x1b[0m\r\n');
-    };
+	ws.onclose = () => {
+		connected = false;
+		connecting = false;
+	};
+	ws.onerror = () => {
+		connected = false;
+		connecting = false;
+		term?.write("\r\n\x1b[31m[connection error]\x1b[0m\r\n");
+	};
 
-    term.onData((data) => {
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'input', data }));
-      }
-    });
-  }
+	term.onData((data) => {
+		if (ws?.readyState === WebSocket.OPEN) {
+			ws.send(JSON.stringify({ type: "input", data }));
+		}
+	});
+}
 
-  function reconnect() {
-    ws?.close();
-    ws = null;
-    term?.clear();
-    exited = false;
-    detectedShell = '…';
-    connectWebSocket();
-  }
+function reconnect() {
+	ws?.close();
+	ws = null;
+	term?.clear();
+	exited = false;
+	detectedShell = "…";
+	connectWebSocket();
+}
 
-  function cleanup() {
-    resizeObserver?.disconnect();
-    if (ws && ws.readyState === WebSocket.OPEN) {
-      // Erst explizite close-Message schicken damit Backend die Session beendet
-      // (Vite Proxy leitet ws.close() nicht zuverlässig weiter)
-      try { ws.send(JSON.stringify({ type: 'close' })); } catch {}
-      try { ws.close(1000, 'tab closed'); } catch {}
-    }
-    ws = null;
-    term?.dispose();
-    term = null;
-  }
+function cleanup() {
+	resizeObserver?.disconnect();
+	if (ws && ws.readyState === WebSocket.OPEN) {
+		// Erst explizite close-Message schicken damit Backend die Session beendet
+		// (Vite Proxy leitet ws.close() nicht zuverlässig weiter)
+		try {
+			ws.send(JSON.stringify({ type: "close" }));
+		} catch {}
+		try {
+			ws.close(1000, "tab closed");
+		} catch {}
+	}
+	ws = null;
+	term?.dispose();
+	term = null;
+}
 </script>
 
 <div

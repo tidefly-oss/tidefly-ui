@@ -1,19 +1,19 @@
 <script lang="ts">
-  import AppLogsTab from '$lib/components/monitoring/AppLogsTab.svelte';
-  import AuditLogsTab from '$lib/components/monitoring/AuditLogsTab.svelte';
-  import CaddyLogsTab from '$lib/components/monitoring/CaddyLogsTab.svelte';
-  import SystemTab from '$lib/components/monitoring/SystemTab.svelte';
-  import { appLogsStore, auditLogsStore } from '$lib/stores/logs.svelte.js';
-  import { ActivityIcon, MonitorIcon, NetworkIcon, ShieldIcon } from '@lucide/svelte';
-  import { onMount } from 'svelte';
+import { ActivityIcon, MonitorIcon, NetworkIcon, ShieldIcon } from "@lucide/svelte";
+import { onMount } from "svelte";
+import AppLogsTab from "$lib/components/monitoring/AppLogsTab.svelte";
+import AuditLogsTab from "$lib/components/monitoring/AuditLogsTab.svelte";
+import CaddyLogsTab from "$lib/components/monitoring/CaddyLogsTab.svelte";
+import SystemTab from "$lib/components/monitoring/SystemTab.svelte";
+import { appLogsStore, auditLogsStore } from "$lib/stores/logs.svelte.js";
 
-  type Tab = 'system' | 'app' | 'audit' | 'proxy';
-  let activeTab = $state<Tab>('system');
+type Tab = "system" | "app" | "audit" | "proxy";
+let activeTab = $state<Tab>("system");
 
-  onMount(() => {
-    appLogsStore.load({ reset: true });
-    auditLogsStore.load({ reset: true });
-  });
+onMount(() => {
+	appLogsStore.load({ reset: true });
+	auditLogsStore.load({ reset: true });
+});
 </script>
 
 <div class="space-y-4">

@@ -1,102 +1,93 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { networksApi } from "$lib/api/v1/networks";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    FlexRender,
-    createSvelteTable,
-  } from "$lib/components/ui/data-table/index.js";
-  import * as Table from "$lib/components/ui/table/index.js";
-  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-  import { NetworkIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
-  import { auth } from "$lib/stores/auth.svelte";
-  import {
-    createMutation,
-    createQuery,
-    useQueryClient,
-  } from "@tanstack/svelte-query";
-  import {
-    getCoreRowModel,
-    getFilteredRowModel,
-    type ColumnDef,
-    type ColumnFiltersState,
-  } from "@tanstack/table-core";
-  import type { Network } from "$lib/api/v1/types";
+import { NetworkIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import {
+	type ColumnDef,
+	type ColumnFiltersState,
+	getCoreRowModel,
+	getFilteredRowModel,
+} from "@tanstack/table-core";
+import { goto } from "$app/navigation";
+import { networksApi } from "$lib/api/v1/networks";
+import type { Network } from "$lib/api/v1/types";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-  let { initialData }: { initialData: Network[] } = $props();
+let { initialData }: { initialData: Network[] } = $props();
 
-  const queryClient = useQueryClient();
-  const isAdmin = $derived(auth.user?.role === 'admin');
+const queryClient = useQueryClient();
+const isAdmin = $derived(auth.user?.role === "admin");
 
-  const query = createQuery(() => ({
-    queryKey: ["networks"],
-    queryFn: () => networksApi.list(),
-    initialData,
-  }));
+const query = createQuery(() => ({
+	queryKey: ["networks"],
+	queryFn: () => networksApi.list(),
+	initialData,
+}));
 
-  const deleteMutation = createMutation(() => ({
-    mutationFn: (id: string) => networksApi.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData<Network[]>(
-              ["networks"],
-              (old) => old?.filter((n) => n.id !== id) ?? [],
-      );
-    },
-  }));
+const deleteMutation = createMutation(() => ({
+	mutationFn: (id: string) => networksApi.delete(id),
+	onSuccess: (_, id) => {
+		queryClient.setQueryData<Network[]>(
+			["networks"],
+			(old) => old?.filter((n) => n.id !== id) ?? []
+		);
+	},
+}));
 
-  let globalFilter = $state("");
-  let columnFilters = $state<ColumnFiltersState>([]);
-  let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+let globalFilter = $state("");
+let columnFilters = $state<ColumnFiltersState>([]);
+let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
 
-  $effect(() => {
-    (query.data ?? []).forEach((n) => {
-      if (usedBy[n.id] === undefined) fetchContainers(n.id);
-    });
-  });
+$effect(() => {
+	(query.data ?? []).forEach((n) => {
+		if (usedBy[n.id] === undefined) fetchContainers(n.id);
+	});
+});
 
-  async function fetchContainers(networkId: string) {
-    try {
-      usedBy[networkId] = await networksApi.containers(networkId);
-    } catch {
-      usedBy[networkId] = [];
-    }
-  }
+async function fetchContainers(networkId: string) {
+	try {
+		usedBy[networkId] = await networksApi.containers(networkId);
+	} catch {
+		usedBy[networkId] = [];
+	}
+}
 
-  const columns: ColumnDef<Network>[] = [
-    { accessorKey: "name", header: "Name" },
-    { id: "usedBy", header: "Used by" },
-    { accessorKey: "driver", header: "Driver" },
-    { accessorKey: "scope", header: "Scope" },
-    { id: "subnet", header: "Subnet" },
-    { id: "actions", header: "Actions" },
-  ];
+const columns: ColumnDef<Network>[] = [
+	{ accessorKey: "name", header: "Name" },
+	{ id: "usedBy", header: "Used by" },
+	{ accessorKey: "driver", header: "Driver" },
+	{ accessorKey: "scope", header: "Scope" },
+	{ id: "subnet", header: "Subnet" },
+	{ id: "actions", header: "Actions" },
+];
 
-  const table = createSvelteTable({
-    get data() {
-      return query.data ?? [];
-    },
-    columns,
-    state: {
-      get globalFilter() {
-        return globalFilter;
-      },
-      get columnFilters() {
-        return columnFilters;
-      },
-    },
-    onGlobalFilterChange: (updater) => {
-      globalFilter =
-              typeof updater === "function" ? updater(globalFilter) : updater;
-    },
-    onColumnFiltersChange: (updater) => {
-      columnFilters =
-              typeof updater === "function" ? updater(columnFilters) : updater;
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    globalFilterFn: "includesString",
-  });
+const table = createSvelteTable({
+	get data() {
+		return query.data ?? [];
+	},
+	columns,
+	state: {
+		get globalFilter() {
+			return globalFilter;
+		},
+		get columnFilters() {
+			return columnFilters;
+		},
+	},
+	onGlobalFilterChange: (updater) => {
+		globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+	},
+	onColumnFiltersChange: (updater) => {
+		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+	},
+	getCoreRowModel: getCoreRowModel(),
+	getFilteredRowModel: getFilteredRowModel(),
+	globalFilterFn: "includesString",
+});
 </script>
 
 <div class="space-y-4">

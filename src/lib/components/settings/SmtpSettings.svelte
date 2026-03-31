@@ -1,88 +1,91 @@
 <script lang="ts">
-    import {createMutation, createQuery, useQueryClient} from '@tanstack/svelte-query';
-    import {Button} from '$lib/components/ui/button/index.js';
-    import {Input} from '$lib/components/ui/input/index.js';
-    import {Label} from '$lib/components/ui/label/index.js';
-    import {adminApi} from '$lib/api/v1/admin';
-    import {toast} from 'svelte-sonner';
-    import {CircleCheckBig, CircleIcon, EyeIcon, EyeOffIcon, FlaskConicalIcon} from '@lucide/svelte';
+import { CircleCheckBig, CircleIcon, EyeIcon, EyeOffIcon, FlaskConicalIcon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const settingsQuery = createQuery(() => ({
-        queryKey: ['admin-settings'],
-        queryFn: () => adminApi.getSettings(),
-    }));
+const settingsQuery = createQuery(() => ({
+	queryKey: ["admin-settings"],
+	queryFn: () => adminApi.getSettings(),
+}));
 
-    const updateMutation = createMutation(() => ({
-        mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
-        onSuccess: () => {
-            qc.invalidateQueries({queryKey: ['admin-settings']});
-            toast.success('SMTP settings saved');
-        },
-        onError: () => toast.error('Failed to save SMTP settings'),
-    }));
+const updateMutation = createMutation(() => ({
+	mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["admin-settings"] });
+		toast.success("SMTP settings saved");
+	},
+	onError: () => toast.error("Failed to save SMTP settings"),
+}));
 
-    const settings = $derived(settingsQuery.data ?? null);
+const settings = $derived(settingsQuery.data ?? null);
 
-    // NOTE: backend field is smtp_username (not smtp_user)
-    let smtpHost = $state('');
-    let smtpPort = $state(587);
-    let smtpUsername = $state('');
-    let smtpPassword = $state('');
-    let smtpFrom = $state('');
-    let smtpTLS = $state(false);
-    let showPassword = $state(false);
+// NOTE: backend field is smtp_username (not smtp_user)
+let smtpHost = $state("");
+let smtpPort = $state(587);
+let smtpUsername = $state("");
+let smtpPassword = $state("");
+let smtpFrom = $state("");
+let smtpTLS = $state(false);
+let showPassword = $state(false);
 
-    $effect(() => {
-        if (settings) {
-            smtpHost = settings.smtp_host ?? '';
-            smtpPort = settings.smtp_port ?? 587;
-            smtpUsername = settings.smtp_username ?? '';
-            smtpFrom = settings.smtp_from ?? '';
-            smtpTLS = settings.smtp_tls_enabled ?? false;
-            // password intentionally not pre-filled
-        }
-    });
+$effect(() => {
+	if (settings) {
+		smtpHost = settings.smtp_host ?? "";
+		smtpPort = settings.smtp_port ?? 587;
+		smtpUsername = settings.smtp_username ?? "";
+		smtpFrom = settings.smtp_from ?? "";
+		smtpTLS = settings.smtp_tls_enabled ?? false;
+		// password intentionally not pre-filled
+	}
+});
 
-    const isConfigured = $derived(!!settings?.smtp_host);
+const isConfigured = $derived(!!settings?.smtp_host);
 
-    function save() {
-        const data: Record<string, unknown> = {
-            smtp_host: smtpHost,
-            smtp_port: Number(smtpPort),
-            smtp_username: smtpUsername,   // matches backend field name
-            smtp_from: smtpFrom,
-            smtp_tls_enabled: smtpTLS,
-        };
-        if (smtpPassword) data.smtp_password = smtpPassword;
-        updateMutation.mutate(data);
-    }
+function save() {
+	const data: Record<string, unknown> = {
+		smtp_host: smtpHost,
+		smtp_port: Number(smtpPort),
+		smtp_username: smtpUsername, // matches backend field name
+		smtp_from: smtpFrom,
+		smtp_tls_enabled: smtpTLS,
+	};
+	if (smtpPassword) data.smtp_password = smtpPassword;
+	updateMutation.mutate(data);
+}
 
-    function clear() {
-        updateMutation.mutate({
-            smtp_host: '', smtp_port: 587,
-            smtp_username: '', smtp_password: '',
-            smtp_from: '', smtp_tls_enabled: false,
-        });
-        smtpHost = '';
-        smtpPort = 587;
-        smtpUsername = '';
-        smtpPassword = '';
-        smtpFrom = '';
-        smtpTLS = false;
-    }
+function clear() {
+	updateMutation.mutate({
+		smtp_host: "",
+		smtp_port: 587,
+		smtp_username: "",
+		smtp_password: "",
+		smtp_from: "",
+		smtp_tls_enabled: false,
+	});
+	smtpHost = "";
+	smtpPort = 587;
+	smtpUsername = "";
+	smtpPassword = "";
+	smtpFrom = "";
+	smtpTLS = false;
+}
 
-    // Dev shortcut: fill Mailpit defaults
-    function fillMailpit() {
-        smtpHost = 'mailpit';   // service name in docker-compose
-        smtpPort = 1025;
-        smtpUsername = '';
-        smtpPassword = '';
-        smtpFrom = 'noreply@tidefly-plane.local';
-        smtpTLS = false;
-        toast.info('Mailpit defaults filled — click Save Changes to apply');
-    }
+// Dev shortcut: fill Mailpit defaults
+function fillMailpit() {
+	smtpHost = "mailpit"; // service name in docker-compose
+	smtpPort = 1025;
+	smtpUsername = "";
+	smtpPassword = "";
+	smtpFrom = "noreply@tidefly-plane.local";
+	smtpTLS = false;
+	toast.info("Mailpit defaults filled — click Save Changes to apply");
+}
 </script>
 
 <div class="rounded-xl border bg-card divide-y">

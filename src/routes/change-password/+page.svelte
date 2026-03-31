@@ -1,44 +1,41 @@
 <script lang="ts">
-    import { api } from '$lib/api';
-    import { auth } from '$lib/stores/auth.svelte';
-    import { goto } from '$app/navigation';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import { toast } from 'svelte-sonner';
-    import { KeyRoundIcon } from '@lucide/svelte';
+import { KeyRoundIcon } from "@lucide/svelte";
+import { toast } from "svelte-sonner";
+import { goto } from "$app/navigation";
+import { api } from "$lib/api";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-    let currentPassword = $state('');
-    let newPassword     = $state('');
-    let confirmPassword = $state('');
-    let loading         = $state(false);
+let currentPassword = $state("");
+let newPassword = $state("");
+let confirmPassword = $state("");
+let loading = $state(false);
 
-    const passwordsMatch  = $derived(newPassword === confirmPassword);
-    const newPasswordLong = $derived(newPassword.length >= 8);
-    const canSubmit       = $derived(
-        currentPassword.length > 0 &&
-        newPasswordLong &&
-        passwordsMatch &&
-        !loading
-    );
+const passwordsMatch = $derived(newPassword === confirmPassword);
+const newPasswordLong = $derived(newPassword.length >= 8);
+const canSubmit = $derived(
+	currentPassword.length > 0 && newPasswordLong && passwordsMatch && !loading
+);
 
-    async function submit() {
-        if (!canSubmit) return;
-        loading = true;
-        try {
-            await api.post('/api/v1/auth/change-password', {
-                current_password: currentPassword,
-                new_password:     newPassword,
-            });
-            await auth.refresh();
-            toast.success('Password changed successfully');
-            await goto('/dashboard');
-        } catch (err: any) {
-            toast.error(err?.message ?? 'Failed to change password');
-        } finally {
-            loading = false;
-        }
-    }
+async function submit() {
+	if (!canSubmit) return;
+	loading = true;
+	try {
+		await api.post("/api/v1/auth/change-password", {
+			current_password: currentPassword,
+			new_password: newPassword,
+		});
+		await auth.refresh();
+		toast.success("Password changed successfully");
+		await goto("/dashboard");
+	} catch (err) {
+		toast.error((err as Error)?.message ?? "Failed to change password");
+	} finally {
+		loading = false;
+	}
+}
 </script>
 
 <div class="min-h-svh flex items-center justify-center p-6">

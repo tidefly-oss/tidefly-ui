@@ -1,6 +1,6 @@
 export interface AppLog {
 	id: number;
-	level: 'INFO' | 'WARN' | 'ERROR';
+	level: "INFO" | "WARN" | "ERROR";
 	message: string;
 	component: string;
 	error: string;

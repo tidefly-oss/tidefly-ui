@@ -1,8 +1,8 @@
 <script lang="ts">
-	import GalleryVerticalEndIcon from "@lucide/svelte/icons/gallery-vertical-end";
-	import LoginForm from "$lib/components/login/login-form.svelte";
-    import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg"
-    import TideflyLogo from "$lib/assets/tidefly_logo.svg"
+import GalleryVerticalEndIcon from "@lucide/svelte/icons/gallery-vertical-end";
+import TideflyLogo from "$lib/assets/tidefly_logo.svg";
+import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
+import LoginForm from "$lib/components/login/login-form.svelte";
 </script>
 <div class="grid min-h-svh lg:grid-cols-2">
     <div class="flex flex-col gap-4 p-6 md:p-10">

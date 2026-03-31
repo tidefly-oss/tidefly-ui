@@ -1,75 +1,88 @@
 <script lang="ts">
-    import { gitApi } from '$lib/api/v1/git';
-    import { providerMeta } from '$lib/api/v1/types/git.js';
-    import type { GitIntegration } from '$lib/api/v1/types/git.js';
-    import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-    import GitSharePopover from './GitSharePopover.svelte';
-    import {
-        GitBranchIcon, Trash2Icon, ShieldCheckIcon, RocketIcon,
-        CircleCheckIcon, CircleXIcon, Loader, PlusIcon, ShareIcon,
-    } from '@lucide/svelte';
-    import { SiBitbucket, SiGitea, SiGithub, SiGitlab } from '@icons-pack/svelte-simple-icons';
-    import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
-    import { toast } from 'svelte-sonner';
+import { SiBitbucket, SiGitea, SiGithub, SiGitlab } from "@icons-pack/svelte-simple-icons";
+import {
+	CircleCheckIcon,
+	CircleXIcon,
+	GitBranchIcon,
+	Loader,
+	PlusIcon,
+	RocketIcon,
+	ShareIcon,
+	ShieldCheckIcon,
+	Trash2Icon,
+} from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import type { Component } from "svelte";
+import { toast } from "svelte-sonner";
+import { gitApi } from "$lib/api/v1/git";
+import type { GitIntegration } from "$lib/api/v1/types/git.js";
+import { providerMeta } from "$lib/api/v1/types/git.js";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import GitSharePopover from "./GitSharePopover.svelte";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const query = createQuery(() => ({
-        queryKey: ['git-integrations'],
-        queryFn:  () => gitApi.list(),
-    }));
+const query = createQuery(() => ({
+	queryKey: ["git-integrations"],
+	queryFn: () => gitApi.list(),
+}));
 
-    const integrations = $derived(query.data ?? []);
+const integrations = $derived(query.data ?? []);
 
-    // ── Validate ──────────────────────────────────────────────────────────────
+// ── Validate ──────────────────────────────────────────────────────────────
 
-    let validatingId  = $state<string | null>(null);
-    let validResults  = $state<Record<string, boolean>>({});
+let validatingId = $state<string | null>(null);
+let validResults = $state<Record<string, boolean>>({});
 
-    async function validate(id: string) {
-        validatingId = id;
-        try {
-            const r = await gitApi.validate(id);
-            validResults = { ...validResults, [id]: r.valid };
-            toast[r.valid ? 'success' : 'error'](r.valid ? 'Token valid' : (r.error ?? 'Token invalid'));
-        } catch {
-            toast.error('Validation failed');
-        } finally {
-            validatingId = null;
-        }
-    }
+async function validate(id: string) {
+	validatingId = id;
+	try {
+		const r = await gitApi.validate(id);
+		validResults = { ...validResults, [id]: r.valid };
+		toast[r.valid ? "success" : "error"](r.valid ? "Token valid" : (r.error ?? "Token invalid"));
+	} catch {
+		toast.error("Validation failed");
+	} finally {
+		validatingId = null;
+	}
+}
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+// ── Delete ────────────────────────────────────────────────────────────────
 
-    const deleteMut = createMutation(() => ({
-        mutationFn: (id: string) => gitApi.delete(id),
-        onSuccess: (_, id) => {
-            qc.setQueryData<GitIntegration[]>(['git-integrations'], (old) =>
-                old ? old.filter(i => i.id !== id) : old
-            );
-            toast.success('Integration deleted');
-        },
-        onError: () => toast.error('Failed to delete integration'),
-    }));
+const deleteMut = createMutation(() => ({
+	mutationFn: (id: string) => gitApi.delete(id),
+	onSuccess: (_, id) => {
+		qc.setQueryData<GitIntegration[]>(["git-integrations"], (old) =>
+			old ? old.filter((i) => i.id !== id) : old
+		);
+		toast.success("Integration deleted");
+	},
+	onError: () => toast.error("Failed to delete integration"),
+}));
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
-    function providerIcon(provider: string) {
-        const map: Record<string, any> = {
-            github: SiGithub, gitlab: SiGitlab,
-            gitea: SiGitea, forgejo: SiGitea, bitbucket: SiBitbucket,
-        };
-        return map[provider] ?? GitBranchIcon;
-    }
+function providerIcon(provider: string): Component {
+	const map: Record<string, Component> = {
+		github: SiGithub,
+		gitlab: SiGitlab,
+		gitea: SiGitea,
+		forgejo: SiGitea,
+		bitbucket: SiBitbucket,
+	};
+	return map[provider] ?? GitBranchIcon;
+}
 
-    function formatDate(iso: string) {
-        return new Date(iso).toLocaleDateString('de-DE', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-        });
-    }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 </script>
 
 <div class="space-y-4">

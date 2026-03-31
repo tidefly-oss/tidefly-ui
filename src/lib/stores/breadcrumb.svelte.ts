@@ -1,4 +1,4 @@
-import { page } from '$app/state';
+import { page } from "$app/state";
 
 export interface BreadcrumbItem {
 	label: string;
@@ -7,9 +7,9 @@ export interface BreadcrumbItem {
 
 function formatSegment(segment: string): string {
 	return segment
-		.split('-')
+		.split("-")
 		.map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-		.join(' ');
+		.join(" ");
 }
 
 function isIdSegment(segment: string): boolean {
@@ -20,7 +20,7 @@ function isIdSegment(segment: string): boolean {
 	);
 }
 
-const ROOT_PATHS = new Set(['/', '/dashboard']);
+const ROOT_PATHS = new Set(["/", "/dashboard"]);
 
 export function getBreadcrumb(): BreadcrumbItem[] {
 	const pathname = page.url.pathname;
@@ -29,26 +29,26 @@ export function getBreadcrumb(): BreadcrumbItem[] {
 	if (ROOT_PATHS.has(pathname)) {
 		return [
 			{
-				label: pageData?.title || 'Dashboard',
-				href: pathname === '/' ? '/' : '/dashboard',
+				label: pageData?.title || "Dashboard",
+				href: pathname === "/" ? "/" : "/dashboard",
 			},
 		];
 	}
 
-	const allSegments = pathname.split('/').filter(Boolean);
-	const segments = allSegments.filter((segment) => segment !== 'dashboard');
+	const allSegments = pathname.split("/").filter(Boolean);
+	const segments = allSegments.filter((segment) => segment !== "dashboard");
 
-	const crumbs: BreadcrumbItem[] = [{ label: 'Dashboard', href: '/dashboard' }];
+	const crumbs: BreadcrumbItem[] = [{ label: "Dashboard", href: "/dashboard" }];
 
 	segments.forEach((segment, index) => {
 		const isLast = index === segments.length - 1;
-		const href = `/dashboard/${segments.slice(0, index + 1).join('/')}`;
+		const href = `/dashboard/${segments.slice(0, index + 1).join("/")}`;
 
 		let label: string;
 		if (isLast && pageData?.title) {
 			label = pageData.title;
 		} else if (isIdSegment(segment)) {
-			label = segment.slice(0, 8) + '...';
+			label = `${segment.slice(0, 8)}...`;
 		} else {
 			label = formatSegment(segment);
 		}

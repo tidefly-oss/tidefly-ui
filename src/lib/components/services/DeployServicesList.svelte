@@ -1,107 +1,92 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import {
-    deployApi
-  } from "$lib/api/v1/deploy";
-  import type { Service, ServiceStatus } from "$lib/api/v1/types";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    FlexRender,
-    createSvelteTable,
-  } from "$lib/components/ui/data-table/index.js";
-  import * as Table from "$lib/components/ui/table/index.js";
-  import {
-    CircleIcon,
-    DatabaseIcon,
-    PlusIcon,
-    Trash2Icon,
-  } from "@lucide/svelte";
-  import {
-    createMutation,
-    createQuery,
-    useQueryClient,
-  } from "@tanstack/svelte-query";
-  import {
-    getCoreRowModel,
-    getFilteredRowModel,
-    type ColumnDef,
-    type ColumnFiltersState,
-  } from "@tanstack/table-core";
+import { CircleIcon, DatabaseIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import {
+	type ColumnDef,
+	type ColumnFiltersState,
+	getCoreRowModel,
+	getFilteredRowModel,
+} from "@tanstack/table-core";
+import { goto } from "$app/navigation";
+import { deployApi } from "$lib/api/v1/deploy";
+import type { Service, ServiceStatus } from "$lib/api/v1/types";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
 
-  let { initialData }: { initialData: Service[] } = $props();
+let { initialData }: { initialData: Service[] } = $props();
 
-  const queryClient = useQueryClient();
+const queryClient = useQueryClient();
 
-  const query = createQuery(() => ({
-    queryKey: ["services"],
-    queryFn: () => deployApi.list(),
-    initialData,
-  }));
+const query = createQuery(() => ({
+	queryKey: ["services"],
+	queryFn: () => deployApi.list(),
+	initialData,
+}));
 
-  const deleteMutation = createMutation(() => ({
-    mutationFn: (id: string) => deployApi.delete(id),
-    onSuccess: (_, id) => {
-      queryClient.setQueryData<Service[]>(
-        ["services"],
-        (old) => old?.filter((s) => s.id !== id) ?? [],
-      );
-    },
-  }));
+const deleteMutation = createMutation(() => ({
+	mutationFn: (id: string) => deployApi.delete(id),
+	onSuccess: (_, id) => {
+		queryClient.setQueryData<Service[]>(
+			["services"],
+			(old) => old?.filter((s) => s.id !== id) ?? []
+		);
+	},
+}));
 
-  async function deleteService(id: string) {
-    deleteMutation.mutate(id);
-  }
+async function deleteService(id: string) {
+	deleteMutation.mutate(id);
+}
 
-  const statusColor: Record<ServiceStatus, string> = {
-    running: "#22c55e",
-    deploying: "#3b82f6",
-    stopped: "#6b7280",
-    failed: "#ef4444",
-  };
+const statusColor: Record<ServiceStatus, string> = {
+	running: "#22c55e",
+	deploying: "#3b82f6",
+	stopped: "#6b7280",
+	failed: "#ef4444",
+};
 
-  const statusLabel: Record<ServiceStatus, string> = {
-    running: "Running",
-    deploying: "Deploying…",
-    stopped: "Stopped",
-    failed: "Failed",
-  };
+const statusLabel: Record<ServiceStatus, string> = {
+	running: "Running",
+	deploying: "Deploying…",
+	stopped: "Stopped",
+	failed: "Failed",
+};
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 
-  let columnFilters = $state<ColumnFiltersState>([]);
+let columnFilters = $state<ColumnFiltersState>([]);
 
-  const columns: ColumnDef<Service>[] = [
-    { id: "icon", header: "" },
-    { accessorKey: "name", header: "Name" },
-    { accessorKey: "version", header: "Version" },
-    { accessorKey: "created_at", header: "Created" },
-    { id: "actions", header: "Actions" },
-  ];
+const columns: ColumnDef<Service>[] = [
+	{ id: "icon", header: "" },
+	{ accessorKey: "name", header: "Name" },
+	{ accessorKey: "version", header: "Version" },
+	{ accessorKey: "created_at", header: "Created" },
+	{ id: "actions", header: "Actions" },
+];
 
-  const table = createSvelteTable({
-    get data() {
-      return query.data ?? [];
-    },
-    columns,
-    state: {
-      get columnFilters() {
-        return columnFilters;
-      },
-    },
-    onColumnFiltersChange: (updater) => {
-      columnFilters =
-        typeof updater === "function" ? updater(columnFilters) : updater;
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-  });
+const table = createSvelteTable({
+	get data() {
+		return query.data ?? [];
+	},
+	columns,
+	state: {
+		get columnFilters() {
+			return columnFilters;
+		},
+	},
+	onColumnFiltersChange: (updater) => {
+		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+	},
+	getCoreRowModel: getCoreRowModel(),
+	getFilteredRowModel: getFilteredRowModel(),
+});
 </script>
 
 <div class="bg-card border rounded-xl overflow-hidden">

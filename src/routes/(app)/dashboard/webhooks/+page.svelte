@@ -1,63 +1,62 @@
 <script lang="ts">
-    import type { CreateWebhookRequest, Webhook } from "$lib/api/v1/types/webhooks.js";
-    import WebhookCreateDialog from "$lib/components/webhooks/WebhookCreateDialog.svelte";
-    import WebhookRow from "$lib/components/webhooks/WebhookRow.svelte";
-    import * as Select from "$lib/components/ui/select/index.js";
-    import { Button } from "$lib/components/ui/button";
-    import { auth } from "$lib/stores/auth.svelte.js";
-    import { projectQueries } from "$lib/queries/projects.js";
-    import { webhookQueries, webhookKeys } from "$lib/queries/webhooks.js";
-    import { webhooksApi } from "$lib/api/v1/webhooks/index.js";
-    import { type WebhookDelivery } from "$lib/api/v1/types/webhooks.js";
-    import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
-    import { PlusIcon, ZapIcon } from "@lucide/svelte";
+import { PlusIcon, ZapIcon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import type { CreateWebhookRequest, Webhook, WebhookDelivery } from "$lib/api/v1/types/webhooks.js";
+import { webhooksApi } from "$lib/api/v1/webhooks/index.js";
+import { Button } from "$lib/components/ui/button";
+import * as Select from "$lib/components/ui/select/index.js";
+import WebhookCreateDialog from "$lib/components/webhooks/WebhookCreateDialog.svelte";
+import WebhookRow from "$lib/components/webhooks/WebhookRow.svelte";
+import { projectQueries } from "$lib/queries/projects.js";
+import { webhookKeys, webhookQueries } from "$lib/queries/webhooks.js";
+import { auth } from "$lib/stores/auth.svelte.js";
 
-    const qc = useQueryClient();
-    const isAdmin = $derived(auth.user?.role === "admin");
+const qc = useQueryClient();
+const isAdmin = $derived(auth.user?.role === "admin");
 
-    // ── Projects ──────────────────────────────────────────────────────────────
-    const projectsQuery = createQuery(() => projectQueries.list());
-    const visibleProjects = $derived(() => {
-        const all = projectsQuery.data ?? [];
-        return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
-    });
+// ── Projects ──────────────────────────────────────────────────────────────
+const projectsQuery = createQuery(() => projectQueries.list());
+const visibleProjects = $derived(() => {
+	const all = projectsQuery.data ?? [];
+	return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
+});
 
-    let selectedProjectId = $state("");
-    $effect(() => {
-        if (!selectedProjectId && visibleProjects().length > 0) {
-            selectedProjectId = visibleProjects()[0].id;
-        }
-    });
+let selectedProjectId = $state("");
+$effect(() => {
+	if (!selectedProjectId && visibleProjects().length > 0) {
+		selectedProjectId = visibleProjects()[0].id;
+	}
+});
 
-    // ── Webhooks ──────────────────────────────────────────────────────────────
-    const webhooksQuery = createQuery(() => webhookQueries.list(selectedProjectId));
-    const webhooks = $derived(webhooksQuery.data ?? []);
+// ── Webhooks ──────────────────────────────────────────────────────────────
+const webhooksQuery = createQuery(() => webhookQueries.list(selectedProjectId));
+const webhooks = $derived(webhooksQuery.data ?? []);
 
-    // ── Mutations ─────────────────────────────────────────────────────────────
-    const createMut = createMutation(() => ({
-        mutationFn: (req: CreateWebhookRequest) => webhooksApi.create(selectedProjectId, req),
-        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
-    }));
+// ── Mutations ─────────────────────────────────────────────────────────────
+const createMut = createMutation(() => ({
+	mutationFn: (req: CreateWebhookRequest) => webhooksApi.create(selectedProjectId, req),
+	onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+}));
 
-    const deleteMut = createMutation(() => ({
-        mutationFn: (id: string) => webhooksApi.delete(selectedProjectId, id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
-    }));
+const deleteMut = createMutation(() => ({
+	mutationFn: (id: string) => webhooksApi.delete(selectedProjectId, id),
+	onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+}));
 
-    const rotateMut = createMutation(() => ({
-        mutationFn: (id: string) => webhooksApi.rotate(selectedProjectId, id),
-        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
-    }));
+const rotateMut = createMutation(() => ({
+	mutationFn: (id: string) => webhooksApi.rotate(selectedProjectId, id),
+	onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+}));
 
-    let createOpen = $state(false);
+let createOpen = $state(false);
 
-    async function handleCreate(req: CreateWebhookRequest): Promise<Webhook> {
-        return createMut.mutateAsync(req);
-    }
+async function handleCreate(req: CreateWebhookRequest): Promise<Webhook> {
+	return createMut.mutateAsync(req);
+}
 
-    function getDeliveries(projectId: string, id: string): WebhookDelivery[] {
-        return qc.getQueryData<WebhookDelivery[]>(webhookKeys.deliveries(projectId, id)) ?? [];
-    }
+function getDeliveries(projectId: string, id: string): WebhookDelivery[] {
+	return qc.getQueryData<WebhookDelivery[]>(webhookKeys.deliveries(projectId, id)) ?? [];
+}
 </script>
 
 <div class="space-y-6">

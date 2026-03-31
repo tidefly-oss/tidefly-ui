@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import ContainersList from "$lib/components/containers/ContainersList.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { DatabaseIcon, FileCodeIcon } from "@lucide/svelte";
-  import type { PageData } from "./$types";
+import { DatabaseIcon, FileCodeIcon } from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import ContainersList from "$lib/components/containers/ContainersList.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import type { PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
 </script>
 
 <div class="space-y-4">

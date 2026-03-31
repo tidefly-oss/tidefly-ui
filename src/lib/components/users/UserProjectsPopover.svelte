@@ -1,89 +1,89 @@
 <script lang="ts">
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { FolderIcon, CheckIcon, Loader2Icon, CircleIcon, ChevronDownIcon } from '@lucide/svelte';
-    import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
-    import { adminApi } from '$lib/api/v1/admin';
-    import { projectsApi } from '$lib/api/v1/projects';
-    import { toast } from 'svelte-sonner';
-    import type { AdminUser } from '$lib/api/v1/types';
+import { CheckIcon, ChevronDownIcon, CircleIcon, FolderIcon, Loader2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import { projectsApi } from "$lib/api/v1/projects";
+import type { AdminUser } from "$lib/api/v1/types";
+import { Button } from "$lib/components/ui/button/index.js";
 
-    let { user }: { user: AdminUser } = $props();
+let { user }: { user: AdminUser } = $props();
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const projectsQuery = createQuery(() => ({
-        queryKey: ['projects'],
-        queryFn:  () => projectsApi.list(),
-        staleTime: 60_000,
-    }));
+const projectsQuery = createQuery(() => ({
+	queryKey: ["projects"],
+	queryFn: () => projectsApi.list(),
+	staleTime: 60_000,
+}));
 
-    const allProjects = $derived(projectsQuery.data ?? []);
+const allProjects = $derived(projectsQuery.data ?? []);
 
-    let selected = $state<Set<string>>(new Set<string>());
-    let open     = $state(false);
-    let triggerEl = $state<HTMLButtonElement | null>(null);
-    let pos = $state({ top: 0, left: 0 });
+let selected = $state<Set<string>>(new Set<string>());
+let open = $state(false);
+let triggerEl = $state<HTMLButtonElement | null>(null);
+let pos = $state({ top: 0, left: 0 });
 
-    $effect(() => {
-        selected = new Set(user.project_ids);
-    });
+$effect(() => {
+	selected = new Set(user.project_ids);
+});
 
-    function openDropdown() {
-        if (triggerEl) {
-            const rect = triggerEl.getBoundingClientRect();
-            pos = {
-                top:  rect.bottom + window.scrollY + 4,
-                left: rect.left + window.scrollX,
-            };
-        }
-        open = !open;
-    }
+function openDropdown() {
+	if (triggerEl) {
+		const rect = triggerEl.getBoundingClientRect();
+		pos = {
+			top: rect.bottom + window.scrollY + 4,
+			left: rect.left + window.scrollX,
+		};
+	}
+	open = !open;
+}
 
-    function onClickOutside(e: MouseEvent) {
-        const t = e.target as HTMLElement;
-        if (!t.closest('[data-projects-popover]') && !t.closest('[data-projects-dropdown]')) {
-            cancel();
-        }
-    }
+function onClickOutside(e: MouseEvent) {
+	const t = e.target as HTMLElement;
+	if (!t.closest("[data-projects-popover]") && !t.closest("[data-projects-dropdown]")) {
+		cancel();
+	}
+}
 
-    $effect(() => {
-        if (open) {
-            setTimeout(() => document.addEventListener('click', onClickOutside), 0);
-        } else {
-            document.removeEventListener('click', onClickOutside);
-        }
-        return () => document.removeEventListener('click', onClickOutside);
-    });
+$effect(() => {
+	if (open) {
+		setTimeout(() => document.addEventListener("click", onClickOutside), 0);
+	} else {
+		document.removeEventListener("click", onClickOutside);
+	}
+	return () => document.removeEventListener("click", onClickOutside);
+});
 
-    const saveMut = createMutation(() => ({
-        mutationFn: () => adminApi.setUserProjects(user.id, [...selected]),
-        onSuccess: (updated) => {
-            qc.setQueryData<{ users: AdminUser[] }>(['admin-users'], (old) =>
-                old ? { users: old.users.map(u => u.id === updated.id ? updated : u) } : old
-            );
-            toast.success('Projects updated');
-            open = false;
-        },
-        onError: () => toast.error('Failed to update projects'),
-    }));
+const saveMut = createMutation(() => ({
+	mutationFn: () => adminApi.setUserProjects(user.id, [...selected]),
+	onSuccess: (updated) => {
+		qc.setQueryData<{ users: AdminUser[] }>(["admin-users"], (old) =>
+			old ? { users: old.users.map((u) => (u.id === updated.id ? updated : u)) } : old
+		);
+		toast.success("Projects updated");
+		open = false;
+	},
+	onError: () => toast.error("Failed to update projects"),
+}));
 
-    function toggle(id: string) {
-        const next = new Set(selected);
-        if (next.has(id)) next.delete(id);
-        else next.add(id);
-        selected = next;
-    }
+function toggle(id: string) {
+	const next = new Set(selected);
+	if (next.has(id)) next.delete(id);
+	else next.add(id);
+	selected = next;
+}
 
-    function cancel() {
-        selected = new Set(user.project_ids);
-        open = false;
-    }
+function cancel() {
+	selected = new Set(user.project_ids);
+	open = false;
+}
 
-    const isDirty = $derived(
-        JSON.stringify([...selected].sort()) !== JSON.stringify([...user.project_ids].sort())
-    );
+const isDirty = $derived(
+	JSON.stringify([...selected].sort()) !== JSON.stringify([...user.project_ids].sort())
+);
 
-    const assignedCount = $derived(user.project_ids.length);
+const assignedCount = $derived(user.project_ids.length);
 </script>
 
 <!-- Trigger -->

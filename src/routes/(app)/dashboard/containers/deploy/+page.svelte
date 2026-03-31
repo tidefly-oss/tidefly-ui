@@ -1,13 +1,13 @@
 <script lang="ts">
-  import { page } from "$app/state";
-  import ContainerComposeTab from "$lib/components/containers/ContainerComposeTab.svelte";
-  import ContainerDockerfileTab from "$lib/components/containers/ContainerDockerfileTab.svelte";
-  import * as Tabs from "$lib/components/ui/tabs/index.js";
-  import { FileCodeIcon, LayersIcon } from "@lucide/svelte";
+import { FileCodeIcon, LayersIcon } from "@lucide/svelte";
+import { page } from "$app/state";
+import ContainerComposeTab from "$lib/components/containers/ContainerComposeTab.svelte";
+import ContainerDockerfileTab from "$lib/components/containers/ContainerDockerfileTab.svelte";
+import * as Tabs from "$lib/components/ui/tabs/index.js";
 
-  const gitUrl    = $derived(page.url.searchParams.get("git_url") ?? "");
-  const gitBranch = $derived(page.url.searchParams.get("branch") ?? "");
-  const gitName   = $derived(page.url.searchParams.get("name") ?? "");
+const gitUrl = $derived(page.url.searchParams.get("git_url") ?? "");
+const gitBranch = $derived(page.url.searchParams.get("branch") ?? "");
+const gitName = $derived(page.url.searchParams.get("name") ?? "");
 </script>
 
 <div class="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center">

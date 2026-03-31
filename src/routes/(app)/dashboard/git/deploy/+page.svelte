@@ -1,128 +1,153 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { providerMeta } from "$lib/api/v1/types/git.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { Input } from "$lib/components/ui/input/index.js";
-    import { Badge } from "$lib/components/ui/badge/index.js";
-    import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
-    import {
-        GitBranchIcon, BookOpenIcon, ChevronRightIcon, ChevronLeftIcon,
-        CheckIcon, SearchIcon, LockIcon, RocketIcon, PlusIcon, ServerIcon,
-    } from "@lucide/svelte";
-    import { SiGithub, SiGitlab, SiGitea, SiBitbucket } from "@icons-pack/svelte-simple-icons";
-    import { createQuery } from "@tanstack/svelte-query";
-    import { gitApi } from "$lib/api/v1/git";
+import { SiBitbucket, SiGitea, SiGithub, SiGitlab } from "@icons-pack/svelte-simple-icons";
+import {
+	BookOpenIcon,
+	CheckIcon,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	GitBranchIcon,
+	LockIcon,
+	PlusIcon,
+	RocketIcon,
+	SearchIcon,
+	ServerIcon,
+} from "@lucide/svelte";
+import { createQuery } from "@tanstack/svelte-query";
+import type { Component } from "svelte";
+import { goto } from "$app/navigation";
+import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
+import { gitApi } from "$lib/api/v1/git";
+import { providerMeta } from "$lib/api/v1/types/git.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 
-    let step = $state(1);
-    let selectedIntegrationId = $state<string | null>(null);
-    let selectedRepo = $state<{
-        owner: string; name: string; fullName: string;
-        defaultBranch: string; private: boolean; cloneUrl: string;
-    } | null>(null);
-    let selectedBranch = $state("");
-    let workerId = $state<string | null>(null); // null = Plane
-    let repoSearch = $state("");
-    let selectedOwner = $state("all");
-    let branchSearch = $state("");
+let step = $state(1);
+let selectedIntegrationId = $state<string | null>(null);
+let selectedRepo = $state<{
+	owner: string;
+	name: string;
+	fullName: string;
+	defaultBranch: string;
+	private: boolean;
+	cloneUrl: string;
+} | null>(null);
+let selectedBranch = $state("");
+let workerId = $state<string | null>(null); // null = Plane
+let repoSearch = $state("");
+let selectedOwner = $state("all");
+let branchSearch = $state("");
 
-    const integrationsQuery = createQuery(() => ({
-        queryKey: ["git-integrations"],
-        queryFn: () => gitApi.list(),
-    }));
+const integrationsQuery = createQuery(() => ({
+	queryKey: ["git-integrations"],
+	queryFn: () => gitApi.list(),
+}));
 
-    const reposQuery = createQuery(() => ({
-        queryKey: ["git-repos", selectedIntegrationId],
-        queryFn: () => gitApi.listRepositories(selectedIntegrationId!),
-        enabled: !!selectedIntegrationId && step >= 2,
-        staleTime: 60_000,
-    }));
+const reposQuery = createQuery(() => ({
+	queryKey: ["git-repos", selectedIntegrationId],
+	queryFn: () => gitApi.listRepositories(selectedIntegrationId ?? ""),
+	enabled: !!selectedIntegrationId && step >= 2,
+	staleTime: 60_000,
+}));
 
-    const branchesQuery = createQuery(() => ({
-        queryKey: ["git-branches", selectedIntegrationId, selectedRepo?.owner, selectedRepo?.name],
-        queryFn: () => gitApi.listBranches(selectedIntegrationId!, selectedRepo!.owner, selectedRepo!.name),
-        enabled: !!selectedIntegrationId && !!selectedRepo && step >= 3,
-        staleTime: 30_000,
-    }));
+const branchesQuery = createQuery(() => ({
+	queryKey: ["git-branches", selectedIntegrationId, selectedRepo?.owner, selectedRepo?.name],
+	queryFn: () =>
+		gitApi.listBranches(
+			selectedIntegrationId ?? "",
+			selectedRepo?.owner ?? "",
+			selectedRepo?.name ?? ""
+		),
+	enabled: !!selectedIntegrationId && !!selectedRepo && step >= 3,
+	staleTime: 30_000,
+}));
 
-    const workersQuery = createQuery(() => ({
-        queryKey: ["workers"],
-        queryFn: () => agentApi.listWorkers(),
-        staleTime: 30_000,
-    }));
+const workersQuery = createQuery(() => ({
+	queryKey: ["workers"],
+	queryFn: () => agentApi.listWorkers(),
+	staleTime: 30_000,
+}));
 
-    const integrations = $derived(integrationsQuery.data ?? []);
-    const connectedWorkers = $derived(
-        (workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
-    );
+const integrations = $derived(integrationsQuery.data ?? []);
+const connectedWorkers = $derived(
+	(workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
+);
 
-    const owners = $derived(
-        [...new Set((reposQuery.data ?? []).map((r: any) => r.full_name.split("/")[0]))].sort()
-    );
+const owners = $derived(
+	[...new Set((reposQuery.data ?? []).map((r) => r.full_name.split("/")[0]))].sort()
+);
 
-    const filteredRepos = $derived(
-        (reposQuery.data ?? []).filter((r: any) => {
-            const matchOwner = selectedOwner === "all" || r.full_name.startsWith(selectedOwner + "/");
-            const matchSearch = !repoSearch || r.full_name.toLowerCase().includes(repoSearch.toLowerCase());
-            return matchOwner && matchSearch;
-        })
-    );
+const filteredRepos = $derived(
+	(reposQuery.data ?? []).filter((r) => {
+		const matchOwner = selectedOwner === "all" || r.full_name.startsWith(`${selectedOwner}/`);
+		const matchSearch = !repoSearch || r.full_name.toLowerCase().includes(repoSearch.toLowerCase());
+		return matchOwner && matchSearch;
+	})
+);
 
-    const branches = $derived(branchesQuery.data ?? []);
-    const filteredBranches = $derived(
-        branchSearch ? branches.filter((b: any) => b.name.toLowerCase().includes(branchSearch.toLowerCase())) : branches
-    );
+const branches = $derived(branchesQuery.data ?? []);
+const filteredBranches = $derived(
+	branchSearch
+		? branches.filter((b) => b.name.toLowerCase().includes(branchSearch.toLowerCase()))
+		: branches
+);
 
-    // Step 4 only shown when workers are available
-    const hasWorkers = $derived(connectedWorkers.length > 0);
-    const totalSteps = $derived(hasWorkers ? 4 : 3);
+// Step 4 only shown when workers are available
+const hasWorkers = $derived(connectedWorkers.length > 0);
+const totalSteps = $derived(hasWorkers ? 4 : 3);
 
-    function selectIntegration(id: string) {
-        selectedIntegrationId = id;
-        selectedRepo = null;
-        selectedBranch = "";
-        selectedOwner = "all";
-        repoSearch = "";
-    }
+function selectIntegration(id: string) {
+	selectedIntegrationId = id;
+	selectedRepo = null;
+	selectedBranch = "";
+	selectedOwner = "all";
+	repoSearch = "";
+}
 
-    function selectRepo(repo: any) {
-        selectedRepo = {
-            owner: repo.full_name.split("/")[0],
-            name: repo.name,
-            fullName: repo.full_name,
-            defaultBranch: repo.default_branch,
-            private: repo.private,
-            cloneUrl: repo.clone_url,
-        };
-        selectedBranch = repo.default_branch;
-    }
+// biome-ignore lint/suspicious/noExplicitAny: repo shape varies by provider
+function selectRepo(repo: any) {
+	selectedRepo = {
+		owner: repo.full_name.split("/")[0],
+		name: repo.name,
+		fullName: repo.full_name,
+		defaultBranch: repo.default_branch,
+		private: repo.private,
+		cloneUrl: repo.clone_url,
+	};
+	selectedBranch = repo.default_branch;
+}
 
-    function handleDeploy() {
-        const params = new URLSearchParams({
-            git_url: selectedRepo!.cloneUrl,
-            branch: selectedBranch,
-            name: selectedRepo!.name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
-            ...(workerId ? { worker_id: workerId } : {}),
-        });
-        goto(`/dashboard/containers/deploy?${params}`);
-    }
+function handleDeploy() {
+	if (!selectedRepo) return;
+	const params = new URLSearchParams({
+		git_url: selectedRepo.cloneUrl,
+		branch: selectedBranch,
+		name: selectedRepo.name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+		...(workerId ? { worker_id: workerId } : {}),
+	});
+	goto(`/dashboard/containers/deploy?${params}`);
+}
 
-    function providerIcon(provider: string) {
-        const map: Record<string, any> = {
-            github: SiGithub, gitlab: SiGitlab, gitea: SiGitea, forgejo: SiGitea, bitbucket: SiBitbucket,
-        };
-        return map[provider] ?? GitBranchIcon;
-    }
+function providerIcon(provider: string): Component {
+	const map: Record<string, Component> = {
+		github: SiGithub,
+		gitlab: SiGitlab,
+		gitea: SiGitea,
+		forgejo: SiGitea,
+		bitbucket: SiBitbucket,
+	};
+	return map[provider] ?? GitBranchIcon;
+}
+function workerLabel(w: WorkerNode) {
+	return w.name.length > 28 ? `${w.name.slice(0, 24)}…` : w.name;
+}
 
-    function workerLabel(w: WorkerNode) {
-        return w.name.length > 28 ? w.name.slice(0, 24) + "…" : w.name;
-    }
-
-    const steps = $derived([
-        { n: 1, label: "Integration" },
-        { n: 2, label: "Repository" },
-        { n: 3, label: "Branch" },
-        ...(hasWorkers ? [{ n: 4, label: "Server" }] : []),
-    ]);
+const steps = $derived([
+	{ n: 1, label: "Integration" },
+	{ n: 2, label: "Repository" },
+	{ n: 3, label: "Branch" },
+	...(hasWorkers ? [{ n: 4, label: "Server" }] : []),
+]);
 </script>
 
 <div class="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center">

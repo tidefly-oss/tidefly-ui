@@ -1,7 +1,7 @@
-import { volumesApi } from '$lib/api/v1/volumes';
-import type { PageLoad } from './$types';
+import { volumesApi } from "$lib/api/v1/volumes";
+import type { PageLoad } from "./$types";
 
 export const load: PageLoad = async ({ fetch }) => {
-  const volumes = await volumesApi.list(fetch);
-  return { volumes };
+	const volumes = await volumesApi.list(fetch);
+	return { volumes };
 };

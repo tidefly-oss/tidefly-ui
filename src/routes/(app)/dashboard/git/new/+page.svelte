@@ -1,85 +1,90 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { page } from "$app/state";
-  import { gitApi } from "$lib/api/v1/git";
-  import { type GitProvider, providerMeta } from "$lib/api/v1/types/git.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    CircleAlert,
-    CircleCheckBig,
-    ChevronRightIcon,
-    ExternalLinkIcon,
-    GitBranchIcon,
-    KeyRoundIcon,
-    LoaderCircleIcon,
-    TagIcon,
-  } from "@lucide/svelte";
-  import { createMutation } from "@tanstack/svelte-query";
-  import { SiBitbucket, SiGitea, SiGithub, SiGitlab } from "@icons-pack/svelte-simple-icons";
+import { SiBitbucket, SiGitea, SiGithub, SiGitlab } from "@icons-pack/svelte-simple-icons";
+import {
+	ChevronRightIcon,
+	CircleAlert,
+	CircleCheckBig,
+	ExternalLinkIcon,
+	GitBranchIcon,
+	KeyRoundIcon,
+	LoaderCircleIcon,
+	TagIcon,
+} from "@lucide/svelte";
+import { createMutation } from "@tanstack/svelte-query";
+import type { Component } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import { gitApi } from "$lib/api/v1/git";
+import { type GitProvider, providerMeta } from "$lib/api/v1/types/git.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 
-  let step = $state<1 | 2 | 3>(1);
+let step = $state<1 | 2 | 3>(1);
 
-  let selectedProvider = $state<GitProvider | null>(
-          (page.url.searchParams.get("provider") as GitProvider) ?? null,
-  );
-  let name     = $state("");
-  let token    = $state("");
-  let baseURL  = $state("");
-  let username = $state("");
-  let error    = $state("");
+let selectedProvider = $state<GitProvider | null>(
+	(page.url.searchParams.get("provider") as GitProvider) ?? null
+);
+let name = $state("");
+let token = $state("");
+let baseURL = $state("");
+let username = $state("");
+let error = $state("");
 
-  const createMut = createMutation(() => ({
-    mutationFn: () => {
-      if (!selectedProvider) throw new Error("No provider selected");
-      return gitApi.create({
-        name:     name.trim(),
-        provider: selectedProvider,
-        token:    token.trim(),
-        base_url: baseURL.trim() || undefined,
-        username: username.trim() || undefined,
-      });
-    },
-    onSuccess: () => { step = 3; },
-    onError: (err: Error) => { error = err.message ?? "Something went wrong"; },
-  }));
+const createMut = createMutation(() => ({
+	mutationFn: () => {
+		if (!selectedProvider) throw new Error("No provider selected");
+		return gitApi.create({
+			name: name.trim(),
+			provider: selectedProvider,
+			token: token.trim(),
+			base_url: baseURL.trim() || undefined,
+			username: username.trim() || undefined,
+		});
+	},
+	onSuccess: () => {
+		step = 3;
+	},
+	onError: (err: Error) => {
+		error = err.message ?? "Something went wrong";
+	},
+}));
 
-  const meta = $derived(selectedProvider ? providerMeta[selectedProvider] : null);
+const meta = $derived(selectedProvider ? providerMeta[selectedProvider] : null);
 
-  const tokenDocUrl: Record<GitProvider, string> = {
-    github:    "https://github.com/settings/tokens/new?scopes=repo",
-    gitlab:    "https://gitlab.com/-/profile/personal_access_tokens",
-    gitea:     "",
-    bitbucket: "https://bitbucket.org/account/settings/app-passwords/new",
-  };
+const tokenDocUrl: Record<GitProvider, string> = {
+	github: "https://github.com/settings/tokens/new?scopes=repo",
+	gitlab: "https://gitlab.com/-/profile/personal_access_tokens",
+	gitea: "",
+	bitbucket: "https://bitbucket.org/account/settings/app-passwords/new",
+};
 
-  const tokenHint: Record<GitProvider, string> = {
-    github:    "Personal Access Token with repo scope",
-    gitlab:    "Personal Access Token with read_repository scope",
-    gitea:     "Access Token from your Gitea / Forgejo instance",
-    bitbucket: "App Password — not your account password",
-  };
+const tokenHint: Record<GitProvider, string> = {
+	github: "Personal Access Token with repo scope",
+	gitlab: "Personal Access Token with read_repository scope",
+	gitea: "Access Token from your Gitea / Forgejo instance",
+	bitbucket: "App Password — not your account password",
+};
 
-  function canProceedStep2() {
-    if (!name.trim() || !token.trim()) return false;
-    if (meta?.requiresBaseUrl && !baseURL.trim()) return false;
-    return !(meta?.requiresUsername && !username.trim());
-  }
+function canProceedStep2() {
+	if (!name.trim() || !token.trim()) return false;
+	if (meta?.requiresBaseUrl && !baseURL.trim()) return false;
+	return !(meta?.requiresUsername && !username.trim());
+}
 
-  function selectProvider(p: GitProvider) {
-    selectedProvider = p;
-    step = 2;
-  }
+function selectProvider(p: GitProvider) {
+	selectedProvider = p;
+	step = 2;
+}
 
-  function providerIcon(provider: string) {
-    const map: Record<string, any> = {
-      github:    SiGithub,
-      gitlab:    SiGitlab,
-      gitea:     SiGitea,
-      bitbucket: SiBitbucket,
-    };
-    return map[provider] ?? GitBranchIcon;
-  }
+function providerIcon(provider: string): Component {
+	const map: Record<string, Component> = {
+		github: SiGithub,
+		gitlab: SiGitlab,
+		gitea: SiGitea,
+		bitbucket: SiBitbucket,
+	};
+	return map[provider] ?? GitBranchIcon;
+}
 </script>
 
 <div class="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center">

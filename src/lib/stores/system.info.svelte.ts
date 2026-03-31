@@ -1,8 +1,8 @@
-import type {SystemInfo} from "$lib/api/v1/types";
-import { systemApi } from '$lib/api/v1/system';
+import { systemApi } from "$lib/api/v1/system";
+import type { SystemInfo } from "$lib/api/v1/types";
 
 function formatUptime(seconds: number): string {
-	if (!seconds) return '—';
+	if (!seconds) return "—";
 	const d = Math.floor(seconds / 86400);
 	const h = Math.floor((seconds % 86400) / 3600);
 	const m = Math.floor((seconds % 3600) / 60);
@@ -27,13 +27,22 @@ function createSystemInfoStore() {
 	}
 
 	function stopPolling() {
-		if (interval) { clearInterval(interval); interval = null; }
+		if (interval) {
+			clearInterval(interval);
+			interval = null;
+		}
 	}
 
 	return {
-		get info()   { return info; },
-		get uptime() { return info ? formatUptime(info.uptime_seconds) : '—'; },
-		get version() { return info?.tidefly_version ?? 'dev'; },
+		get info() {
+			return info;
+		},
+		get uptime() {
+			return info ? formatUptime(info.uptime_seconds) : "—";
+		},
+		get version() {
+			return info?.tidefly_version ?? "dev";
+		},
 		load,
 		startPolling,
 		stopPolling,

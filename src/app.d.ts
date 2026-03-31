@@ -1,4 +1,4 @@
-import type { User } from '$lib/api/v1/types';
+import type { User } from "$lib/api/v1/types";
 
 declare global {
 	namespace App {
@@ -7,5 +7,3 @@ declare global {
 		}
 	}
 }
-
-export {};

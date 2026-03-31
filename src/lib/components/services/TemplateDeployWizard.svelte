@@ -1,133 +1,145 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {ApiError} from "$lib/api/client";
-    import {deployApi} from "$lib/api/v1/deploy";
-    import {templatesApi} from "$lib/api/v1/templates";
-    import {Button} from "$lib/components/ui/button/index.js";
-    import {projectQueries} from "$lib/queries/projects.js";
-    import {auth} from "$lib/stores/auth.svelte";
-    import PortInput from "$lib/components/services/PortInput.svelte";
-    import {
-        CheckIcon, ChevronRightIcon, CircleIcon, CopyIcon,
-        DatabaseIcon, EyeIcon, FolderIcon, LoaderIcon,
-    } from "@lucide/svelte";
-    import {createQuery, useQueryClient} from "@tanstack/svelte-query";
-    import type {DeployResult, ServiceTemplate, TemplateField, TemplateSummary} from "$lib/api/v1/types";
+import {
+	CheckIcon,
+	ChevronRightIcon,
+	CircleIcon,
+	CopyIcon,
+	DatabaseIcon,
+	EyeIcon,
+	FolderIcon,
+	LoaderIcon,
+} from "@lucide/svelte";
+import { createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { ApiError } from "$lib/api/client";
+import { deployApi } from "$lib/api/v1/deploy";
+import { templatesApi } from "$lib/api/v1/templates";
+import type {
+	DeployResult,
+	ServiceTemplate,
+	TemplateField,
+	TemplateSummary,
+} from "$lib/api/v1/types";
+import PortInput from "$lib/components/services/PortInput.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import { projectQueries } from "$lib/queries/projects.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-    let {summaries}: { summaries: TemplateSummary[] } = $props();
+let { summaries }: { summaries: TemplateSummary[] } = $props();
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const projectsQuery = createQuery(() => ({
-        ...projectQueries.list(),
-        enabled: !!auth.user,
-    }));
+const projectsQuery = createQuery(() => ({
+	...projectQueries.list(),
+	enabled: !!auth.user,
+}));
 
-    const isAdmin = $derived(auth.user?.role === 'admin');
-    const allProjects = $derived(projectsQuery.data ?? []);
-    const visibleProjects = $derived(
-        isAdmin ? allProjects : allProjects.filter(p => auth.projectIds.includes(p.id))
-    );
+const isAdmin = $derived(auth.user?.role === "admin");
+const allProjects = $derived(projectsQuery.data ?? []);
+const visibleProjects = $derived(
+	isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
+);
 
-    type Step = "pick" | "configure" | "deploying" | "done";
-    let step = $state<Step>("pick");
-    let selected = $state<ServiceTemplate | null>(null);
-    let loadingDetail = $state(false);
-    let projectId = $state("");
-    let version = $state("");
-    let fields = $state<Record<string, string>>({});
-    let deployError = $state<string | null>(null);
-    let result = $state<DeployResult | null>(null);
-    let copiedKey = $state<string | null>(null);
+type Step = "pick" | "configure" | "deploying" | "done";
+let step = $state<Step>("pick");
+let selected = $state<ServiceTemplate | null>(null);
+let loadingDetail = $state(false);
+let projectId = $state("");
+let version = $state("");
+let fields = $state<Record<string, string>>({});
+let deployError = $state<string | null>(null);
+let result = $state<DeployResult | null>(null);
+let copiedKey = $state<string | null>(null);
 
-    $effect(() => {
-        if (projectId === "" && visibleProjects.length === 1) {
-            projectId = visibleProjects[0].id;
-        }
-    });
+$effect(() => {
+	if (projectId === "" && visibleProjects.length === 1) {
+		projectId = visibleProjects[0].id;
+	}
+});
 
-    const grouped = $derived(
-        summaries.reduce<Record<string, TemplateSummary[]>>((acc, t) => {
-            (acc[t.category] ??= []).push(t);
-            return acc;
-        }, {}),
-    );
+const grouped = $derived(
+	summaries.reduce<Record<string, TemplateSummary[]>>((acc, t) => {
+		if (!acc[t.category]) acc[t.category] = [];
+		acc[t.category].push(t);
+		return acc;
+	}, {})
+);
 
-    async function selectTemplate(slug: string) {
-        loadingDetail = true;
-        try {
-            selected = await templatesApi.get(slug);
-            version = selected.default_version;
-            fields = Object.fromEntries(
-                (selected.fields ?? [])
-                    .filter((f: TemplateField) => f.type !== "credential")
-                    .map((f: TemplateField) => [f.key, String(f.default ?? "")]),
-            );
-            step = "configure";
-        } catch (e) {
-            console.error(e);
-        } finally {
-            loadingDetail = false;
-        }
-    }
+async function selectTemplate(slug: string) {
+	loadingDetail = true;
+	try {
+		selected = await templatesApi.get(slug);
+		version = selected.default_version;
+		fields = Object.fromEntries(
+			(selected.fields ?? [])
+				.filter((f: TemplateField) => f.type !== "credential")
+				.map((f: TemplateField) => [f.key, String(f.default ?? "")])
+		);
+		step = "configure";
+	} catch (e) {
+		console.error(e);
+	} finally {
+		loadingDetail = false;
+	}
+}
 
-    const visibleFields = $derived(
-        selected?.fields?.filter((f: TemplateField) => f.type !== "credential") ?? [],
-    );
-    const credentialFields = $derived(
-        selected?.fields?.filter((f: TemplateField) => f.type === "credential") ?? [],
-    );
-    const isValid = $derived(
-        selected !== null &&
-        projectId !== "" &&
-        visibleFields.every(
-            (f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== "",
-        ),
-    );
-    const selectedProject = $derived(visibleProjects.find((p) => p.id === projectId));
+const visibleFields = $derived(
+	selected?.fields?.filter((f: TemplateField) => f.type !== "credential") ?? []
+);
+const credentialFields = $derived(
+	selected?.fields?.filter((f: TemplateField) => f.type === "credential") ?? []
+);
+const isValid = $derived(
+	selected !== null &&
+		projectId !== "" &&
+		visibleFields.every(
+			(f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== ""
+		)
+);
+const selectedProject = $derived(visibleProjects.find((p) => p.id === projectId));
 
-    async function deploy() {
-        if (!selected || !isValid) return;
-        step = "deploying";
-        deployError = null;
-        try {
-            result = await deployApi.deploy({
-                template_slug: selected.slug,
-                project_id: projectId,
-                version,
-                fields: Object.fromEntries(
-                    Object.entries(fields).map(([k, v]) => [k, String(v)]),
-                ),
-            });
-            step = "done";
-        } catch (e) {
-            deployError = e instanceof ApiError ? e.message : "Deploy failed";
-            step = "configure";
-        }
-    }
+async function deploy() {
+	if (!selected || !isValid) return;
+	step = "deploying";
+	deployError = null;
+	try {
+		result = await deployApi.deploy({
+			template_slug: selected.slug,
+			project_id: projectId,
+			version,
+			fields: Object.fromEntries(Object.entries(fields).map(([k, v]) => [k, String(v)])),
+		});
+		step = "done";
+	} catch (e) {
+		deployError = e instanceof ApiError ? e.message : "Deploy failed";
+		step = "configure";
+	}
+}
 
-    async function markShown() {
-        if (!result) return;
-        await deployApi.markShown(result.service.id);
-        await qc.invalidateQueries({queryKey: ["services"]});
-        await qc.invalidateQueries({queryKey: ["containers"]});
-        await goto("/dashboard/services");
-    }
+async function markShown() {
+	if (!result) return;
+	await deployApi.markShown(result.service.id);
+	await qc.invalidateQueries({ queryKey: ["services"] });
+	await qc.invalidateQueries({ queryKey: ["containers"] });
+	await goto("/dashboard/services");
+}
 
-    async function copyToClipboard(key: string, value: string) {
-        await navigator.clipboard.writeText(value);
-        copiedKey = key;
-        setTimeout(() => (copiedKey = null), 2000);
-    }
+async function copyToClipboard(key: string, value: string) {
+	await navigator.clipboard.writeText(value);
+	copiedKey = key;
+	setTimeout(() => (copiedKey = null), 2000);
+}
 
-    const categoryLabel: Record<string, string> = {
-        database: "Databases", cache: "Caches", messaging: "Messaging",
-    };
-    const categoryColor: Record<string, string> = {
-        database: "bg-blue-500/10 text-blue-500",
-        cache: "bg-orange-500/10 text-orange-500",
-        messaging: "bg-purple-500/10 text-purple-500",
-    };
+const categoryLabel: Record<string, string> = {
+	database: "Databases",
+	cache: "Caches",
+	messaging: "Messaging",
+};
+const categoryColor: Record<string, string> = {
+	database: "bg-blue-500/10 text-blue-500",
+	cache: "bg-orange-500/10 text-orange-500",
+	messaging: "bg-purple-500/10 text-purple-500",
+};
 </script>
 
 <div class="w-full {step !== 'pick' ? 'max-w-2xl mx-auto' : ''} space-y-4">

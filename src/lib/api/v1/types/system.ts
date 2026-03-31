@@ -1,10 +1,10 @@
 // Mirrors: backend/internal/api/v1/handlers/system/handler.go
 
 export interface ContainerSummary {
-	total:   number;
+	total: number;
 	running: number;
 	stopped: number;
-	error:   number;
+	error: number;
 }
 
 export interface CountSummary {
@@ -12,51 +12,51 @@ export interface CountSummary {
 }
 
 export interface UsageSummary {
-	used_mb:  number;
+	used_mb: number;
 	total_mb: number;
-	percent:  number;
+	percent: number;
 }
 
 export interface ResourceSummary {
 	cpu_percent: number;
-	memory:      UsageSummary;
-	disk:        UsageSummary;
+	memory: UsageSummary;
+	disk: UsageSummary;
 }
 
 export interface OverviewResponse {
 	containers: ContainerSummary;
-	images:     CountSummary;
-	volumes:    CountSummary;
-	networks:   CountSummary;
-	resources:  ResourceSummary;
+	images: CountSummary;
+	volumes: CountSummary;
+	networks: CountSummary;
+	resources: ResourceSummary;
 }
 
 export interface SystemInfo {
-	runtime_type:    string;
-	version:         string;
+	runtime_type: string;
+	version: string;
 	docker_version: string;
-	api_version:     string;
-	os:              string;
+	api_version: string;
+	os: string;
 	arch: string;
-	architecture:    string;
-	total_memory:    number;
+	architecture: string;
+	total_memory: number;
 	container_count: number;
-	running_count:   number;
-	paused_count:    number;
-	stopped_count:   number;
-	cpu_percent:     number;
-	mem_used_mb:     number;
-	mem_total_mb:    number;
-	mem_percent:     number;
-	disk_used_mb:    number;
-	disk_total_mb:   number;
-	disk_percent:    number;
+	running_count: number;
+	paused_count: number;
+	stopped_count: number;
+	cpu_percent: number;
+	mem_used_mb: number;
+	mem_total_mb: number;
+	mem_percent: number;
+	disk_used_mb: number;
+	disk_total_mb: number;
+	disk_percent: number;
 	uptime_seconds: number;
 	tidefly_version: string;
 }
 
 export interface HealthResponse {
-	status:  string;
+	status: string;
 	version: string;
 }
 

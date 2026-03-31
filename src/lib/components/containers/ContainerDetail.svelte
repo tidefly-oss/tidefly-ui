@@ -1,103 +1,93 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
-    import {
-        type ContainerDetails,
-        type ContainerStatus,
-    } from "$lib/api/v1/types/index.js";
-    import { containersApi } from "$lib/api/v1/containers/index.js";
-    import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import {
-        CircleIcon,
-        HardDriveIcon,
-        NetworkIcon,
-        PlayIcon,
-        RotateCcwIcon,
-        SquareIcon,
-        Trash2Icon,
-    } from "@lucide/svelte";
-    import {
-        createMutation,
-        createQuery,
-        useQueryClient,
-    } from "@tanstack/svelte-query";
-    import { auth } from "$lib/stores/auth.svelte";
-    import ContainerLogs from "./ContainerLogs.svelte";
-    import ContainerResourceLimits from "./ContainerResourceLimits.svelte";
-    import ContainerStats from "./ContainerStats.svelte";
-    import ContainerTerminalPanel from "./ContainerTerminalPanel.svelte";
- 
-    let { initialData }: { initialData: ContainerDetails } = $props();
- 
-    const queryClient = useQueryClient();
- 
-    const isAdmin = $derived(auth.user?.role === "admin");
- 
-    const query = createQuery(() => ({
-        queryKey: ["container", initialData.id],
-        queryFn: () => containersApi.get(initialData.id),
-        initialData,
-    }));
- 
-    const actionMutation = createMutation(() => ({
-        mutationFn: async (action: "start" | "stop" | "restart" | "delete") => {
-            if (action === "start") return containersApi.start(initialData.id);
-            if (action === "stop") return containersApi.stop(initialData.id);
-            if (action === "restart") return containersApi.restart(initialData.id);
-            await containersApi.delete(initialData.id, true);
-            return { status: "exited" as ContainerStatus };
-        },
-        onSuccess: (_, action) => {
-            if (action === "delete") {
-                queryClient.invalidateQueries({ queryKey: ["containers"] });
-                goto("/dashboard/containers");
-                return;
-            }
-            const statusMap: Record<string, ContainerStatus> = {
-                start: "running",
-                stop: "exited",
-                restart: "running",
-            };
-            queryClient.setQueryData<ContainerDetails>(
-                ["container", initialData.id],
-                (old: ContainerDetails | undefined) =>
-                    old ? { ...old, status: statusMap[action] } : old
-            );
-            queryClient.invalidateQueries({ queryKey: ["container", initialData.id] });
-        },
-    }));
- 
-    type Tab = "overview" | "logs" | "stats" | "resources" | "terminal";
-    const validTabs: Tab[] = ["overview", "logs", "stats", "resources", "terminal"];
- 
-    function getInitialTab(): Tab {
-        const t = $page.url.searchParams.get("tab") as Tab;
-        return validTabs.includes(t) ? t : "overview";
-    }
- 
-    let tab = $state<Tab>(getInitialTab());
- 
-    const container = $derived(query.data ?? initialData);
- 
-    // canDelete must be after container
-    const canDelete = $derived(
-        isAdmin ||
-        !!container.labels?.["tidefly.project"] ||
-        !!container.labels?.["tidefly.service"],
-    );
- 
-    const statusDot: Record<ContainerStatus, string> = {
-        running: "#22c55e",
-        stopped: "#6b7280",
-        exited:  "#6b7280",
-        paused:  "#f59e0b",
-        created: "#3b82f6",
-    };
- 
-    function formatDate(iso: string) {
-        return new Date(iso).toLocaleString("de-DE");
-    }
+import {
+	CircleIcon,
+	HardDriveIcon,
+	NetworkIcon,
+	PlayIcon,
+	RotateCcwIcon,
+	SquareIcon,
+	Trash2Icon,
+} from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { page } from "$app/stores";
+import { containersApi } from "$lib/api/v1/containers/index.js";
+import type { ContainerDetails, ContainerStatus } from "$lib/api/v1/types/index.js";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { auth } from "$lib/stores/auth.svelte";
+import ContainerLogs from "./ContainerLogs.svelte";
+import ContainerResourceLimits from "./ContainerResourceLimits.svelte";
+import ContainerStats from "./ContainerStats.svelte";
+import ContainerTerminalPanel from "./ContainerTerminalPanel.svelte";
+
+let { initialData }: { initialData: ContainerDetails } = $props();
+
+const queryClient = useQueryClient();
+
+const isAdmin = $derived(auth.user?.role === "admin");
+
+const query = createQuery(() => ({
+	queryKey: ["container", initialData.id],
+	queryFn: () => containersApi.get(initialData.id),
+	initialData,
+}));
+
+const actionMutation = createMutation(() => ({
+	mutationFn: async (action: "start" | "stop" | "restart" | "delete") => {
+		if (action === "start") return containersApi.start(initialData.id);
+		if (action === "stop") return containersApi.stop(initialData.id);
+		if (action === "restart") return containersApi.restart(initialData.id);
+		await containersApi.delete(initialData.id, true);
+		return { status: "exited" as ContainerStatus };
+	},
+	onSuccess: (_, action) => {
+		if (action === "delete") {
+			queryClient.invalidateQueries({ queryKey: ["containers"] });
+			goto("/dashboard/containers");
+			return;
+		}
+		const statusMap: Record<string, ContainerStatus> = {
+			start: "running",
+			stop: "exited",
+			restart: "running",
+		};
+		queryClient.setQueryData<ContainerDetails>(
+			["container", initialData.id],
+			(old: ContainerDetails | undefined) => (old ? { ...old, status: statusMap[action] } : old)
+		);
+		queryClient.invalidateQueries({ queryKey: ["container", initialData.id] });
+	},
+}));
+
+type Tab = "overview" | "logs" | "stats" | "resources" | "terminal";
+const validTabs: Tab[] = ["overview", "logs", "stats", "resources", "terminal"];
+
+function getInitialTab(): Tab {
+	const t = $page.url.searchParams.get("tab") as Tab;
+	return validTabs.includes(t) ? t : "overview";
+}
+
+let tab = $state<Tab>(getInitialTab());
+
+const container = $derived(query.data ?? initialData);
+
+// canDelete must be after container
+const canDelete = $derived(
+	isAdmin || !!container.labels?.["tidefly.project"] || !!container.labels?.["tidefly.service"]
+);
+
+const statusDot: Record<ContainerStatus, string> = {
+	running: "#22c55e",
+	stopped: "#6b7280",
+	exited: "#6b7280",
+	paused: "#f59e0b",
+	created: "#3b82f6",
+};
+
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleString("de-DE");
+}
 </script>
 
 <div class="space-y-4">

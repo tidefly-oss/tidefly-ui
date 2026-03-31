@@ -1,117 +1,125 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {containersApi} from "$lib/api/v1/containers";
-    import {projectQueries} from "$lib/queries/projects.js";
-    import {agentApi, type WorkerNode} from "$lib/api/v1/agent/index.js";
-    import {Button} from "$lib/components/ui/button/index.js";
-    import {Input} from "$lib/components/ui/input/index.js";
-    import {Label} from "$lib/components/ui/label/index.js";
-    import {auth} from "$lib/stores/auth.svelte";
-    import {
-        ArrowLeftIcon, ArrowRightIcon, CheckIcon,
-        CircleCheckBig, CircleIcon, CircleX,
-        GlobeIcon, Loader, RocketIcon, ServerIcon, TerminalIcon,
-    } from "@lucide/svelte";
-    import {createQuery, useQueryClient} from "@tanstack/svelte-query";
+import {
+	ArrowLeftIcon,
+	ArrowRightIcon,
+	CheckIcon,
+	CircleCheckBig,
+	CircleIcon,
+	CircleX,
+	GlobeIcon,
+	Loader,
+	RocketIcon,
+	ServerIcon,
+	TerminalIcon,
+} from "@lucide/svelte";
+import { createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
+import { containersApi } from "$lib/api/v1/containers";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
+import { projectQueries } from "$lib/queries/projects.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    interface Props {
-        initialName?: string;
-        initialGitUrl?: string;
-        initialBranch?: string;
-    }
+interface Props {
+	initialName?: string;
+	initialGitUrl?: string;
+	initialBranch?: string;
+}
 
-    let {initialName = "", initialGitUrl = "", initialBranch = ""}: Props = $props();
+let { initialName = "", initialGitUrl = "", initialBranch = "" }: Props = $props();
 
-    const projectsQuery = createQuery(() => ({
-        ...projectQueries.list(),
-        enabled: !!auth.user,
-    }));
+const projectsQuery = createQuery(() => ({
+	...projectQueries.list(),
+	enabled: !!auth.user,
+}));
 
-    const workersQuery = createQuery(() => ({
-        queryKey: ["workers"],
-        queryFn: () => agentApi.listWorkers(),
-        staleTime: 30_000,
-    }));
+const workersQuery = createQuery(() => ({
+	queryKey: ["workers"],
+	queryFn: () => agentApi.listWorkers(),
+	staleTime: 30_000,
+}));
 
-    const isAdmin = $derived(auth.user?.role === 'admin');
-    const visibleProjects = $derived(
-        isAdmin
-            ? (projectsQuery.data ?? [])
-            : (projectsQuery.data ?? []).filter(p => auth.projectIds.includes(p.id))
-    );
-    const connectedWorkers = $derived(
-        (workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
-    );
+const isAdmin = $derived(auth.user?.role === "admin");
+const visibleProjects = $derived(
+	isAdmin
+		? (projectsQuery.data ?? [])
+		: (projectsQuery.data ?? []).filter((p) => auth.projectIds.includes(p.id))
+);
+const connectedWorkers = $derived(
+	(workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
+);
 
-    type Step = 1 | 2 | 3 | 4;
-    let step = $state<Step>(1);
+type Step = 1 | 2 | 3 | 4;
+let step = $state<Step>(1);
 
-    let projectId = $state("");
-    let workerId  = $state<string | null>(null);
-    let name      = $state("");
-    let compose   = $state("");
-    let expose    = $state(false);
+let projectId = $state("");
+let workerId = $state<string | null>(null);
+let name = $state("");
+let compose = $state("");
+let expose = $state(false);
 
-    $effect(() => {
-        if (initialName && !name) name = initialName;
-    });
+$effect(() => {
+	if (initialName && !name) name = initialName;
+});
 
-    $effect(() => {
-        if (compose) return;
-        compose = `version: "3.8"\nservices:\n  app:\n    image: nginx:alpine\n    ports:\n      - "8080:80"\n    restart: unless-stopped`;
-    });
+$effect(() => {
+	if (compose) return;
+	compose = `version: "3.8"\nservices:\n  app:\n    image: nginx:alpine\n    ports:\n      - "8080:80"\n    restart: unless-stopped`;
+});
 
-    let building = $state(false);
-    let logs     = $state<{ type: string; message: string }[]>([]);
-    let status   = $state<"idle" | "building" | "success" | "error">("idle");
+let building = $state(false);
+let logs = $state<{ type: string; message: string }[]>([]);
+let status = $state<"idle" | "building" | "success" | "error">("idle");
 
-    function selectProject(id: string) {
-        projectId = id;
-    }
+function selectProject(id: string) {
+	projectId = id;
+}
 
-    const step1Valid = $derived(projectId.length > 0);
-    const step2Valid = $derived(name.trim().length > 0);
-    const step3Valid = $derived(compose.trim().length > 0);
+const step1Valid = $derived(projectId.length > 0);
+const step2Valid = $derived(name.trim().length > 0);
+const step3Valid = $derived(compose.trim().length > 0);
 
-    async function handleBuild() {
-        if (building) return;
-        logs     = [];
-        status   = "building";
-        building = true;
-        step     = 4;
+async function handleBuild() {
+	if (building) return;
+	logs = [];
+	status = "building";
+	building = true;
+	step = 4;
 
-        try {
-            const result = await containersApi.deployCompose({
-                compose:    compose.trim(),
-                stack_name: name.trim(),
-                project_id: projectId,
-                expose,
-            });
+	try {
+		const result = await containersApi.deployCompose({
+			compose: compose.trim(),
+			stack_name: name.trim(),
+			project_id: projectId,
+			expose,
+		});
 
-            logs = result.containers.map(c => ({ type: "done", message: `✓ ${c}` }));
-            if (result.urls) {
-                for (const [svc, url] of Object.entries(result.urls)) {
-                    logs = [...logs, { type: "done", message: `🌐 ${svc}: ${url}` }];
-                }
-            }
+		logs = result.containers.map((c) => ({ type: "done", message: `✓ ${c}` }));
+		if (result.urls) {
+			for (const [svc, url] of Object.entries(result.urls)) {
+				logs = [...logs, { type: "done", message: `🌐 ${svc}: ${url}` }];
+			}
+		}
 
-            status   = "success";
-            building = false;
-            await qc.invalidateQueries({ queryKey: ["containers"] });
-        } catch (e) {
-            logs     = [{ type: "error", message: String(e) }];
-            status   = "error";
-            building = false;
-        }
-    }
+		status = "success";
+		building = false;
+		await qc.invalidateQueries({ queryKey: ["containers"] });
+	} catch (e) {
+		logs = [{ type: "error", message: String(e) }];
+		status = "error";
+		building = false;
+	}
+}
 
-    const steps = ["Project", "Config", "Compose", "Deploy"];
+const steps = ["Project", "Config", "Compose", "Deploy"];
 
-    function workerLabel(w: WorkerNode) {
-        return w.name.length > 28 ? w.name.slice(0, 24) + "…" : w.name;
-    }
+function workerLabel(w: WorkerNode) {
+	return w.name.length > 28 ? `${w.name.slice(0, 24)}…` : w.name;
+}
 </script>
 
 <div class="max-w-2xl mx-auto space-y-6">

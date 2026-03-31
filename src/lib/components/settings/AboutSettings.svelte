@@ -1,25 +1,28 @@
 <script lang="ts">
-    import { systemApi } from '$lib/api/v1/system';
-    import { ExternalLinkIcon } from '@lucide/svelte';
-    import { createQuery } from '@tanstack/svelte-query';
+import { ExternalLinkIcon } from "@lucide/svelte";
+import { createQuery } from "@tanstack/svelte-query";
+import { systemApi } from "$lib/api/v1/system";
 
-    const systemQuery = createQuery(() => ({
-        queryKey: ['system-info'],
-        queryFn: () => systemApi.info(),
-    }));
+const systemQuery = createQuery(() => ({
+	queryKey: ["system-info"],
+	queryFn: () => systemApi.info(),
+}));
 
-    const info = $derived(systemQuery.data ?? null);
+const info = $derived(systemQuery.data ?? null);
 
-    const rows = $derived([
-        { label: 'Tidefly Version', value: info?.tidefly_version ?? '—' },
-        { label: 'Runtime',         value: info?.runtime_type    ?? '—' },
-        { label: 'Runtime Version', value: info?.version         ?? '—' },
-        { label: 'API Version',     value: info?.api_version     ?? '—' },
-        { label: 'OS',              value: info?.os              ?? '—' },
-        { label: 'Architecture',    value: info?.architecture    ?? '—' },
-        { label: 'Memory',          value: info ? `${info.mem_used_mb} MB / ${info.mem_total_mb} MB` : '—' },
-        { label: 'Containers',      value: info ? `${info.running_count} running / ${info.container_count} total` : '—' },
-    ]);
+const rows = $derived([
+	{ label: "Tidefly Version", value: info?.tidefly_version ?? "—" },
+	{ label: "Runtime", value: info?.runtime_type ?? "—" },
+	{ label: "Runtime Version", value: info?.version ?? "—" },
+	{ label: "API Version", value: info?.api_version ?? "—" },
+	{ label: "OS", value: info?.os ?? "—" },
+	{ label: "Architecture", value: info?.architecture ?? "—" },
+	{ label: "Memory", value: info ? `${info.mem_used_mb} MB / ${info.mem_total_mb} MB` : "—" },
+	{
+		label: "Containers",
+		value: info ? `${info.running_count} running / ${info.container_count} total` : "—",
+	},
+]);
 </script>
 
 <div class="rounded-xl border bg-card divide-y">

@@ -1,39 +1,39 @@
 <script lang="ts">
-    import { adminApi } from '$lib/api/v1/admin';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import * as Dialog from '$lib/components/ui/dialog/index.js';
-    import { EyeIcon, EyeOffIcon, ClipboardIcon } from '@lucide/svelte';
-    import { createMutation } from '@tanstack/svelte-query';
-    import { toast } from 'svelte-sonner';
-    import type { AdminUser } from '$lib/api/v1/types';
+import { ClipboardIcon, EyeIcon, EyeOffIcon } from "@lucide/svelte";
+import { createMutation } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import type { AdminUser } from "$lib/api/v1/types";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    let { target = $bindable(null) }: { target?: AdminUser | null } = $props();
+let { target = $bindable(null) }: { target?: AdminUser | null } = $props();
 
-    let resetPassword = $state<string | null>(null);
-    let showTemp      = $state(false);
+let resetPassword = $state<string | null>(null);
+let showTemp = $state(false);
 
-    const resetMut = createMutation(() => ({
-        mutationFn: (id: string) => adminApi.resetUserPassword(id),
-        onSuccess: (data) => {
-            resetPassword = data.temp_password;
-            showTemp      = false;
-            toast.success('Password reset');
-        },
-        onError: () => toast.error('Failed to reset password'),
-    }));
+const resetMut = createMutation(() => ({
+	mutationFn: (id: string) => adminApi.resetUserPassword(id),
+	onSuccess: (data) => {
+		resetPassword = data.temp_password;
+		showTemp = false;
+		toast.success("Password reset");
+	},
+	onError: () => toast.error("Failed to reset password"),
+}));
 
-    function onClose() {
-        target        = null;
-        resetPassword = null;
-        showTemp      = false;
-    }
+function onClose() {
+	target = null;
+	resetPassword = null;
+	showTemp = false;
+}
 
-    async function copyTemp() {
-        if (!resetPassword) return;
-        await navigator.clipboard.writeText(resetPassword);
-        toast.success('Copied to clipboard');
-    }
+async function copyTemp() {
+	if (!resetPassword) return;
+	await navigator.clipboard.writeText(resetPassword);
+	toast.success("Copied to clipboard");
+}
 </script>
 
 <Dialog.Root open={!!target} onOpenChange={(o) => { if (!o) onClose(); }}>

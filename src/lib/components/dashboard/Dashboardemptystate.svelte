@@ -1,46 +1,40 @@
 <script lang="ts">
-    import {
-        CodeIcon,
-        DatabaseIcon,
-        GitBranchIcon,
-        LayersIcon,
-        ServerIcon,
-    } from "@lucide/svelte";
+import { CodeIcon, DatabaseIcon, GitBranchIcon, LayersIcon, ServerIcon } from "@lucide/svelte";
 
-    const quickActions = [
-        {
-            icon: DatabaseIcon,
-            title: "Deploy a Service",
-            description: "Redis, Postgres, and more — one click.",
-            href: "/dashboard/services/templates",
-            accent: "bg-blue-500/10 text-blue-500",
-            primary: true,
-        },
-        {
-            icon: CodeIcon,
-            title: "Deploy from Dockerfile",
-            description: "Build and run your own container.",
-            href: "/dashboard/containers?action=dockerfile",
-            accent: "bg-violet-500/10 text-violet-500",
-            primary: false,
-        },
-        {
-            icon: LayersIcon,
-            title: "Deploy Compose",
-            description: "Bring a docker-compose.yml file.",
-            href: "/dashboard/containers?action=compose",
-            accent: "bg-orange-500/10 text-orange-500",
-            primary: false,
-        },
-        {
-            icon: GitBranchIcon,
-            title: "Connect Git",
-            description: "Link GitHub, GitLab or Gitea.",
-            href: "/dashboard/git",
-            accent: "bg-green-500/10 text-green-500",
-            primary: false,
-        },
-    ];
+const quickActions = [
+	{
+		icon: DatabaseIcon,
+		title: "Deploy a Service",
+		description: "Redis, Postgres, and more — one click.",
+		href: "/dashboard/services/templates",
+		accent: "bg-blue-500/10 text-blue-500",
+		primary: true,
+	},
+	{
+		icon: CodeIcon,
+		title: "Deploy from Dockerfile",
+		description: "Build and run your own container.",
+		href: "/dashboard/containers?action=dockerfile",
+		accent: "bg-violet-500/10 text-violet-500",
+		primary: false,
+	},
+	{
+		icon: LayersIcon,
+		title: "Deploy Compose",
+		description: "Bring a docker-compose.yml file.",
+		href: "/dashboard/containers?action=compose",
+		accent: "bg-orange-500/10 text-orange-500",
+		primary: false,
+	},
+	{
+		icon: GitBranchIcon,
+		title: "Connect Git",
+		description: "Link GitHub, GitLab or Gitea.",
+		href: "/dashboard/git",
+		accent: "bg-green-500/10 text-green-500",
+		primary: false,
+	},
+];
 </script>
 
 <div class="bg-card border rounded-xl p-8">

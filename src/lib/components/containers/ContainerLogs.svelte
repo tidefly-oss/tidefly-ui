@@ -1,88 +1,86 @@
 <script lang="ts">
-  import { containersApi } from "$lib/api/v1/containers";
-  import { ChevronDownIcon, TerminalIcon } from "@lucide/svelte";
-  import { onDestroy, tick } from "svelte";
+import { ChevronDownIcon, TerminalIcon } from "@lucide/svelte";
+import { onDestroy, tick } from "svelte";
+import { containersApi } from "$lib/api/v1/containers";
 
-  type Props = {
-    containerId: string;
-    containerName: string;
-    containerStatus: string;
-  };
+type Props = {
+	containerId: string;
+	containerName: string;
+	containerStatus: string;
+};
 
-  let { containerId, containerName, containerStatus }: Props = $props();
+let { containerId, containerName, containerStatus }: Props = $props();
 
-  type LogEntry = { stream: "stdout" | "stderr"; line: string; ts?: string };
+type LogEntry = { stream: "stdout" | "stderr"; line: string; ts?: string };
 
-  let logs = $state<LogEntry[]>([]);
-  let logsEs: EventSource | null = null;
-  let streaming = $state(false);
-  let autoScroll = $state(true);
-  let logsContainer = $state<HTMLElement | null>(null);
+let logs = $state<LogEntry[]>([]);
+let logsEs: EventSource | null = null;
+let streaming = $state(false);
+let autoScroll = $state(true);
+let logsContainer = $state<HTMLElement | null>(null);
 
-  function scrollToBottom() {
-    if (logsContainer && autoScroll)
-      logsContainer.scrollTop = logsContainer.scrollHeight;
-  }
+function scrollToBottom() {
+	if (logsContainer && autoScroll) logsContainer.scrollTop = logsContainer.scrollHeight;
+}
 
-  function start() {
-    stop();
-    logs = [];
-    logsEs = new EventSource(containersApi.logsUrl(containerId));
-    streaming = true;
-    logsEs.addEventListener("log", async (e) => {
-      try {
-        const entry = JSON.parse(e.data);
-        logs = [...logs, entry].slice(-1000);
-        await tick();
-        scrollToBottom();
-      } catch {}
-    });
-    logsEs.addEventListener("done", () => {
-      streaming = false;
-    });
-    logsEs.onerror = () => {
-      streaming = false;
-    };
-  }
+function start() {
+	stop();
+	logs = [];
+	logsEs = new EventSource(containersApi.logsUrl(containerId));
+	streaming = true;
+	logsEs.addEventListener("log", async (e) => {
+		try {
+			const entry = JSON.parse(e.data);
+			logs = [...logs, entry].slice(-1000);
+			await tick();
+			scrollToBottom();
+		} catch {}
+	});
+	logsEs.addEventListener("done", () => {
+		streaming = false;
+	});
+	logsEs.onerror = () => {
+		streaming = false;
+	};
+}
 
-  function stop() {
-    logsEs?.close();
-    logsEs = null;
-    streaming = false;
-  }
+function stop() {
+	logsEs?.close();
+	logsEs = null;
+	streaming = false;
+}
 
-  function handleScroll() {
-    if (!logsContainer) return;
-    const { scrollTop, scrollHeight, clientHeight } = logsContainer;
-    autoScroll = scrollHeight - scrollTop - clientHeight < 40;
-  }
+function handleScroll() {
+	if (!logsContainer) return;
+	const { scrollTop, scrollHeight, clientHeight } = logsContainer;
+	autoScroll = scrollHeight - scrollTop - clientHeight < 40;
+}
 
-  function jumpToBottom() {
-    if (logsContainer) {
-      logsContainer.scrollTop = logsContainer.scrollHeight;
-      autoScroll = true;
-    }
-  }
+function jumpToBottom() {
+	if (logsContainer) {
+		logsContainer.scrollTop = logsContainer.scrollHeight;
+		autoScroll = true;
+	}
+}
 
-  function logLineClass(line: string, stream: string): string {
-    if (stream === "stderr") return "text-red-400";
-    const l = line.toLowerCase();
-    if (/\b(error|fatal|fail|exception)\b/.test(l)) return "text-red-400";
-    if (/\b(warn|warning)\b/.test(l)) return "text-amber-400";
-    if (/\b(info|notice)\b/.test(l)) return "text-sky-300";
-    if (/\b(debug|trace)\b/.test(l)) return "text-zinc-500";
-    if (/\b(success|ok|ready|started|running)\b/.test(l))
-      return "text-green-400";
-    return "text-zinc-300";
-  }
+function logLineClass(line: string, stream: string): string {
+	if (stream === "stderr") return "text-red-400";
+	const l = line.toLowerCase();
+	if (/\b(error|fatal|fail|exception)\b/.test(l)) return "text-red-400";
+	if (/\b(warn|warning)\b/.test(l)) return "text-amber-400";
+	if (/\b(info|notice)\b/.test(l)) return "text-sky-300";
+	if (/\b(debug|trace)\b/.test(l)) return "text-zinc-500";
+	if (/\b(success|ok|ready|started|running)\b/.test(l)) return "text-green-400";
+	return "text-zinc-300";
+}
 
-  // Auto-start when mounted
-  $effect(() => {
-    start();
-    return () => stop();
-  });
+// Auto-start when mounted
+$effect(() => {
+	start();
+	return () => stop();
+});
 
-  onDestroy(() => stop());
+onDestroy(() => stop());
 </script>
 
 <div

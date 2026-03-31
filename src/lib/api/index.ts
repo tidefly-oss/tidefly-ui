@@ -1,3 +1,3 @@
-export { api, ApiError } from './client';
-export * from './v1/auth';
-export * from './v1';
+export { ApiError, api } from "./client";
+export * from "./v1";
+export * from "./v1/auth";

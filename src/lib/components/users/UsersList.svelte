@@ -1,129 +1,129 @@
 <script lang="ts">
-    import { adminApi } from '$lib/api/v1/admin';
-    import * as AlertDialog from '$lib/components/ui/alert-dialog/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import * as Table from '$lib/components/ui/table/index.js';
-    import * as Tooltip from '$lib/components/ui/tooltip/index.js';
-    import {
-        FlexRender,
-        createSvelteTable,
-    } from '$lib/components/ui/data-table/index.js';
-    import {
-        KeyRoundIcon,
-        Trash2Icon,
-        SearchIcon,
-        ShieldIcon,
-        UserIcon,
-        CircleAlert,
-        FolderIcon,
-        PlusIcon,
-    } from '@lucide/svelte';
-    import {
-        createMutation,
-        createQuery,
-        useQueryClient,
-    } from '@tanstack/svelte-query';
-    import {
-        getCoreRowModel,
-        getFilteredRowModel,
-        getSortedRowModel,
-        type ColumnDef,
-        type SortingState,
-    } from '@tanstack/table-core';
-    import { toast } from 'svelte-sonner';
-    import type { AdminUser, UserRole } from '$lib/api/v1/types';
-    import { auth } from '$lib/stores/auth.svelte';
-    import CreateUserDialog from './CreateUserDialog.svelte';
-    import ResetPasswordDialog from './ResetPasswordDialog.svelte';
-    import UserProjectsPopover from './UserProjectsPopover.svelte';
+import {
+	CircleAlert,
+	FolderIcon,
+	KeyRoundIcon,
+	PlusIcon,
+	SearchIcon,
+	ShieldIcon,
+	Trash2Icon,
+	UserIcon,
+} from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import {
+	type ColumnDef,
+	getCoreRowModel,
+	getFilteredRowModel,
+	getSortedRowModel,
+	type SortingState,
+} from "@tanstack/table-core";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import type { AdminUser, UserRole } from "$lib/api/v1/types";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import { auth } from "$lib/stores/auth.svelte";
+import CreateUserDialog from "./CreateUserDialog.svelte";
+import ResetPasswordDialog from "./ResetPasswordDialog.svelte";
+import UserProjectsPopover from "./UserProjectsPopover.svelte";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const query = createQuery(() => ({
-        queryKey: ['admin-users'],
-        queryFn:  () => adminApi.listUsers(),
-    }));
+const query = createQuery(() => ({
+	queryKey: ["admin-users"],
+	queryFn: () => adminApi.listUsers(),
+}));
 
-    const users = $derived(query.data?.users ?? []);
+const users = $derived(query.data?.users ?? []);
 
-    // ── Table ─────────────────────────────────────────────────────────────────
+// ── Table ─────────────────────────────────────────────────────────────────
 
-    let globalFilter = $state('');
-    let sorting      = $state<SortingState>([]);
+let globalFilter = $state("");
+let sorting = $state<SortingState>([]);
 
-    const columns: ColumnDef<AdminUser>[] = [
-        { accessorKey: 'name',       header: 'Name'     },
-        { accessorKey: 'email',      header: 'Email'    },
-        { accessorKey: 'role',       header: 'Role'     },
-        { id: 'projects',            header: 'Projects' },
-        { accessorKey: 'created_at', header: 'Created'  },
-        { id: 'status',              header: 'Status'   },
-        { id: 'actions',             header: ''         },
-    ];
+const columns: ColumnDef<AdminUser>[] = [
+	{ accessorKey: "name", header: "Name" },
+	{ accessorKey: "email", header: "Email" },
+	{ accessorKey: "role", header: "Role" },
+	{ id: "projects", header: "Projects" },
+	{ accessorKey: "created_at", header: "Created" },
+	{ id: "status", header: "Status" },
+	{ id: "actions", header: "" },
+];
 
-    const table = createSvelteTable({
-        get data() { return users; },
-        columns,
-        state: {
-            get globalFilter() { return globalFilter; },
-            get sorting()      { return sorting; },
-        },
-        onGlobalFilterChange: (u) => {
-            globalFilter = typeof u === 'function' ? u(globalFilter) : u;
-        },
-        onSortingChange: (u) => {
-            sorting = typeof u === 'function' ? u(sorting) : u;
-        },
-        getCoreRowModel:     getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getSortedRowModel:   getSortedRowModel(),
-        globalFilterFn: (row, _, value) => {
-            const u = row.original;
-            const v = value.toLowerCase();
-            return u.name.toLowerCase().includes(v) || u.email.toLowerCase().includes(v);
-        },
-    });
+const table = createSvelteTable({
+	get data() {
+		return users;
+	},
+	columns,
+	state: {
+		get globalFilter() {
+			return globalFilter;
+		},
+		get sorting() {
+			return sorting;
+		},
+	},
+	onGlobalFilterChange: (u) => {
+		globalFilter = typeof u === "function" ? u(globalFilter) : u;
+	},
+	onSortingChange: (u) => {
+		sorting = typeof u === "function" ? u(sorting) : u;
+	},
+	getCoreRowModel: getCoreRowModel(),
+	getFilteredRowModel: getFilteredRowModel(),
+	getSortedRowModel: getSortedRowModel(),
+	globalFilterFn: (row, _, value) => {
+		const u = row.original;
+		const v = value.toLowerCase();
+		return u.name.toLowerCase().includes(v) || u.email.toLowerCase().includes(v);
+	},
+});
 
-    // ── Dialogs ───────────────────────────────────────────────────────────────
+// ── Dialogs ───────────────────────────────────────────────────────────────
 
-    let showCreate  = $state(false);
-    let resetTarget = $state<AdminUser | null>(null);
+let showCreate = $state(false);
+let resetTarget = $state<AdminUser | null>(null);
 
-    const currentUserId = $derived(auth.user?.id);
+const currentUserId = $derived(auth.user?.id);
 
-    // ── Role update ───────────────────────────────────────────────────────────
+// ── Role update ───────────────────────────────────────────────────────────
 
-    const roleMut = createMutation(() => ({
-        mutationFn: ({ id, role }: { id: string; role: UserRole }) =>
-            adminApi.updateUser(id, { role }),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['admin-users'] });
-            toast.success('Role updated');
-        },
-        onError: () => toast.error('Failed to update role'),
-    }));
+const roleMut = createMutation(() => ({
+	mutationFn: ({ id, role }: { id: string; role: UserRole }) => adminApi.updateUser(id, { role }),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["admin-users"] });
+		toast.success("Role updated");
+	},
+	onError: () => toast.error("Failed to update role"),
+}));
 
-    // ── Delete ────────────────────────────────────────────────────────────────
+// ── Delete ────────────────────────────────────────────────────────────────
 
-    const deleteMut = createMutation(() => ({
-        mutationFn: (id: string) => adminApi.deleteUser(id),
-        onSuccess: (_, id) => {
-            qc.setQueryData<{ users: AdminUser[] }>(['admin-users'], (old) =>
-                old ? { users: old.users.filter(u => u.id !== id) } : old
-            );
-            toast.success('User deleted');
-        },
-        onError: () => toast.error('Failed to delete user'),
-    }));
+const deleteMut = createMutation(() => ({
+	mutationFn: (id: string) => adminApi.deleteUser(id),
+	onSuccess: (_, id) => {
+		qc.setQueryData<{ users: AdminUser[] }>(["admin-users"], (old) =>
+			old ? { users: old.users.filter((u) => u.id !== id) } : old
+		);
+		toast.success("User deleted");
+	},
+	onError: () => toast.error("Failed to delete user"),
+}));
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────
 
-    function formatDate(iso: string) {
-        return new Date(iso).toLocaleDateString('de-DE', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-        });
-    }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 </script>
 
 <div class="space-y-4">

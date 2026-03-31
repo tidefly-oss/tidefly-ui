@@ -1,7 +1,7 @@
 <script lang="ts">
-    import BackupS3Settings from "$lib/components/backup/BackupS3Settings.svelte";
-    import BackupCreate from "$lib/components/backup/BackupCreate.svelte";
-    import BackupList from "$lib/components/backup/BackupList.svelte";
+import BackupCreate from "$lib/components/backup/BackupCreate.svelte";
+import BackupList from "$lib/components/backup/BackupList.svelte";
+import BackupS3Settings from "$lib/components/backup/BackupS3Settings.svelte";
 </script>
 
 <div class="space-y-6">

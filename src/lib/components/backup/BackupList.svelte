@@ -1,43 +1,50 @@
 <script lang="ts">
-    import { createQuery, createMutation } from "@tanstack/svelte-query";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { backupApi } from "$lib/api/v1/backup";
-    import { toast } from "svelte-sonner";
-    import { DatabaseIcon, DownloadIcon, Loader } from "@lucide/svelte";
+import { DatabaseIcon, DownloadIcon, Loader } from "@lucide/svelte";
+import { createMutation, createQuery } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { backupApi } from "$lib/api/v1/backup";
+import { Button } from "$lib/components/ui/button/index.js";
 
-    const backupsQuery = createQuery(() => ({
-        queryKey: ["backups"],
-        queryFn: () => backupApi.listBackups(),
-    }));
+const backupsQuery = createQuery(() => ({
+	queryKey: ["backups"],
+	queryFn: () => backupApi.listBackups(),
+}));
 
-    const backups = $derived(backupsQuery.data ?? []);
+const backups = $derived(backupsQuery.data ?? []);
 
-    const downloadMutation = createMutation(() => ({
-        mutationFn: (id: number) => backupApi.getDownloadUrl(id),
-        onSuccess: (data) => {
-            window.open(data.url, "_blank");
-        },
-        onError: () => toast.error("Failed to get download URL"),
-    }));
+const downloadMutation = createMutation(() => ({
+	mutationFn: (id: number) => backupApi.getDownloadUrl(id),
+	onSuccess: (data) => {
+		window.open(data.url, "_blank");
+	},
+	onError: () => toast.error("Failed to get download URL"),
+}));
 
-    function formatBytes(bytes: number) {
-        if (bytes === 0) return "0 B";
-        const k = 1024;
-        const sizes = ["B", "KB", "MB", "GB"];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
-    }
+function formatBytes(bytes: number) {
+	if (bytes === 0) return "0 B";
+	const k = 1024;
+	const sizes = ["B", "KB", "MB", "GB"];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
+	return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
+}
 
-    function formatDate(iso: string) {
-        return new Date(iso).toLocaleString("de-DE", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-            hour: "2-digit", minute: "2-digit",
-        });
-    }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
 
-    function statusColor(status: string) {
-        return status === "completed" ? "text-green-500" : status === "failed" ? "text-destructive" : "text-amber-500";
-    }
+function statusColor(status: string) {
+	return status === "completed"
+		? "text-green-500"
+		: status === "failed"
+			? "text-destructive"
+			: "text-amber-500";
+}
 </script>
 
 <div class="rounded-xl border bg-card divide-y">

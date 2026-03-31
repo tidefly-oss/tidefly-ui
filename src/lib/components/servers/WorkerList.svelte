@@ -1,67 +1,98 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import * as Dialog from "$lib/components/ui/dialog/index.js";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import { createMutation } from "@tanstack/svelte-query";
-    import {
-        CpuIcon, Loader, MemoryStickIcon, PlusIcon,
-        ServerIcon, ShieldCheckIcon, TerminalIcon, Trash2Icon, XIcon,
-    } from "@lucide/svelte";
+import {
+	CpuIcon,
+	Loader,
+	MemoryStickIcon,
+	PlusIcon,
+	ServerIcon,
+	ShieldCheckIcon,
+	TerminalIcon,
+	Trash2Icon,
+	XIcon,
+} from "@lucide/svelte";
+import { createMutation } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
-    interface Props {
-        workers: WorkerNode[];
-        isLoading: boolean;
-        onAddServer: () => void;
-        onWorkerRevoked: () => void;
-    }
+interface Props {
+	workers: WorkerNode[];
+	isLoading: boolean;
+	onAddServer: () => void;
+	onWorkerRevoked: () => void;
+}
 
-    const { workers, isLoading, onAddServer, onWorkerRevoked }: Props = $props();
+const { workers, isLoading, onAddServer, onWorkerRevoked }: Props = $props();
 
-    let revokeTarget = $state<WorkerNode | null>(null);
-    const revokeMutation = createMutation(() => ({
-        mutationFn: (id: string) => agentApi.revokeWorker(id),
-        onSuccess: () => { onWorkerRevoked(); revokeTarget = null; },
-    }));
+let revokeTarget = $state<WorkerNode | null>(null);
+const revokeMutation = createMutation(() => ({
+	mutationFn: (id: string) => agentApi.revokeWorker(id),
+	onSuccess: () => {
+		onWorkerRevoked();
+		revokeTarget = null;
+	},
+}));
 
-    let deleteTarget = $state<WorkerNode | null>(null);
-    const deleteMutation = createMutation(() => ({
-        mutationFn: (id: string) => agentApi.deleteWorker(id),
-        onSuccess: () => { onWorkerRevoked(); deleteTarget = null; },
-    }));
+let deleteTarget = $state<WorkerNode | null>(null);
+const deleteMutation = createMutation(() => ({
+	mutationFn: (id: string) => agentApi.deleteWorker(id),
+	onSuccess: () => {
+		onWorkerRevoked();
+		deleteTarget = null;
+	},
+}));
 
-    function statusDot(status: WorkerNode["status"]) {
-        return { connected: "bg-green-500", pending: "bg-amber-500 animate-pulse", disconnected: "bg-muted-foreground/40", revoked: "bg-destructive/50" }[status] ?? "bg-muted-foreground/40";
-    }
-    function statusText(status: WorkerNode["status"]) {
-        return { connected: "text-green-500", pending: "text-amber-500", disconnected: "text-muted-foreground", revoked: "text-destructive/70" }[status] ?? "text-muted-foreground";
-    }
-    function statusLabel(status: WorkerNode["status"]) {
-        return { connected: "Connected", pending: "Pending", disconnected: "Offline", revoked: "Revoked" }[status] ?? status;
-    }
-    function timeAgo(dateStr: string | null) {
-        if (!dateStr) return "never";
-        const diff = Date.now() - new Date(dateStr).getTime();
-        const mins = Math.floor(diff / 60_000);
-        if (mins < 1) return "just now";
-        if (mins < 60) return `${mins}m ago`;
-        const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return `${hrs}h ago`;
-        return `${Math.floor(hrs / 24)}d ago`;
-    }
-    function shortName(name: string) {
-        if (name.length > 32) return name.slice(0, 28) + "…";
-        return name;
-    }
-    function metricColor(pct: number) {
-        if (pct >= 90) return "text-destructive";
-        if (pct >= 70) return "text-amber-500";
-        return "text-foreground";
-    }
-    function fmtPct(pct: number) {
-        return pct.toFixed(1) + "%";
-    }
+function statusDot(status: WorkerNode["status"]) {
+	return (
+		{
+			connected: "bg-green-500",
+			pending: "bg-amber-500 animate-pulse",
+			disconnected: "bg-muted-foreground/40",
+			revoked: "bg-destructive/50",
+		}[status] ?? "bg-muted-foreground/40"
+	);
+}
+function statusText(status: WorkerNode["status"]) {
+	return (
+		{
+			connected: "text-green-500",
+			pending: "text-amber-500",
+			disconnected: "text-muted-foreground",
+			revoked: "text-destructive/70",
+		}[status] ?? "text-muted-foreground"
+	);
+}
+function statusLabel(status: WorkerNode["status"]) {
+	return (
+		{ connected: "Connected", pending: "Pending", disconnected: "Offline", revoked: "Revoked" }[
+			status
+		] ?? status
+	);
+}
+function timeAgo(dateStr: string | null) {
+	if (!dateStr) return "never";
+	const diff = Date.now() - new Date(dateStr).getTime();
+	const mins = Math.floor(diff / 60_000);
+	if (mins < 1) return "just now";
+	if (mins < 60) return `${mins}m ago`;
+	const hrs = Math.floor(mins / 60);
+	if (hrs < 24) return `${hrs}h ago`;
+	return `${Math.floor(hrs / 24)}d ago`;
+}
+function shortName(name: string) {
+	if (name.length > 32) return `${name.slice(0, 28)}…`;
+	return name;
+}
+function metricColor(pct: number) {
+	if (pct >= 90) return "text-destructive";
+	if (pct >= 70) return "text-amber-500";
+	return "text-foreground";
+}
+function fmtPct(pct: number) {
+	return `${pct.toFixed(1)}%`;
+}
 </script>
 
 <div class="bg-card border rounded-xl overflow-hidden">

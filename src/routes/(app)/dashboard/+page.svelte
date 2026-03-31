@@ -1,133 +1,177 @@
 <script lang="ts">
-    import type { ContainerStatus } from "$lib/api/v1/types";
-    import { containersApi } from "$lib/api/v1/containers";
-    import { deployApi } from "$lib/api/v1/deploy";
-    import { imagesApi } from "$lib/api/v1/images";
-    import { networksApi } from "$lib/api/v1/networks";
-    import { systemApi } from "$lib/api/v1/system";
-    import { volumesApi } from "$lib/api/v1/volumes";
-    import { dockerEventsStore } from "$lib/stores/events.svelte.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import {
-        ActivityIcon, BoxIcon, ChevronRightIcon, CircleAlert,
-        CircleIcon, CodeIcon, ContainerIcon, CpuIcon,
-        DatabaseIcon, GitBranchIcon, HardDriveIcon, ImageIcon,
-        LayersIcon, NetworkIcon, PlayIcon, PlusIcon,
-        ServerIcon, SquareIcon, ZapIcon,
-    } from "@lucide/svelte";
-    import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-    import { onDestroy, onMount } from "svelte";
+import {
+	ActivityIcon,
+	BoxIcon,
+	ChevronRightIcon,
+	CircleAlert,
+	CircleIcon,
+	CodeIcon,
+	ContainerIcon,
+	CpuIcon,
+	DatabaseIcon,
+	GitBranchIcon,
+	HardDriveIcon,
+	ImageIcon,
+	LayersIcon,
+	NetworkIcon,
+	PlayIcon,
+	PlusIcon,
+	ServerIcon,
+	SquareIcon,
+	ZapIcon,
+} from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { onDestroy, onMount } from "svelte";
+import { containersApi } from "$lib/api/v1/containers";
+import { deployApi } from "$lib/api/v1/deploy";
+import { imagesApi } from "$lib/api/v1/images";
+import { networksApi } from "$lib/api/v1/networks";
+import { systemApi } from "$lib/api/v1/system";
+import type { ContainerStatus } from "$lib/api/v1/types";
+import { volumesApi } from "$lib/api/v1/volumes";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import { dockerEventsStore } from "$lib/stores/events.svelte.js";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    // ── Queries ───────────────────────────────────────────────────────────────
-    const containersQuery = createQuery(() => ({
-        queryKey: ["containers"],
-        queryFn: () => containersApi.list(true),
-        refetchInterval: 15_000,
-    }));
-    const imagesQuery = createQuery(() => ({
-        queryKey: ["images"],
-        queryFn: () => imagesApi.list(),
-        staleTime: 60_000,
-    }));
-    const networksQuery = createQuery(() => ({
-        queryKey: ["networks"],
-        queryFn: () => networksApi.list(),
-        staleTime: 60_000,
-    }));
-    const volumesQuery = createQuery(() => ({
-        queryKey: ["volumes"],
-        queryFn: () => volumesApi.list(),
-        staleTime: 60_000,
-    }));
-    const servicesQuery = createQuery(() => ({
-        queryKey: ["services"],
-        queryFn: () => deployApi.list(),
-        refetchInterval: 15_000,
-    }));
-    const systemQuery = createQuery(() => ({
-        queryKey: ["system-overview"],
-        queryFn: () => systemApi.overview(),
-        refetchInterval: 10_000,
-    }));
+// ── Queries ───────────────────────────────────────────────────────────────
+const containersQuery = createQuery(() => ({
+	queryKey: ["containers"],
+	queryFn: () => containersApi.list(true),
+	refetchInterval: 15_000,
+}));
+const imagesQuery = createQuery(() => ({
+	queryKey: ["images"],
+	queryFn: () => imagesApi.list(),
+	staleTime: 60_000,
+}));
+const networksQuery = createQuery(() => ({
+	queryKey: ["networks"],
+	queryFn: () => networksApi.list(),
+	staleTime: 60_000,
+}));
+const volumesQuery = createQuery(() => ({
+	queryKey: ["volumes"],
+	queryFn: () => volumesApi.list(),
+	staleTime: 60_000,
+}));
+const servicesQuery = createQuery(() => ({
+	queryKey: ["services"],
+	queryFn: () => deployApi.list(),
+	refetchInterval: 15_000,
+}));
+const systemQuery = createQuery(() => ({
+	queryKey: ["system-overview"],
+	queryFn: () => systemApi.overview(),
+	refetchInterval: 10_000,
+}));
 
-    // ── Mutations ─────────────────────────────────────────────────────────────
-    const actionMutation = createMutation(() => ({
-        mutationFn: ({ id, action }: { id: string; action: "start" | "stop" }) =>
-            action === "start" ? containersApi.start(id) : containersApi.stop(id),
-        onSuccess: (_, { id, action }) => {
-            const status: ContainerStatus = action === "start" ? "running" : "exited";
-            qc.setQueryData<{ id: string; status: ContainerStatus }[]>(
-                ["containers"],
-                (old) => old?.map((c) => (c.id === id ? { ...c, status } : c)) ?? [],
-            );
-        },
-    }));
+// ── Mutations ─────────────────────────────────────────────────────────────
+const actionMutation = createMutation(() => ({
+	mutationFn: ({ id, action }: { id: string; action: "start" | "stop" }) =>
+		action === "start" ? containersApi.start(id) : containersApi.stop(id),
+	onSuccess: (_, { id, action }) => {
+		const status: ContainerStatus = action === "start" ? "running" : "exited";
+		qc.setQueryData<{ id: string; status: ContainerStatus }[]>(
+			["containers"],
+			(old) => old?.map((c) => (c.id === id ? { ...c, status } : c)) ?? []
+		);
+	},
+}));
 
-    // ── Derived ───────────────────────────────────────────────────────────────
-    const containers  = $derived(containersQuery.data ?? []);
-    const images      = $derived(imagesQuery.data ?? []);
-    const networks    = $derived(networksQuery.data ?? []);
-    const volumes     = $derived(volumesQuery.data ?? []);
-    const services    = $derived(servicesQuery.data ?? []);
-    const overview    = $derived(systemQuery.data ?? null);
+// ── Derived ───────────────────────────────────────────────────────────────
+const containers = $derived(containersQuery.data ?? []);
+const images = $derived(imagesQuery.data ?? []);
+const networks = $derived(networksQuery.data ?? []);
+const volumes = $derived(volumesQuery.data ?? []);
+const services = $derived(servicesQuery.data ?? []);
+const overview = $derived(systemQuery.data ?? null);
 
-    const runningCount   = $derived(containers.filter((c) => c.status === "running").length);
-    const stoppedCount   = $derived(containers.filter((c) => c.status !== "running").length);
-    const failedServices = $derived(services.filter((s) => s.status === "failed").length);
-    const runningServices = $derived(services.filter((s) => s.status === "running").length);
+const runningCount = $derived(containers.filter((c) => c.status === "running").length);
+const stoppedCount = $derived(containers.filter((c) => c.status !== "running").length);
+const failedServices = $derived(services.filter((s) => s.status === "failed").length);
+const runningServices = $derived(services.filter((s) => s.status === "running").length);
 
-    const cpuPct  = $derived(overview?.resources.cpu_percent ?? 0);
-    const memPct  = $derived(overview?.resources.memory.percent ?? 0);
-    const diskPct = $derived(overview?.resources.disk.percent ?? 0);
+const cpuPct = $derived(overview?.resources.cpu_percent ?? 0);
+const memPct = $derived(overview?.resources.memory.percent ?? 0);
+const diskPct = $derived(overview?.resources.disk.percent ?? 0);
 
-    const hasResourceWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
-    const systemHealthy = $derived(!hasResourceWarning && failedServices === 0);
+const hasResourceWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
+const systemHealthy = $derived(!hasResourceWarning && failedServices === 0);
 
-    const isEmpty = $derived(
-        !containersQuery.isPending &&
-        !servicesQuery.isPending &&
-        containers.length === 0 &&
-        services.length === 0,
-    );
+const isEmpty = $derived(
+	!containersQuery.isPending &&
+		!servicesQuery.isPending &&
+		containers.length === 0 &&
+		services.length === 0
+);
 
-    // ── Docker Events ─────────────────────────────────────────────────────────
-    onMount(() => dockerEventsStore.connect());
-    onDestroy(() => dockerEventsStore.disconnect());
+// ── Docker Events ─────────────────────────────────────────────────────────
+onMount(() => dockerEventsStore.connect());
+onDestroy(() => dockerEventsStore.disconnect());
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-    function statusColor(status: ContainerStatus) {
-        const m: Record<ContainerStatus, string> = {
-            running: "#22c55e", stopped: "#6b7280", exited: "#6b7280",
-            paused: "#f59e0b", created: "#3b82f6",
-        };
-        return m[status] ?? "#6b7280";
-    }
+// ── Helpers ───────────────────────────────────────────────────────────────
+function statusColor(status: ContainerStatus) {
+	const m: Record<ContainerStatus, string> = {
+		running: "#22c55e",
+		stopped: "#6b7280",
+		exited: "#6b7280",
+		paused: "#f59e0b",
+		created: "#3b82f6",
+	};
+	return m[status] ?? "#6b7280";
+}
 
-    function formatBytes(mb: number) {
-        return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
-    }
+function formatBytes(mb: number) {
+	return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
+}
 
-    function resourceBarColor(pct: number) {
-        return pct > 80 ? "bg-destructive" : pct > 60 ? "bg-amber-500" : "bg-primary";
-    }
+function resourceBarColor(pct: number) {
+	return pct > 80 ? "bg-destructive" : pct > 60 ? "bg-amber-500" : "bg-primary";
+}
 
-    function resourceTextColor(pct: number) {
-        return pct > 80 ? "text-destructive" : pct > 60 ? "text-amber-500" : "text-foreground";
-    }
+function resourceTextColor(pct: number) {
+	return pct > 80 ? "text-destructive" : pct > 60 ? "text-amber-500" : "text-foreground";
+}
 
-    const serviceStatusColor: Record<string, string> = {
-        running: "#22c55e", deploying: "#3b82f6", stopped: "#6b7280", failed: "#ef4444",
-    };
+const serviceStatusColor: Record<string, string> = {
+	running: "#22c55e",
+	deploying: "#3b82f6",
+	stopped: "#6b7280",
+	failed: "#ef4444",
+};
 
-    const quickActions = [
-        { icon: DatabaseIcon, title: "Deploy a Service", description: "Redis, Postgres, and more", href: "/dashboard/services/templates", accent: "bg-blue-500/10 text-blue-500" },
-        { icon: CodeIcon, title: "Dockerfile", description: "Build and run a custom container", href: "/dashboard/containers?action=dockerfile", accent: "bg-violet-500/10 text-violet-500" },
-        { icon: LayersIcon, title: "Docker Compose", description: "Deploy a compose stack", href: "/dashboard/containers?action=compose", accent: "bg-orange-500/10 text-orange-500" },
-        { icon: GitBranchIcon, title: "Connect Git", description: "Auto-deploy on push", href: "/dashboard/git", accent: "bg-green-500/10 text-green-500" },
-    ];
+const quickActions = [
+	{
+		icon: DatabaseIcon,
+		title: "Deploy a Service",
+		description: "Redis, Postgres, and more",
+		href: "/dashboard/services/templates",
+		accent: "bg-blue-500/10 text-blue-500",
+	},
+	{
+		icon: CodeIcon,
+		title: "Dockerfile",
+		description: "Build and run a custom container",
+		href: "/dashboard/containers?action=dockerfile",
+		accent: "bg-violet-500/10 text-violet-500",
+	},
+	{
+		icon: LayersIcon,
+		title: "Docker Compose",
+		description: "Deploy a compose stack",
+		href: "/dashboard/containers?action=compose",
+		accent: "bg-orange-500/10 text-orange-500",
+	},
+	{
+		icon: GitBranchIcon,
+		title: "Connect Git",
+		description: "Auto-deploy on push",
+		href: "/dashboard/git",
+		accent: "bg-green-500/10 text-green-500",
+	},
+];
 </script>
 
 <div class="space-y-5">

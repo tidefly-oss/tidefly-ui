@@ -1,26 +1,26 @@
 <script lang="ts">
-    import { auth } from '$lib/stores/auth.svelte';
-    import type { Snippet } from 'svelte';
-    import { goto } from '$app/navigation';
-    import { onMount } from 'svelte';
+import type { Snippet } from "svelte";
+import { onMount } from "svelte";
+import { goto } from "$app/navigation";
+import { auth } from "$lib/stores/auth.svelte";
 
-    let { children }: { children: Snippet } = $props();
-    let ready = $state(false);
+let { children }: { children: Snippet } = $props();
+let ready = $state(false);
 
-    onMount(async () => {
-        await auth.init();
-        if (!auth.user) {
-            await goto('/login');
-            return;
-        }
-        ready = true;
-    });
+onMount(async () => {
+	await auth.init();
+	if (!auth.user) {
+		await goto("/login");
+		return;
+	}
+	ready = true;
+});
 
-    $effect(() => {
-        if (auth.mustChangePassword) {
-            goto('/change-password');
-        }
-    });
+$effect(() => {
+	if (auth.mustChangePassword) {
+		goto("/change-password");
+	}
+});
 </script>
 
 {#if ready}

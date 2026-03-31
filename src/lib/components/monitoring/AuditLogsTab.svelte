@@ -1,52 +1,49 @@
 <script lang="ts">
-  import { auditLogsStore } from "$lib/stores/logs.svelte.js";
-  import {
-    CheckCircleIcon,
-    ChevronDownIcon,
-    FilterIcon,
-    LoaderIcon,
-    RefreshCwIcon,
-    XCircleIcon,
-  } from "@lucide/svelte";
+import {
+	ChevronDownIcon,
+	CircleCheckBig,
+	CircleX,
+	Funnel,
+	LoaderIcon,
+	RefreshCwIcon,
+} from "@lucide/svelte";
+import { auditLogsStore } from "$lib/stores/logs.svelte.js";
 
-  let actionFilter = $state("");
-  let successFilter = $state<"" | "true" | "false">("");
+interface RawAuditLog {
+	CreatedAt?: string;
+	created_at?: string;
+	ID?: string | number;
+	id?: string | number;
+	[key: string]: unknown;
+}
 
-  function applyFilter() {
-    auditLogsStore.load({
-      reset: true,
-      action: actionFilter || undefined,
-      success: successFilter === "" ? undefined : successFilter === "true",
-    });
-  }
+let actionFilter = $state("");
+let successFilter = $state<"" | "true" | "false">("");
 
-  function normalizeLogs(raw: any[] = []) {
-    return raw.map((l: any, i: number) => {
-      const createdRaw = l.CreatedAt ?? l.created_at ?? null;
-      const created = createdRaw ? new Date(createdRaw) : null;
-      const created_at =
-        created && !isNaN(created.getTime()) ? created.toISOString() : null;
-      const id = l.ID ?? l.id ?? `${created_at ?? ""}-${i}`;
-      return { ...l, id, created_at };
-    });
-  }
+function applyFilter() {
+	auditLogsStore.load({
+		reset: true,
+		action: actionFilter || undefined,
+		success: successFilter === "" ? undefined : successFilter === "true",
+	});
+}
 
-  const logs = $derived(normalizeLogs(auditLogsStore.logs));
+const logs = $derived(auditLogsStore.logs);
 
-  function formatDate(iso: string | null) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    return isNaN(d.getTime())
-      ? "—"
-      : d.toLocaleString("de-DE", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-  }
+function formatDate(iso: string | null) {
+	if (!iso) return "—";
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? "—"
+		: d.toLocaleString("de-DE", {
+				day: "2-digit",
+				month: "2-digit",
+				year: "numeric",
+				hour: "2-digit",
+				minute: "2-digit",
+				second: "2-digit",
+			});
+}
 </script>
 
 <div class="space-y-3">
@@ -71,7 +68,7 @@
       onclick={applyFilter}
       class="flex items-center gap-1.5 text-xs px-2 py-1.5 bg-muted/50 border rounded-lg"
     >
-      <FilterIcon class="size-3" /> Apply
+      <Funnel class="size-3" /> Apply
     </button>
     <button
       onclick={() => auditLogsStore.load({ reset: true })}
@@ -143,10 +140,10 @@
                   >{formatDate(log.created_at)}</td
                 >
                 <td class="px-4 py-2">
-                  {#if log.success}<CheckCircleIcon
+                  {#if log.success}<CircleCheckBig
                       class="size-3.5 text-green-500"
                     />
-                  {:else}<XCircleIcon class="size-3.5 text-red-500" />{/if}
+                  {:else}<CircleX class="size-3.5 text-red-500" />{/if}
                 </td>
                 <td class="px-4 py-2"
                   ><span class="px-1.5 py-0.5 bg-muted rounded font-mono"

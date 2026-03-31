@@ -1,54 +1,54 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
-  import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
-  import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
-  import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-  import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-  import { initQueryClient } from "$lib/query";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
-  import { dockerEventsStore } from "$lib/stores/events.svelte";
-  import { theme } from "$lib/stores/theme.svelte";
-  import LogOutIcon from "@lucide/svelte/icons/log-out";
-  import MonitorIcon from "@lucide/svelte/icons/monitor";
-  import MoonIcon from "@lucide/svelte/icons/moon";
-  import SunIcon from "@lucide/svelte/icons/sun";
-  import UserIcon from "@lucide/svelte/icons/user";
-  import { QueryClientProvider } from "@tanstack/svelte-query";
-  import type { Snippet } from "svelte";
-  import { onDestroy, onMount } from "svelte";
-  import type { User } from "$lib/api/v1/types";
+import LogOutIcon from "@lucide/svelte/icons/log-out";
+import MonitorIcon from "@lucide/svelte/icons/monitor";
+import MoonIcon from "@lucide/svelte/icons/moon";
+import SunIcon from "@lucide/svelte/icons/sun";
+import UserIcon from "@lucide/svelte/icons/user";
+import { QueryClientProvider } from "@tanstack/svelte-query";
+import type { Snippet } from "svelte";
+import { onDestroy, onMount } from "svelte";
+import { goto } from "$app/navigation";
+import type { User } from "$lib/api/v1/types";
+import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
+import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
+import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
+import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { initQueryClient } from "$lib/query";
+import { auth } from "$lib/stores/auth.svelte";
+import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
+import { dockerEventsStore } from "$lib/stores/events.svelte";
+import { theme } from "$lib/stores/theme.svelte";
 
-  let { children }: { children: Snippet } = $props();
+let { children }: { children: Snippet } = $props();
 
-  const queryClient = initQueryClient();
+const queryClient = initQueryClient();
 
-  $effect(() => {
-    theme.init();
-    dockerEventsStore.connect();
-  })
+$effect(() => {
+	theme.init();
+	dockerEventsStore.connect();
+});
 
-  onDestroy(() => {
-    dockerEventsStore.disconnect();
-  });
+onDestroy(() => {
+	dockerEventsStore.disconnect();
+});
 
-  async function handleLogout() {
-    await auth.logout();
-    await goto("/login");
-  }
+async function handleLogout() {
+	await auth.logout();
+	await goto("/login");
+}
 
-  function getUserInitials(user: User | null | undefined) {
-    const name = user?.name ?? user?.email ?? "U";
-    return name
-            .split(" ")
-            .map((n: string) => n[0])
-            .join("")
-            .toUpperCase()
-            .slice(0, 2);
-  }
+function getUserInitials(user: User | null | undefined) {
+	const name = user?.name ?? user?.email ?? "U";
+	return name
+		.split(" ")
+		.map((n: string) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
 </script>
 
 <QueryClientProvider client={queryClient}>

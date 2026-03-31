@@ -1,153 +1,138 @@
 <script lang="ts">
-  import {
-    type Container,
-    type ContainerStatus,
-  } from "$lib/api/v1/types";
-  import { containersApi } from "$lib/api/v1/containers/index.js";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    ActivityIcon,
-    CalendarIcon,
-    ChevronRightIcon,
-    CircleIcon,
-    DatabaseIcon,
-    FileCodeIcon,
-    FileImageIcon,
-    FolderPenIcon,
-    HardDriveIcon,
-    LayersIcon,
-    NetworkIcon,
-    PlayIcon,
-    RotateCcwIcon,
-    SearchIcon,
-    SquareIcon,
-    Trash2Icon,
-  } from "@lucide/svelte";
-  import {
-    createMutation,
-    createQuery,
-    useQueryClient,
-  } from "@tanstack/svelte-query";
-  import { auth } from "$lib/stores/auth.svelte";
+import {
+	ActivityIcon,
+	CalendarIcon,
+	ChevronRightIcon,
+	CircleIcon,
+	DatabaseIcon,
+	FileCodeIcon,
+	FileImageIcon,
+	FolderPenIcon,
+	HardDriveIcon,
+	LayersIcon,
+	NetworkIcon,
+	PlayIcon,
+	RotateCcwIcon,
+	SearchIcon,
+	SquareIcon,
+	Trash2Icon,
+} from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { containersApi } from "$lib/api/v1/containers/index.js";
+import type { Container, ContainerStatus } from "$lib/api/v1/types";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-  let { initialData }: { initialData: Container[] } = $props();
+let { initialData }: { initialData: Container[] } = $props();
 
-  const queryClient = useQueryClient();
-  const isAdmin = $derived(auth.user?.role === 'admin');
+const queryClient = useQueryClient();
+const isAdmin = $derived(auth.user?.role === "admin");
 
-  // Admins can always delete. Members can delete containers that belong to a project.
-  // Backend enforces actual membership — this controls button visibility only.
-  function canDelete(c: { labels?: Record<string, string> | null }): boolean {
-    return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
-  }
+// Admins can always delete. Members can delete containers that belong to a project.
+// Backend enforces actual membership — this controls button visibility only.
+function canDelete(c: { labels?: Record<string, string> | null }): boolean {
+	return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
+}
 
-  const query = createQuery(() => ({
-    queryKey: ["containers"],
-    queryFn: () => containersApi.list(true),
-    initialData,
-    refetchInterval: 10_000,
-  }));
+const query = createQuery(() => ({
+	queryKey: ["containers"],
+	queryFn: () => containersApi.list(true),
+	initialData,
+	refetchInterval: 10_000,
+}));
 
-  const actionMutation = createMutation(() => ({
-    mutationFn: async ({
-                         id,
-                         action,
-                       }: {
-      id: string;
-      action: "start" | "stop" | "restart" | "delete";
-    }): Promise<{ status: ContainerStatus }> => {
-      if (action === "start") return containersApi.start(id);
-      if (action === "stop") return containersApi.stop(id);
-      if (action === "restart") return containersApi.restart(id);
-      await containersApi.delete(id, true);
-      return { status: "exited" };
-    },
-    onSuccess: (_, { id, action }) => {
-      if (action === "delete") {
-        queryClient.setQueryData<Container[]>(
-                ["containers"],
-                (old) => old?.filter((c) => c.id !== id) ?? [],
-        );
-      } else {
-        const statusMap: Record<string, ContainerStatus> = {
-          start: "running",
-          stop: "exited",
-          restart: "running",
-        };
-        queryClient.setQueryData<Container[]>(
-                ["containers"],
-                (old) =>
-                        old?.map((c) =>
-                                c.id === id ? { ...c, status: statusMap[action] } : c,
-                        ) ?? [],
-        );
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["containers"] });
-    },
-  }));
+const actionMutation = createMutation(() => ({
+	mutationFn: async ({
+		id,
+		action,
+	}: {
+		id: string;
+		action: "start" | "stop" | "restart" | "delete";
+	}): Promise<{ status: ContainerStatus }> => {
+		if (action === "start") return containersApi.start(id);
+		if (action === "stop") return containersApi.stop(id);
+		if (action === "restart") return containersApi.restart(id);
+		await containersApi.delete(id, true);
+		return { status: "exited" };
+	},
+	onSuccess: (_, { id, action }) => {
+		if (action === "delete") {
+			queryClient.setQueryData<Container[]>(
+				["containers"],
+				(old) => old?.filter((c) => c.id !== id) ?? []
+			);
+		} else {
+			const statusMap: Record<string, ContainerStatus> = {
+				start: "running",
+				stop: "exited",
+				restart: "running",
+			};
+			queryClient.setQueryData<Container[]>(
+				["containers"],
+				(old) => old?.map((c) => (c.id === id ? { ...c, status: statusMap[action] } : c)) ?? []
+			);
+		}
+	},
+	onSettled: () => {
+		queryClient.invalidateQueries({ queryKey: ["containers"] });
+	},
+}));
 
-  type Filter = "all" | "running" | "stopped";
-  let filter = $state<Filter>("all");
-  let globalFilter = $state("");
+type Filter = "all" | "running" | "stopped";
+let filter = $state<Filter>("all");
+let globalFilter = $state("");
 
-  const statusDot: Record<ContainerStatus, string> = {
-    running: "#22c55e",
-    stopped: "#6b7280",
-    exited: "#6b7280",
-    paused: "#f59e0b",
-    created: "#3b82f6",
-  };
+const statusDot: Record<ContainerStatus, string> = {
+	running: "#22c55e",
+	stopped: "#6b7280",
+	exited: "#6b7280",
+	paused: "#f59e0b",
+	created: "#3b82f6",
+};
 
-  const statusColor: Record<ContainerStatus, string> = {
-    running: "text-green-500",
-    stopped: "text-muted-foreground",
-    exited: "text-muted-foreground",
-    paused: "text-yellow-500",
-    created: "text-blue-500",
-  };
+const statusColor: Record<ContainerStatus, string> = {
+	running: "text-green-500",
+	stopped: "text-muted-foreground",
+	exited: "text-muted-foreground",
+	paused: "text-yellow-500",
+	created: "text-blue-500",
+};
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 
-  function doAction(
-          id: string,
-          action: "start" | "stop" | "restart" | "delete",
-  ) {
-    actionMutation.mutate({ id, action });
-  }
+function doAction(id: string, action: "start" | "stop" | "restart" | "delete") {
+	actionMutation.mutate({ id, action });
+}
 
-  function isPending(id: string) {
-    return actionMutation.isPending && actionMutation.variables?.id === id;
-  }
+function isPending(id: string) {
+	return actionMutation.isPending && actionMutation.variables?.id === id;
+}
 
-  const allContainers = $derived(query.data ?? []);
+const allContainers = $derived(query.data ?? []);
 
-  const filteredData = $derived(
-          allContainers.filter((c) => {
-            const matchesFilter =
-                    filter === "all" ||
-                    (filter === "running" && c.status === "running") ||
-                    (filter === "stopped" && c.status !== "running");
-            const matchesSearch =
-                    !globalFilter ||
-                    c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-                    c.image.toLowerCase().includes(globalFilter.toLowerCase());
-            return matchesFilter && matchesSearch;
-          }),
-  );
+const filteredData = $derived(
+	allContainers.filter((c) => {
+		const matchesFilter =
+			filter === "all" ||
+			(filter === "running" && c.status === "running") ||
+			(filter === "stopped" && c.status !== "running");
+		const matchesSearch =
+			!globalFilter ||
+			c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+			c.image.toLowerCase().includes(globalFilter.toLowerCase());
+		return matchesFilter && matchesSearch;
+	})
+);
 
-  const runningCount = $derived(
-          allContainers.filter((c) => c.status === "running").length,
-  );
+const runningCount = $derived(allContainers.filter((c) => c.status === "running").length);
 </script>
 
 <div class="space-y-4">

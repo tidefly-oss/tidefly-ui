@@ -1,46 +1,46 @@
 <script lang="ts">
-    import { createQuery, createMutation, useQueryClient } from '@tanstack/svelte-query';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import { adminApi } from '$lib/api/v1/admin';
-    import { toast } from 'svelte-sonner';
-    import { GlobeIcon } from '@lucide/svelte';
+import { GlobeIcon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const settingsQuery = createQuery(() => ({
-        queryKey: ['admin-settings'],
-        queryFn: () => adminApi.getSettings(),
-    }));
+const settingsQuery = createQuery(() => ({
+	queryKey: ["admin-settings"],
+	queryFn: () => adminApi.getSettings(),
+}));
 
-    const updateMutation = createMutation(() => ({
-        mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['admin-settings'] });
-            toast.success('Settings saved');
-        },
-        onError: () => toast.error('Failed to save settings'),
-    }));
+const updateMutation = createMutation(() => ({
+	mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["admin-settings"] });
+		toast.success("Settings saved");
+	},
+	onError: () => toast.error("Failed to save settings"),
+}));
 
-    const settings = $derived(settingsQuery.data ?? null);
+const settings = $derived(settingsQuery.data ?? null);
 
-    let instanceName    = $state('');
-    let caddyBaseDomain = $state('');
+let instanceName = $state("");
+let caddyBaseDomain = $state("");
 
-    $effect(() => {
-        if (settings) {
-            instanceName    = settings.instance_name     ?? '';
-            caddyBaseDomain = settings.caddy_base_domain ?? '';
-        }
-    });
+$effect(() => {
+	if (settings) {
+		instanceName = settings.instance_name ?? "";
+		caddyBaseDomain = settings.caddy_base_domain ?? "";
+	}
+});
 
-    function save() {
-        updateMutation.mutate({
-            instance_name:     instanceName,
-            caddy_base_domain: caddyBaseDomain,
-        });
-    }
+function save() {
+	updateMutation.mutate({
+		instance_name: instanceName,
+		caddy_base_domain: caddyBaseDomain,
+	});
+}
 </script>
 
 <div class="space-y-4">

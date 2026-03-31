@@ -1,30 +1,32 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { projectQueries, projectKeys } from "$lib/queries/projects.js";
-  import { projectsApi } from "$lib/api";
-  import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
-  import { ChevronRightIcon, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
+import { ChevronRightIcon, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { projectsApi } from "$lib/api";
+import { Button } from "$lib/components/ui/button/index.js";
+import { projectKeys, projectQueries } from "$lib/queries/projects.js";
 
-  const qc = useQueryClient();
+const qc = useQueryClient();
 
-  const projectsQuery = createQuery(() => projectQueries.list());
-  const projects = $derived(projectsQuery.data ?? []);
+const projectsQuery = createQuery(() => projectQueries.list());
+const projects = $derived(projectsQuery.data ?? []);
 
-  const deleteMutation = createMutation(() => ({
-    mutationFn: (id: string) => projectsApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
-  }));
+const deleteMutation = createMutation(() => ({
+	mutationFn: (id: string) => projectsApi.delete(id),
+	onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
+}));
 
-  async function deleteProject(id: string, name: string) {
-    if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
-    deleteMutation.mutate(id);
-  }
+async function deleteProject(id: string, name: string) {
+	if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
+	deleteMutation.mutate(id);
+}
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", {
-      day: "2-digit", month: "2-digit", year: "numeric",
-    });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 </script>
 
 <div class="space-y-4">

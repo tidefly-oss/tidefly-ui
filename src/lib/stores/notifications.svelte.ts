@@ -1,6 +1,6 @@
-import { notificationsApi } from '$lib/api/v1/notifications/index.js';
-import { tokenStore } from '$lib/api/client';
-import type { Notification } from '$lib/api/v1/types';
+import { tokenStore } from "$lib/api/client";
+import { notificationsApi } from "$lib/api/v1/notifications/index.js";
+import type { Notification } from "$lib/api/v1/types";
 
 class NotificationsStore {
 	items = $state<Notification[]>([]);
@@ -26,7 +26,7 @@ class NotificationsStore {
 		const url = `/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
 		const source = new EventSource(url, { withCredentials: true });
 
-		source.addEventListener('notification', (e: MessageEvent) => {
+		source.addEventListener("notification", (e: MessageEvent) => {
 			try {
 				const notification: Notification = JSON.parse(e.data);
 				this.upsertLocal(notification);
@@ -35,7 +35,7 @@ class NotificationsStore {
 			}
 		});
 
-		source.addEventListener('ping', () => {});
+		source.addEventListener("ping", () => {});
 		source.onerror = () => {};
 
 		this.sseSource = source;
@@ -52,7 +52,7 @@ class NotificationsStore {
 		try {
 			this.items = await notificationsApi.list();
 		} catch (e) {
-			this.error = e instanceof Error ? e.message : 'Failed to load notifications';
+			this.error = e instanceof Error ? e.message : "Failed to load notifications";
 		} finally {
 			this.loading = false;
 		}
@@ -85,11 +85,7 @@ class NotificationsStore {
 	private upsertLocal(incoming: Notification) {
 		const idx = this.items.findIndex((n) => n.id === incoming.id);
 		if (idx >= 0) {
-			this.items = [
-				...this.items.slice(0, idx),
-				incoming,
-				...this.items.slice(idx + 1),
-			];
+			this.items = [...this.items.slice(0, idx), incoming, ...this.items.slice(idx + 1)];
 		} else {
 			this.items = [incoming, ...this.items];
 		}

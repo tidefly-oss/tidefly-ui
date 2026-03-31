@@ -1,138 +1,134 @@
 <script lang="ts">
-    import { goto } from "$app/navigation";
-    import { page } from "$app/state";
-    import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-    import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import { updateStore } from "$lib/stores/update.svelte.js";
-    import { auth } from "$lib/stores/auth.svelte";
-    import { systemApi } from "$lib/api/v1/system";
-    import { projectQueries } from "$lib/queries/projects.js";
-    import { createQuery } from "@tanstack/svelte-query";
-    import {DatabaseBackupIcon, GitBranchIcon, LayoutTemplate} from "@lucide/svelte";
-    import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
-    import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
+import { DatabaseBackupIcon, GitBranchIcon, LayoutTemplate } from "@lucide/svelte";
+import ActivityIcon from "@lucide/svelte/icons/activity";
+import ArrowUpCircleIcon from "@lucide/svelte/icons/arrow-up-circle";
+import BoxIcon from "@lucide/svelte/icons/box";
+import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+import CircleIcon from "@lucide/svelte/icons/circle";
+import ContainerIcon from "@lucide/svelte/icons/container";
+import DatabaseIcon from "@lucide/svelte/icons/database";
+import FolderIcon from "@lucide/svelte/icons/folder";
+import ImageIcon from "@lucide/svelte/icons/image";
+import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
+import Loader2Icon from "@lucide/svelte/icons/loader-2";
+import NetworkIcon from "@lucide/svelte/icons/network";
+import PlusIcon from "@lucide/svelte/icons/plus";
+import ServerIcon from "@lucide/svelte/icons/server";
+import SettingsIcon from "@lucide/svelte/icons/settings";
+import UsersIcon from "@lucide/svelte/icons/users";
+import ZapIcon from "@lucide/svelte/icons/zap";
+import { createQuery } from "@tanstack/svelte-query";
+import type { ComponentProps } from "svelte";
+import { onDestroy } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import { systemApi } from "$lib/api/v1/system";
+import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
+import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import type * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import { projectQueries } from "$lib/queries/projects.js";
+import { auth } from "$lib/stores/auth.svelte";
+import { updateStore } from "$lib/stores/update.svelte.js";
 
-    import ActivityIcon from "@lucide/svelte/icons/activity";
-    import ArrowUpCircleIcon from "@lucide/svelte/icons/arrow-up-circle";
-    import BoxIcon from "@lucide/svelte/icons/box";
-    import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
-    import CircleIcon from "@lucide/svelte/icons/circle";
-    import ContainerIcon from "@lucide/svelte/icons/container";
-    import DatabaseIcon from "@lucide/svelte/icons/database";
-    import FolderIcon from "@lucide/svelte/icons/folder";
-    import ImageIcon from "@lucide/svelte/icons/image";
-    import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
-    import Loader2Icon from "@lucide/svelte/icons/loader-2";
-    import NetworkIcon from "@lucide/svelte/icons/network";
-    import PlusIcon from "@lucide/svelte/icons/plus";
-    import ServerIcon from "@lucide/svelte/icons/server";
-    import SettingsIcon from "@lucide/svelte/icons/settings";
-    import UsersIcon from "@lucide/svelte/icons/users";
-    import ZapIcon from "@lucide/svelte/icons/zap";
-    import type { ComponentProps } from "svelte";
-    import { onDestroy } from "svelte";
+let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 
-    let {
-        ref = $bindable(null),
-        ...restProps
-    }: ComponentProps<typeof Sidebar.Root> = $props();
+let updateDialogOpen = $state(false);
 
-    let updateDialogOpen = $state(false);
+// ── System info ───────────────────────────────────────────────────────────
+const systemQuery = createQuery(() => ({
+	queryKey: ["system-info"],
+	queryFn: () => systemApi.info(),
+	refetchInterval: 60_000,
+	staleTime: 30_000,
+}));
 
-    // ── System info ───────────────────────────────────────────────────────────
-    const systemQuery = createQuery(() => ({
-        queryKey: ["system-info"],
-        queryFn: () => systemApi.info(),
-        refetchInterval: 60_000,
-        staleTime: 30_000,
-    }));
+const version = $derived(systemQuery.data?.tidefly_version ?? "dev");
 
-    const version = $derived(systemQuery.data?.tidefly_version ?? "dev");
+$effect(() => {
+	if (version && version !== "dev") updateStore.startPolling(version);
+});
+onDestroy(() => updateStore.stopPolling());
 
-    $effect(() => {
-        if (version && version !== "dev") updateStore.startPolling(version);
-    });
-    onDestroy(() => updateStore.stopPolling());
+// ── Projects ──────────────────────────────────────────────────────────────
+const projectsQuery = createQuery(() => ({
+	...projectQueries.list(),
+	enabled: !!auth.user,
+}));
 
-    // ── Projects ──────────────────────────────────────────────────────────────
-    const projectsQuery = createQuery(() => ({
-        ...projectQueries.list(),
-        enabled: !!auth.user,
-    }));
+const isAdmin = $derived(auth.user?.role === "admin");
+const allProjects = $derived(projectsQuery.data ?? []);
+const visibleProjects = $derived(
+	isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
+);
 
-    const isAdmin = $derived(auth.user?.role === "admin");
-    const allProjects = $derived(projectsQuery.data ?? []);
-    const visibleProjects = $derived(
-        isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id)),
-    );
+let activeProjectId = $state<string | null>(null);
+const activeProject = $derived(
+	visibleProjects.find((p) => p.id === activeProjectId) ?? visibleProjects[0] ?? null
+);
 
-    let activeProjectId = $state<string | null>(null);
-    const activeProject = $derived(
-        visibleProjects.find((p) => p.id === activeProjectId) ?? visibleProjects[0] ?? null,
-    );
+$effect(() => {
+	const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
+	if (match && match[1] !== "new") activeProjectId = match[1];
+});
 
-    $effect(() => {
-        const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
-        if (match && match[1] !== "new") activeProjectId = match[1];
-    });
+// ── Nav ───────────────────────────────────────────────────────────────────
+const navGroups = $derived([
+	{
+		label: "Overview",
+		items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
+	},
+	{
+		label: "Source",
+		items: [
+			{ title: "Git Integrations", href: "/dashboard/git/", icon: GitBranchIcon },
+			{ title: "Webhooks", href: "/dashboard/webhooks", icon: ZapIcon },
+		],
+	},
+	{
+		label: "Resources",
+		items: [
+			{ title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
+			{ title: "Images", href: "/dashboard/images", icon: ImageIcon },
+			{ title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
+			{ title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
+		],
+	},
+	{
+		label: "Services",
+		items: [
+			{ title: "Deployed", href: "/dashboard/services", icon: DatabaseIcon },
+			{ title: "Templates", href: "/dashboard/services/templates", icon: LayoutTemplate },
+		],
+	},
+	{
+		label: "Observability",
+		items: [{ title: "Monitoring", href: "/dashboard/monitoring", icon: ActivityIcon }],
+	},
+	...(isAdmin
+		? [
+				{
+					label: "Infrastructure",
+					items: [{ title: "Servers", href: "/dashboard/servers", icon: ServerIcon }],
+				},
+				{
+					label: "Administration",
+					items: [
+						{ title: "Backups", href: "/dashboard/backups", icon: DatabaseBackupIcon },
+						{ title: "Users", href: "/dashboard/users", icon: UsersIcon },
+						{ title: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+					],
+				},
+			]
+		: []),
+]);
 
-    // ── Nav ───────────────────────────────────────────────────────────────────
-    const navGroups = $derived([
-        {
-            label: "Overview",
-            items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
-        },
-        {
-            label: "Source",
-            items: [
-                { title: "Git Integrations", href: "/dashboard/git/", icon: GitBranchIcon },
-                { title: "Webhooks", href: "/dashboard/webhooks", icon: ZapIcon },
-            ],
-        },
-        {
-            label: "Resources",
-            items: [
-                { title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
-                { title: "Images", href: "/dashboard/images", icon: ImageIcon },
-                { title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
-                { title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
-            ],
-        },
-        {
-            label: "Services",
-            items: [
-                { title: "Deployed", href: "/dashboard/services", icon: DatabaseIcon },
-                { title: "Templates", href: "/dashboard/services/templates", icon: LayoutTemplate },
-            ],
-        },
-        {
-            label: "Observability",
-            items: [{ title: "Monitoring", href: "/dashboard/monitoring", icon: ActivityIcon }],
-        },
-        ...(isAdmin
-            ? [
-                {
-                    label: "Infrastructure",
-                    items: [{ title: "Servers", href: "/dashboard/servers", icon: ServerIcon }],
-                },
-                {
-                    label: "Administration",
-                    items: [
-                        { title: "Backups", href: "/dashboard/backups", icon: DatabaseBackupIcon },
-                        { title: "Users", href: "/dashboard/users", icon: UsersIcon },
-                        { title: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
-                    ],
-                },
-            ]
-            : []),
-    ]);
-
-    function isActive(href: string) {
-        if (href === "/dashboard") return page.url.pathname === href;
-        if (href === "/dashboard/services") return page.url.pathname === href;
-        return page.url.pathname.startsWith(href);
-    }
+function isActive(href: string) {
+	if (href === "/dashboard") return page.url.pathname === href;
+	if (href === "/dashboard/services") return page.url.pathname === href;
+	return page.url.pathname.startsWith(href);
+}
 </script>
 
 <Sidebar.Root variant="floating" {...restProps}>

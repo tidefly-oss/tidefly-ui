@@ -1,113 +1,102 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { volumesApi } from "$lib/api/v1/volumes";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import {
-    FlexRender,
-    createSvelteTable,
-  } from "$lib/components/ui/data-table/index.js";
-  import * as Table from "$lib/components/ui/table/index.js";
-  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-  import { HardDriveIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
-  import { auth } from "$lib/stores/auth.svelte";
-  import {
-    createMutation,
-    createQuery,
-    useQueryClient,
-  } from "@tanstack/svelte-query";
-  import {
-    getCoreRowModel,
-    getFilteredRowModel,
-    type ColumnDef,
-    type ColumnFiltersState,
-  } from "@tanstack/table-core";
-  import type {Volume} from "$lib/api/v1/types";
+import { HardDriveIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import {
+	type ColumnDef,
+	type ColumnFiltersState,
+	getCoreRowModel,
+	getFilteredRowModel,
+} from "@tanstack/table-core";
+import { goto } from "$app/navigation";
+import type { Volume } from "$lib/api/v1/types";
+import { volumesApi } from "$lib/api/v1/volumes";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+import * as Table from "$lib/components/ui/table/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-  let { initialData }: { initialData: Volume[] } = $props();
+let { initialData }: { initialData: Volume[] } = $props();
 
-  const queryClient = useQueryClient();
-  const isAdmin = $derived(auth.user?.role === 'admin');
+const queryClient = useQueryClient();
+const isAdmin = $derived(auth.user?.role === "admin");
 
-  const query = createQuery(() => ({
-    queryKey: ["volumes"],
-    queryFn: () => volumesApi.list(),
-    initialData,
-  }));
+const query = createQuery(() => ({
+	queryKey: ["volumes"],
+	queryFn: () => volumesApi.list(),
+	initialData,
+}));
 
-  const deleteMutation = createMutation(() => ({
-    mutationFn: (name: string) => volumesApi.delete(name),
-    onSuccess: (_: unknown, name: string) => {
-      queryClient.setQueryData<Volume[]>(
-              ["volumes"],
-              (old) => old?.filter((v) => v.name !== name) ?? [],
-      );
-    },
-  }));
+const deleteMutation = createMutation(() => ({
+	mutationFn: (name: string) => volumesApi.delete(name),
+	onSuccess: (_: unknown, name: string) => {
+		queryClient.setQueryData<Volume[]>(
+			["volumes"],
+			(old) => old?.filter((v) => v.name !== name) ?? []
+		);
+	},
+}));
 
-  let globalFilter = $state("");
-  let columnFilters = $state<ColumnFiltersState>([]);
-  let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+let globalFilter = $state("");
+let columnFilters = $state<ColumnFiltersState>([]);
+let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
 
-  $effect(() => {
-    (query.data ?? []).forEach((v) => {
-      if (usedBy[v.name] === undefined) fetchContainers(v.name);
-    });
-  });
+$effect(() => {
+	(query.data ?? []).forEach((v) => {
+		if (usedBy[v.name] === undefined) fetchContainers(v.name);
+	});
+});
 
-  async function fetchContainers(volumeName: string) {
-    try {
-      const res = await fetch(
-              `/api/v1/volumes/${encodeURIComponent(volumeName)}/containers`,
-      );
-      usedBy[volumeName] = res.ok ? await res.json() : [];
-    } catch {
-      usedBy[volumeName] = [];
-    }
-  }
+async function fetchContainers(volumeName: string) {
+	try {
+		const res = await fetch(`/api/v1/volumes/${encodeURIComponent(volumeName)}/containers`);
+		usedBy[volumeName] = res.ok ? await res.json() : [];
+	} catch {
+		usedBy[volumeName] = [];
+	}
+}
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 
-  const columns: ColumnDef<Volume>[] = [
-    { accessorKey: "name", header: "Name" },
-    { id: "usedBy", header: "Used by" },
-    { accessorKey: "driver", header: "Driver" },
-    { accessorKey: "mountpath", header: "Mountpath" },
-    { accessorKey: "created_at", header: "Created" },
-    { id: "actions", header: "Actions" },
-  ];
+const columns: ColumnDef<Volume>[] = [
+	{ accessorKey: "name", header: "Name" },
+	{ id: "usedBy", header: "Used by" },
+	{ accessorKey: "driver", header: "Driver" },
+	{ accessorKey: "mountpath", header: "Mountpath" },
+	{ accessorKey: "created_at", header: "Created" },
+	{ id: "actions", header: "Actions" },
+];
 
-  const table = createSvelteTable({
-    get data() {
-      return query.data ?? [];
-    },
-    columns,
-    state: {
-      get globalFilter() {
-        return globalFilter;
-      },
-      get columnFilters() {
-        return columnFilters;
-      },
-    },
-    onGlobalFilterChange: (updater) => {
-      globalFilter =
-              typeof updater === "function" ? updater(globalFilter) : updater;
-    },
-    onColumnFiltersChange: (updater) => {
-      columnFilters =
-              typeof updater === "function" ? updater(columnFilters) : updater;
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    globalFilterFn: "includesString",
-  });
+const table = createSvelteTable({
+	get data() {
+		return query.data ?? [];
+	},
+	columns,
+	state: {
+		get globalFilter() {
+			return globalFilter;
+		},
+		get columnFilters() {
+			return columnFilters;
+		},
+	},
+	onGlobalFilterChange: (updater) => {
+		globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+	},
+	onColumnFiltersChange: (updater) => {
+		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+	},
+	getCoreRowModel: getCoreRowModel(),
+	getFilteredRowModel: getFilteredRowModel(),
+	globalFilterFn: "includesString",
+});
 </script>
 
 <div class="space-y-4">

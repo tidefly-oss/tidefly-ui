@@ -1,38 +1,44 @@
 <script lang="ts">
-    import { authApi } from '$lib/api/v1/auth';
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { Field, FieldGroup, FieldLabel, FieldSeparator, FieldDescription } from "$lib/components/ui/field/index.js";
-    import { Input } from "$lib/components/ui/input/index.js";
-    import { cn, type WithElementRef } from "$lib/utils.js";
-    import type { HTMLFormAttributes } from "svelte/elements";
-    import {goto} from "$app/navigation";
+import type { HTMLFormAttributes } from "svelte/elements";
+import { goto } from "$app/navigation";
+import { authApi } from "$lib/api/v1/auth";
+import { Button } from "$lib/components/ui/button/index.js";
+import {
+	Field,
+	FieldDescription,
+	FieldGroup,
+	FieldLabel,
+	FieldSeparator,
+} from "$lib/components/ui/field/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { cn, type WithElementRef } from "$lib/utils.js";
 
-    let {
-        ref = $bindable(null),
-        class: className,
-        ...restProps
-    }: WithElementRef<HTMLFormAttributes> = $props();
+let {
+	ref = $bindable(null),
+	class: className,
+	...restProps
+}: WithElementRef<HTMLFormAttributes> = $props();
 
-    const id = $props.id();
+const id = $props.id();
 
-    let email    = $state("");
-    let password = $state("");
-    let error    = $state("");
-    let loading  = $state(false);
+let email = $state("");
+let password = $state("");
+let error = $state("");
+let loading = $state(false);
 
-    async function handleSubmit() {
-        error = "";
-        loading = true;
-        try {
-            await authApi.login({ email, password });
-            await goto('/dashboard');
-        } catch (e) {
-            console.error('Login error:', e);
-            error = "Login fehlgeschlagen";
-        } finally {
-            loading = false;
-        }
-    }
+async function handleSubmit() {
+	error = "";
+	loading = true;
+	try {
+		await authApi.login({ email, password });
+		await goto("/dashboard");
+	} catch (e) {
+		console.error("Login error:", e);
+		error = "Login fehlgeschlagen";
+	} finally {
+		loading = false;
+	}
+}
 </script>
 
 <form

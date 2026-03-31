@@ -1,35 +1,43 @@
 <script lang="ts">
-    import * as Dialog from "$lib/components/ui/dialog/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { updateStore } from "$lib/stores/update.svelte.js";
-    import { ArrowUpCircleIcon, ExternalLinkIcon, Loader2Icon } from "@lucide/svelte";
+import { ArrowUpCircleIcon, ExternalLinkIcon, Loader2Icon } from "@lucide/svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { updateStore } from "$lib/stores/update.svelte.js";
 
-    interface Props {
-        open: boolean;
-    }
+interface Props {
+	open: boolean;
+}
 
-    let { open = $bindable() }: Props = $props();
+let { open = $bindable() }: Props = $props();
 
-    $effect(() => {
-        if (open && updateStore.update) {
-            updateStore.fetchNotes();
-        }
-    });
+$effect(() => {
+	if (open && updateStore.update) {
+		updateStore.fetchNotes();
+	}
+});
 
-    // Minimal markdown → HTML renderer
-    function renderMarkdown(md: string): string {
-        return md
-            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-            .replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold mt-4 mb-1 text-foreground">$1</h3>')
-            .replace(/^## (.+)$/gm, '<h2 class="text-sm font-semibold mt-5 mb-1.5 text-foreground border-b pb-1">$1</h2>')
-            .replace(/^# (.+)$/gm, '<h1 class="text-base font-bold mt-5 mb-2 text-foreground">$1</h1>')
-            .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-            .replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>')
-            .replace(/^[-*] (.+)$/gm, '<li class="ml-4 list-disc text-sm text-muted-foreground leading-relaxed">$1</li>')
-            .replace(/(<li.*<\/li>\n?)+/g, (match) => `<ul class="my-1.5 space-y-0.5">${match}</ul>`)
-            .replace(/\n\n/g, '<br/><br/>')
-            .replace(/\n/g, '<br/>');
-    }
+// Minimal markdown → HTML renderer
+function renderMarkdown(md: string): string {
+	return md
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold mt-4 mb-1 text-foreground">$1</h3>')
+		.replace(
+			/^## (.+)$/gm,
+			'<h2 class="text-sm font-semibold mt-5 mb-1.5 text-foreground border-b pb-1">$1</h2>'
+		)
+		.replace(/^# (.+)$/gm, '<h1 class="text-base font-bold mt-5 mb-2 text-foreground">$1</h1>')
+		.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
+		.replace(/`([^`]+)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-xs font-mono">$1</code>')
+		.replace(
+			/^[-*] (.+)$/gm,
+			'<li class="ml-4 list-disc text-sm text-muted-foreground leading-relaxed">$1</li>'
+		)
+		.replace(/(<li.*<\/li>\n?)+/g, (match) => `<ul class="my-1.5 space-y-0.5">${match}</ul>`)
+		.replace(/\n\n/g, "<br/><br/>")
+		.replace(/\n/g, "<br/>");
+}
 </script>
 
 <Dialog.Root bind:open>

@@ -1,62 +1,71 @@
 <script lang="ts">
-    import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { Input } from "$lib/components/ui/input/index.js";
-    import { Label } from "$lib/components/ui/label/index.js";
-    import { backupApi } from "$lib/api/v1/backup";
-    import { toast } from "svelte-sonner";
-    import { CloudIcon, CheckIcon, Loader } from "@lucide/svelte";
-    import {Checkbox} from "$lib/components/ui/checkbox";
+import { CheckIcon, CloudIcon, Loader } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { backupApi } from "$lib/api/v1/backup";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Checkbox } from "$lib/components/ui/checkbox";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const configQuery = createQuery(() => ({
-        queryKey: ["backups-config"],
-        queryFn: () => backupApi.getConfig(),
-    }));
+const configQuery = createQuery(() => ({
+	queryKey: ["backups-config"],
+	queryFn: () => backupApi.getConfig(),
+}));
 
-    const saveMutation = createMutation(() => ({
-        mutationFn: (data: Parameters<typeof backupApi.saveConfig>[0]) => backupApi.saveConfig(data),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ["backups-config"] });
-            toast.success("S3 config saved");
-        },
-        onError: () => toast.error("Failed to save config"),
-    }));
+const saveMutation = createMutation(() => ({
+	mutationFn: (data: Parameters<typeof backupApi.saveConfig>[0]) => backupApi.saveConfig(data),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["backups-config"] });
+		toast.success("S3 config saved");
+	},
+	onError: () => toast.error("Failed to save config"),
+}));
 
-    const testMutation = createMutation(() => ({
-        mutationFn: () => backupApi.testConnection(),
-        onSuccess: (data) => {
-            if (data.ok) toast.success(data.message);
-            else toast.error(data.message);
-        },
-        onError: () => toast.error("Connection test failed"),
-    }));
+const testMutation = createMutation(() => ({
+	mutationFn: () => backupApi.testConnection(),
+	onSuccess: (data) => {
+		if (data.ok) toast.success(data.message);
+		else toast.error(data.message);
+	},
+	onError: () => toast.error("Connection test failed"),
+}));
 
-    let endpoint  = $state("");
-    let bucket    = $state("");
-    let region    = $state("us-east-1");
-    let accessKey = $state("");
-    let secretKey = $state("");
-    let useSSL    = $state(true);
-    let pathStyle = $state(false);
-    let prefix    = $state("backups");
+let endpoint = $state("");
+let bucket = $state("");
+let region = $state("us-east-1");
+let accessKey = $state("");
+let secretKey = $state("");
+let useSSL = $state(true);
+let pathStyle = $state(false);
+let prefix = $state("backups");
 
-    $effect(() => {
-        const cfg = configQuery.data;
-        if (cfg?.configured) {
-            endpoint  = cfg.endpoint;
-            bucket    = cfg.bucket;
-            region    = cfg.region;
-            useSSL    = cfg.use_ssl;
-            pathStyle = cfg.path_style;
-            prefix    = cfg.prefix;
-        }
-    });
+$effect(() => {
+	const cfg = configQuery.data;
+	if (cfg?.configured) {
+		endpoint = cfg.endpoint;
+		bucket = cfg.bucket;
+		region = cfg.region;
+		useSSL = cfg.use_ssl;
+		pathStyle = cfg.path_style;
+		prefix = cfg.prefix;
+	}
+});
 
-    function save() {
-        saveMutation.mutate({ endpoint, bucket, region, access_key: accessKey, secret_key: secretKey, use_ssl: useSSL, path_style: pathStyle, prefix });
-    }
+function save() {
+	saveMutation.mutate({
+		endpoint,
+		bucket,
+		region,
+		access_key: accessKey,
+		secret_key: secretKey,
+		use_ssl: useSSL,
+		path_style: pathStyle,
+		prefix,
+	});
+}
 </script>
 
 <div class="rounded-xl border bg-card divide-y">

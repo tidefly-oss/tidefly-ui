@@ -1,86 +1,94 @@
 <script lang="ts">
-    import { Badge } from '$lib/components/ui/badge/index.js';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-    import type { Webhook, WebhookDelivery, WebhookStatus } from '$lib/api/v1/types/webhooks.js';
-    import {
-        CheckIcon,
-        ChevronDownIcon,
-        ClipboardIcon,
-        KeyRoundIcon,
-        RefreshCwIcon,
-        Trash2Icon,
-        XIcon,
-        ZapIcon,
-    } from '@lucide/svelte';
+import {
+	CheckIcon,
+	ChevronDownIcon,
+	ClipboardIcon,
+	KeyRoundIcon,
+	RefreshCwIcon,
+	Trash2Icon,
+	XIcon,
+	ZapIcon,
+} from "@lucide/svelte";
+import type { Webhook, WebhookDelivery, WebhookStatus } from "$lib/api/v1/types/webhooks.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 
-    let { webhook, ondelete, onrotate, onloaddeliveries }: {
-        webhook: Webhook;
-        ondelete: (id: string) => Promise<void>;
-        onrotate: (id: string) => Promise<{ secret: string }>;
-        onloaddeliveries: (id: string) => Promise<WebhookDelivery[]>;
-    } = $props();
+let {
+	webhook,
+	ondelete,
+	onrotate,
+	onloaddeliveries,
+}: {
+	webhook: Webhook;
+	ondelete: (id: string) => Promise<void>;
+	onrotate: (id: string) => Promise<{ secret: string }>;
+	onloaddeliveries: (id: string) => Promise<WebhookDelivery[]>;
+} = $props();
 
-    let deliveriesOpen = $state(false);
-    let deliveries     = $state<WebhookDelivery[]>([]);
-    let loadingDel     = $state(false);
-    let deleting       = $state(false);
-    let rotating       = $state(false);
-    let newSecret      = $state<string | null>(null);
-    let copied         = $state(false);
+let deliveriesOpen = $state(false);
+let deliveries = $state<WebhookDelivery[]>([]);
+let loadingDel = $state(false);
+let deleting = $state(false);
+let rotating = $state(false);
+let newSecret = $state<string | null>(null);
+let copied = $state(false);
 
-    async function toggleDeliveries() {
-        deliveriesOpen = !deliveriesOpen;
-        if (deliveriesOpen && deliveries.length === 0) {
-            loadingDel = true;
-            try {
-                deliveries = await onloaddeliveries(webhook.id);
-            } finally {
-                loadingDel = false;
-            }
-        }
-    }
+async function toggleDeliveries() {
+	deliveriesOpen = !deliveriesOpen;
+	if (deliveriesOpen && deliveries.length === 0) {
+		loadingDel = true;
+		try {
+			deliveries = await onloaddeliveries(webhook.id);
+		} finally {
+			loadingDel = false;
+		}
+	}
+}
 
-    async function copyUrl() {
-        await navigator.clipboard.writeText(webhook.url);
-        copied = true;
-        setTimeout(() => (copied = false), 2000);
-    }
+async function copyUrl() {
+	await navigator.clipboard.writeText(webhook.url);
+	copied = true;
+	setTimeout(() => (copied = false), 2000);
+}
 
-    async function rotate() {
-        if (!confirm('Rotate webhook secret? You must update your Git provider immediately.')) return;
-        rotating = true;
-        newSecret = null;
-        try {
-            newSecret = (await onrotate(webhook.id)).secret;
-        } finally {
-            rotating = false;
-        }
-    }
+async function rotate() {
+	if (!confirm("Rotate webhook secret? You must update your Git provider immediately.")) return;
+	rotating = true;
+	newSecret = null;
+	try {
+		newSecret = (await onrotate(webhook.id)).secret;
+	} finally {
+		rotating = false;
+	}
+}
 
-    async function del() {
-        if (!confirm(`Delete webhook "${webhook.name}"?`)) return;
-        deleting = true;
-        try {
-            await ondelete(webhook.id);
-        } finally {
-            deleting = false;
-        }
-    }
+async function del() {
+	if (!confirm(`Delete webhook "${webhook.name}"?`)) return;
+	deleting = true;
+	try {
+		await ondelete(webhook.id);
+	} finally {
+		deleting = false;
+	}
+}
 
-    function statusColor(s?: WebhookStatus) {
-        if (s === 'success') return 'text-green-500';
-        if (s === 'failed')  return 'text-destructive';
-        return 'text-muted-foreground';
-    }
+function statusColor(s?: WebhookStatus) {
+	if (s === "success") return "text-green-500";
+	if (s === "failed") return "text-destructive";
+	return "text-muted-foreground";
+}
 
-    function formatDate(iso?: string) {
-        if (!iso) return '—';
-        return new Date(iso).toLocaleString('de-DE', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-        });
-    }
+function formatDate(iso?: string) {
+	if (!iso) return "—";
+	return new Date(iso).toLocaleString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+	});
+}
 </script>
 
 <div class="rounded-lg border bg-card p-4 space-y-3">

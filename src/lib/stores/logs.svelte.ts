@@ -1,5 +1,5 @@
-import { type AppLog, type AuditLog } from '$lib/api/v1/types';
-import {logsApi} from "$lib/api/v1/logs";
+import { logsApi } from "$lib/api/v1/logs";
+import type { AppLog, AuditLog } from "$lib/api/v1/types";
 
 // ── App Logs Store ────────────────────────────────────────────────────────────
 
@@ -32,7 +32,7 @@ function createAppLogsStore() {
 			total = res.total;
 			offset = logs.length;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load logs';
+			error = e instanceof Error ? e.message : "Failed to load logs";
 		} finally {
 			loading = false;
 		}
@@ -40,22 +40,22 @@ function createAppLogsStore() {
 
 	// Löscht Alerts nur lokal aus dem Store (kein API-Call)
 	function clearAlerts() {
-		logs = logs.filter((l) => !['WARN', 'ERROR', 'FATAL'].includes(l.level as string));
+		logs = logs.filter((l) => !["WARN", "ERROR", "FATAL"].includes(l.level as string));
 		total = logs.length;
 	}
 
 	function startStream(params: { level?: string; component?: string } = {}) {
 		stopStream();
 		const q = new URLSearchParams();
-		if (params.level) q.set('level', params.level);
-		if (params.component) q.set('component', params.component);
+		if (params.level) q.set("level", params.level);
+		if (params.component) q.set("component", params.component);
 
-		const queryString = q.size ? '?' + q.toString() : '';
+		const queryString = q.size ? `?${q.toString()}` : "";
 		const url = `/api/v1/logs/app/stream${queryString}`;
 		eventSource = new EventSource(url);
 		streaming = true;
 
-		eventSource.addEventListener('log', (e) => {
+		eventSource.addEventListener("log", (e) => {
 			try {
 				const entry: AppLog = JSON.parse(e.data);
 				// Neueste oben
@@ -82,12 +82,24 @@ function createAppLogsStore() {
 	}
 
 	return {
-		get logs() { return logs; },
-		get total() { return total; },
-		get loading() { return loading; },
-		get error() { return error; },
-		get streaming() { return streaming; },
-		get hasMore() { return logs.length < total; },
+		get logs() {
+			return logs;
+		},
+		get total() {
+			return total;
+		},
+		get loading() {
+			return loading;
+		},
+		get error() {
+			return error;
+		},
+		get streaming() {
+			return streaming;
+		},
+		get hasMore() {
+			return logs.length < total;
+		},
 		load,
 		loadMore: (params?: { level?: string; component?: string }) => load(params),
 		clearAlerts,
@@ -106,7 +118,9 @@ function createAuditLogsStore() {
 	let offset = $state(0);
 	const limit = 100;
 
-	async function load(params: { user_id?: string; action?: string; success?: boolean; reset?: boolean } = {}) {
+	async function load(
+		params: { user_id?: string; action?: string; success?: boolean; reset?: boolean } = {}
+	) {
 		if (params.reset) {
 			offset = 0;
 			logs = [];
@@ -123,18 +137,28 @@ function createAuditLogsStore() {
 			total = res.total;
 			offset = logs.length;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load audit logs';
+			error = e instanceof Error ? e.message : "Failed to load audit logs";
 		} finally {
 			loading = false;
 		}
 	}
 
 	return {
-		get logs() { return logs; },
-		get total() { return total; },
-		get loading() { return loading; },
-		get error() { return error; },
-		get hasMore() { return logs.length < total; },
+		get logs() {
+			return logs;
+		},
+		get total() {
+			return total;
+		},
+		get loading() {
+			return loading;
+		},
+		get error() {
+			return error;
+		},
+		get hasMore() {
+			return logs.length < total;
+		},
 		load,
 		loadMore: (params?: { user_id?: string; action?: string; success?: boolean }) => load(params),
 	};

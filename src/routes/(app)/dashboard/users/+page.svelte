@@ -1,5 +1,5 @@
 <script lang="ts">
-    import UsersList from '$lib/components/users/UsersList.svelte';
+import UsersList from "$lib/components/users/UsersList.svelte";
 </script>
 
 <div class="space-y-6">

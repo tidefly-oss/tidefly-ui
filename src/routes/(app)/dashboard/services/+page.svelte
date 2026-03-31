@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import DeployServicesList from "$lib/components/services/DeployServicesList.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { PlusIcon } from "@lucide/svelte";
-  import type { PageData } from "./$types";
+import { PlusIcon } from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import DeployServicesList from "$lib/components/services/DeployServicesList.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import type { PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
 </script>
 
 <div class="space-y-4">

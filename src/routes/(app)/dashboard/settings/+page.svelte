@@ -1,20 +1,21 @@
 <script lang="ts">
-    import GeneralSettings from '$lib/components/settings/GeneralSettings.svelte';
-    import SmtpSettings from '$lib/components/settings/SmtpSettings.svelte';
-    import AboutSettings from '$lib/components/settings/AboutSettings.svelte';
-    import {SlidersHorizontalIcon, MailIcon, ShieldIcon, InfoIcon, BellIcon} from '@lucide/svelte';
-    import NotificationsSettings from "$lib/components/settings/NotificationsSettings.svelte";
+import { BellIcon, InfoIcon, MailIcon, ShieldIcon, SlidersHorizontalIcon } from "@lucide/svelte";
+import type { Component } from "svelte";
+import AboutSettings from "$lib/components/settings/AboutSettings.svelte";
+import GeneralSettings from "$lib/components/settings/GeneralSettings.svelte";
+import NotificationsSettings from "$lib/components/settings/NotificationsSettings.svelte";
+import SmtpSettings from "$lib/components/settings/SmtpSettings.svelte";
 
-    type Tab = 'general' | 'smtp' | 'security' | 'notifications' | 'about';
+type Tab = "general" | "smtp" | "security" | "notifications" | "about";
 
-    const tabs: { id: Tab; label: string; icon: any }[] = [
-        { id: 'general',  label: 'General',  icon: SlidersHorizontalIcon },
-        { id: 'smtp',     label: 'SMTP',     icon: MailIcon              },
-        { id: 'notifications', label: 'Notifications', icon: BellIcon    },
-        { id: 'about',    label: 'About',    icon: InfoIcon              },
-    ];
+const tabs: { id: Tab; label: string; icon: Component }[] = [
+	{ id: "general", label: "General", icon: SlidersHorizontalIcon },
+	{ id: "smtp", label: "SMTP", icon: MailIcon },
+	{ id: "notifications", label: "Notifications", icon: BellIcon },
+	{ id: "about", label: "About", icon: InfoIcon },
+];
 
-    let activeTab = $state<Tab>('general');
+let activeTab = $state<Tab>("general");
 </script>
 
 <div class="space-y-6">

@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-node';
+import adapter from "@sveltejs/adapter-node";
 
 /** @type {import('@sveltejs/kit').Config} */
 const config = {
@@ -7,7 +7,7 @@ const config = {
 		alias: {
 			"@/*": "./path/to/lib/*",
 		},
-	}
+	},
 };
 
 export default config;

@@ -1,71 +1,71 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import type { Notification } from "$lib/api/v1/types/notifications.js";
-  import { notificationsStore } from "$lib/stores/notifications.svelte";
-  import { Bell, Check, CheckCheck, Trash2, X } from "@lucide/svelte";
-  import { onDestroy, onMount } from "svelte";
+import { Bell, Check, CheckCheck, Trash2, X } from "@lucide/svelte";
+import { onDestroy, onMount } from "svelte";
+import { goto } from "$app/navigation";
+import type { Notification } from "$lib/api/v1/types/notifications.js";
+import { notificationsStore } from "$lib/stores/notifications.svelte";
 
-  let open = $state(false);
-  let dropdownRef: HTMLDivElement | null = null;
+let open = $state(false);
+let dropdownRef: HTMLDivElement | null = null;
 
-  function severityClass(severity: Notification["severity"]): string {
-    switch (severity) {
-      case "FATAL":
-        return "bg-red-500/20 text-red-400 border-red-500/30";
-      case "ERROR":
-        return "bg-orange-500/20 text-orange-400 border-orange-500/30";
-      case "WARN":
-        return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
-    }
-  }
+function severityClass(severity: Notification["severity"]): string {
+	switch (severity) {
+		case "FATAL":
+			return "bg-red-500/20 text-red-400 border-red-500/30";
+		case "ERROR":
+			return "bg-orange-500/20 text-orange-400 border-orange-500/30";
+		case "WARN":
+			return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+	}
+}
 
-  function severityDot(severity: Notification["severity"]): string {
-    switch (severity) {
-      case "FATAL":
-        return "bg-red-500";
-      case "ERROR":
-        return "bg-orange-500";
-      case "WARN":
-        return "bg-yellow-500";
-    }
-  }
+function severityDot(severity: Notification["severity"]): string {
+	switch (severity) {
+		case "FATAL":
+			return "bg-red-500";
+		case "ERROR":
+			return "bg-orange-500";
+		case "WARN":
+			return "bg-yellow-500";
+	}
+}
 
-  function formatTime(dateStr: string): string {
-    const d = new Date(dateStr);
-    const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const diffH = Math.floor(diffMin / 60);
-    if (diffH < 24) return `${diffH}h ago`;
-    return d.toLocaleDateString();
-  }
+function formatTime(dateStr: string): string {
+	const d = new Date(dateStr);
+	const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+	if (diffMin < 1) return "just now";
+	if (diffMin < 60) return `${diffMin}m ago`;
+	const diffH = Math.floor(diffMin / 60);
+	if (diffH < 24) return `${diffH}h ago`;
+	return d.toLocaleDateString();
+}
 
-  function handleOutside(e: MouseEvent) {
-    if (open && dropdownRef && !dropdownRef.contains(e.target as Node)) {
-      open = false;
-    }
-  }
+function handleOutside(e: MouseEvent) {
+	if (open && dropdownRef && !dropdownRef.contains(e.target as Node)) {
+		open = false;
+	}
+}
 
-  function goToContainerLogs(n: Notification) {
-    open = false;
-    goto(`/dashboard/containers/${n.container_id}?tab=logs`);
-  }
+function goToContainerLogs(n: Notification) {
+	open = false;
+	goto(`/dashboard/containers/${n.container_id}?tab=logs`);
+}
 
-  onMount(async () => {
-    await notificationsStore.load();
-    notificationsStore.connectSSE();
-    document.addEventListener("click", handleOutside);
-  });
+onMount(async () => {
+	await notificationsStore.load();
+	notificationsStore.connectSSE();
+	document.addEventListener("click", handleOutside);
+});
 
-  onDestroy(() => {
-    notificationsStore.disconnectSSE();
-    if (typeof document !== 'undefined') {
-      document.removeEventListener("click", handleOutside);
-    }
-  });
+onDestroy(() => {
+	notificationsStore.disconnectSSE();
+	if (typeof document !== "undefined") {
+		document.removeEventListener("click", handleOutside);
+	}
+});
 
-  const unread = $derived(notificationsStore.unread);
-  const count = $derived(notificationsStore.unreadCount);
+const unread = $derived(notificationsStore.unread);
+const count = $derived(notificationsStore.unreadCount);
 </script>
 
 <div class="relative" bind:this={dropdownRef}>

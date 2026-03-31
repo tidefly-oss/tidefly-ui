@@ -1,60 +1,58 @@
 <script lang="ts">
-    import {createQuery} from '@tanstack/svelte-query';
-    import {systemApi} from '$lib/api/v1/system';
-    import {CircleCheck, RefreshCwIcon, TriangleAlertIcon} from '@lucide/svelte';
-    import type {UsedPortEntry} from "$lib/api/v1/types";
+import { CircleCheck, RefreshCwIcon, TriangleAlertIcon } from "@lucide/svelte";
+import { createQuery } from "@tanstack/svelte-query";
+import { systemApi } from "$lib/api/v1/system";
+import type { UsedPortEntry } from "$lib/api/v1/types";
 
-    interface Props {
-        value: number;
-        onchange: (v: number) => void;
-        label?: string;
-        required?: boolean;
-        ignorePorts?: number[];
-    }
+interface Props {
+	value: number;
+	onchange: (v: number) => void;
+	label?: string;
+	required?: boolean;
+	ignorePorts?: number[];
+}
 
-    let {
-        value = $bindable(),
-        onchange,
-        label = 'Host Port',
-        required = false,
-        ignorePorts = [],
-    }: Props = $props();
+let {
+	value = $bindable(),
+	onchange,
+	label = "Host Port",
+	required = false,
+	ignorePorts = [],
+}: Props = $props();
 
-    const portsQuery = createQuery(() => ({
-        queryKey: ['system-ports'],
-        queryFn: () => systemApi.usedPorts(),
-        staleTime: 10_000,
-        refetchInterval: 30_000,
-    }));
+const portsQuery = createQuery(() => ({
+	queryKey: ["system-ports"],
+	queryFn: () => systemApi.usedPorts(),
+	staleTime: 10_000,
+	refetchInterval: 30_000,
+}));
 
-    const usedMap = $derived(
-        new Map<number, UsedPortEntry>(
-            (portsQuery.data?.ports ?? [])
-                .filter(p => !ignorePorts.includes(p.port))
-                .map(p => [p.port, p]),
-        ),
-    );
+const usedMap = $derived(
+	new Map<number, UsedPortEntry>(
+		(portsQuery.data?.ports ?? [])
+			.filter((p) => !ignorePorts.includes(p.port))
+			.map((p) => [p.port, p])
+	)
+);
 
-    const conflict = $derived(value > 0 ? usedMap.get(value) : undefined);
+const conflict = $derived(value > 0 ? usedMap.get(value) : undefined);
 
-    const isLocalhostOnly = $derived(
-        conflict?.host_ip === '127.0.0.1' || conflict?.host_ip === '::1'
-    );
+const isLocalhostOnly = $derived(conflict?.host_ip === "127.0.0.1" || conflict?.host_ip === "::1");
 
-    function suggestPort(): number {
-        let candidate = value + 1;
-        while (usedMap.has(candidate) && candidate < 65535) {
-            candidate++;
-        }
-        return candidate;
-    }
+function suggestPort(): number {
+	let candidate = value + 1;
+	while (usedMap.has(candidate) && candidate < 65535) {
+		candidate++;
+	}
+	return candidate;
+}
 
-    function handleInput(e: Event) {
-        const v = parseInt((e.target as HTMLInputElement).value, 10);
-        if (!isNaN(v) && v > 0 && v <= 65535) {
-            onchange(v);
-        }
-    }
+function handleInput(e: Event) {
+	const v = parseInt((e.target as HTMLInputElement).value, 10);
+	if (!Number.isNaN(v) && v > 0 && v <= 65535) {
+		onchange(v);
+	}
+}
 </script>
 
 <div class="space-y-1.5">

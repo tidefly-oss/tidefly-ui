@@ -1,169 +1,177 @@
 <script lang="ts">
-    import {goto} from "$app/navigation";
-    import {containersApi} from "$lib/api/v1/containers";
-    import {projectQueries} from "$lib/queries/projects.js";
-    import {agentApi, type WorkerNode} from "$lib/api/v1/agent/index.js";
-    import {Button} from "$lib/components/ui/button/index.js";
-    import {Input} from "$lib/components/ui/input/index.js";
-    import {Label} from "$lib/components/ui/label/index.js";
-    import {auth} from "$lib/stores/auth.svelte";
-    import {
-        ArrowLeftIcon, ArrowRightIcon, CheckIcon,
-        CircleCheckBig, CircleIcon, CircleX,
-        GlobeIcon, Loader, RocketIcon, ServerIcon, TerminalIcon,
-    } from "@lucide/svelte";
-    import {createQuery, useQueryClient} from "@tanstack/svelte-query";
+import {
+	ArrowLeftIcon,
+	ArrowRightIcon,
+	CheckIcon,
+	CircleCheckBig,
+	CircleIcon,
+	CircleX,
+	GlobeIcon,
+	Loader,
+	RocketIcon,
+	ServerIcon,
+	TerminalIcon,
+} from "@lucide/svelte";
+import { createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
+import { containersApi } from "$lib/api/v1/containers";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
+import { projectQueries } from "$lib/queries/projects.js";
+import { auth } from "$lib/stores/auth.svelte";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    interface Props {
-        initialName?: string;
-        initialGitUrl?: string;
-        initialBranch?: string;
-    }
+interface Props {
+	initialName?: string;
+	initialGitUrl?: string;
+	initialBranch?: string;
+}
 
-    let {initialName = "", initialGitUrl = "", initialBranch = ""}: Props = $props();
+let { initialName = "", initialGitUrl = "", initialBranch = "" }: Props = $props();
 
-    const projectsQuery = createQuery(() => ({
-        ...projectQueries.list(),
-        enabled: !!auth.user,
-    }));
+const projectsQuery = createQuery(() => ({
+	...projectQueries.list(),
+	enabled: !!auth.user,
+}));
 
-    const workersQuery = createQuery(() => ({
-        queryKey: ["workers"],
-        queryFn: () => agentApi.listWorkers(),
-        staleTime: 30_000,
-    }));
+const workersQuery = createQuery(() => ({
+	queryKey: ["workers"],
+	queryFn: () => agentApi.listWorkers(),
+	staleTime: 30_000,
+}));
 
-    const isAdmin = $derived(auth.user?.role === 'admin');
-    const visibleProjects = $derived(
-        isAdmin
-            ? (projectsQuery.data ?? [])
-            : (projectsQuery.data ?? []).filter(p => auth.projectIds.includes(p.id))
-    );
-    const connectedWorkers = $derived(
-        (workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
-    );
+const isAdmin = $derived(auth.user?.role === "admin");
+const visibleProjects = $derived(
+	isAdmin
+		? (projectsQuery.data ?? [])
+		: (projectsQuery.data ?? []).filter((p) => auth.projectIds.includes(p.id))
+);
+const connectedWorkers = $derived(
+	(workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
+);
 
-    type Step = 1 | 2 | 3 | 4;
-    let step = $state<Step>(1);
+type Step = 1 | 2 | 3 | 4;
+let step = $state<Step>(1);
 
-    let projectId    = $state("");
-    let projectName  = $state("");
-    let workerId     = $state<string | null>(null); // null = Plane (default)
-    let name         = $state("");
-    let tag          = $state("");
-    let port         = $state("");
-    let restart      = $state("unless-stopped");
-    let dockerfile   = $state("");
-    let expose       = $state(false);
-    let caddyPort    = $state("80");
-    let customDomain = $state("");
+let projectId = $state("");
+let projectName = $state("");
+let workerId = $state<string | null>(null); // null = Plane (default)
+let name = $state("");
+let tag = $state("");
+let port = $state("");
+let restart = $state("unless-stopped");
+let dockerfile = $state("");
+let expose = $state(false);
+let caddyPort = $state("80");
+let customDomain = $state("");
 
-    $effect(() => {
-        if (initialName && !name) name = initialName;
-    });
+$effect(() => {
+	if (initialName && !name) name = initialName;
+});
 
-    $effect(() => {
-        if (dockerfile) return;
-        if (initialGitUrl) {
-            dockerfile = `FROM alpine/git AS clone\nRUN git clone --branch ${initialBranch || "main"} --depth 1 ${initialGitUrl} /app\n\nFROM alpine\nWORKDIR /app\nCOPY --from=clone /app .\n# Add your build steps here`;
-        } else {
-            dockerfile = `FROM nginx:alpine\nRUN echo "<h1>Hello from Tidefly!</h1>" > /usr/share/nginx/html/index.html\nEXPOSE 80`;
-        }
-    });
+$effect(() => {
+	if (dockerfile) return;
+	if (initialGitUrl) {
+		dockerfile = `FROM alpine/git AS clone\nRUN git clone --branch ${initialBranch || "main"} --depth 1 ${initialGitUrl} /app\n\nFROM alpine\nWORKDIR /app\nCOPY --from=clone /app .\n# Add your build steps here`;
+	} else {
+		dockerfile = `FROM nginx:alpine\nRUN echo "<h1>Hello from Tidefly!</h1>" > /usr/share/nginx/html/index.html\nEXPOSE 80`;
+	}
+});
 
-    let building = $state(false);
-    let logs     = $state<{ type: string; message: string }[]>([]);
-    let status   = $state<"idle" | "building" | "success" | "error">("idle");
+let building = $state(false);
+let logs = $state<{ type: string; message: string }[]>([]);
+let status = $state<"idle" | "building" | "success" | "error">("idle");
 
-    function selectProject(id: string, pname: string) {
-        projectId = id;
-        projectName = pname;
-    }
+function selectProject(id: string, pname: string) {
+	projectId = id;
+	projectName = pname;
+}
 
-    const step1Valid = $derived(projectId.length > 0);
-    const step2Valid = $derived(name.trim().length > 0);
-    const step3Valid = $derived(dockerfile.trim().length > 0);
+const step1Valid = $derived(projectId.length > 0);
+const step2Valid = $derived(name.trim().length > 0);
+const step3Valid = $derived(dockerfile.trim().length > 0);
 
-    async function handleBuild() {
-        if (building) return;
-        logs   = [];
-        status = "building";
-        building = true;
-        step = 4;
+async function handleBuild() {
+	if (building) return;
+	logs = [];
+	status = "building";
+	building = true;
+	step = 4;
 
-        try {
-            const resp = await fetch(containersApi.dockerfileBuildUrl(), {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({
-                    name:          name.trim(),
-                    tag:           tag.trim() || `tidefly/${name.trim()}:latest`,
-                    port:          expose ? parseInt(caddyPort) : undefined,
-                    expose,
-                    custom_domain: customDomain.trim() || undefined,
-                    restart,
-                    dockerfile:    dockerfile.trim(),
-                    project_id:    projectId,
-                    worker_id:     workerId ?? undefined,
-                }),
-                credentials: "include",
-            });
+	try {
+		const resp = await fetch(containersApi.dockerfileBuildUrl(), {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({
+				name: name.trim(),
+				tag: tag.trim() || `tidefly/${name.trim()}:latest`,
+				port: expose ? parseInt(caddyPort, 10) : undefined,
+				expose,
+				custom_domain: customDomain.trim() || undefined,
+				restart,
+				dockerfile: dockerfile.trim(),
+				project_id: projectId,
+				worker_id: workerId ?? undefined,
+			}),
+			credentials: "include",
+		});
 
-            if (!resp.ok || !resp.body) {
-                logs     = [{type: "error", message: "Failed to start build"}];
-                status   = "error";
-                building = false;
-                return;
-            }
+		if (!resp.ok || !resp.body) {
+			logs = [{ type: "error", message: "Failed to start build" }];
+			status = "error";
+			building = false;
+			return;
+		}
 
-            const reader  = resp.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer    = "";
+		const reader = resp.body.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
 
-            while (true) {
-                const {done, value} = await reader.read();
-                if (done) break;
-                buffer += decoder.decode(value, {stream: true});
-                const parts = buffer.split("\n\n");
-                buffer = parts.pop() ?? "";
-                for (const part of parts) {
-                    const eventLine = part.match(/^event: (\w+)/m)?.[1];
-                    const dataLine  = part.match(/^data: (.+)/m)?.[1];
-                    if (!eventLine || !dataLine) continue;
-                    try {
-                        const parsed  = JSON.parse(dataLine);
-                        const message = parsed.message ?? dataLine;
-                        if (eventLine === "done") {
-                            status   = "success";
-                            building = false;
-                            logs     = [...logs, {type: "done", message}];
-                            await qc.invalidateQueries({queryKey: ["containers"]});
-                        } else if (eventLine === "error") {
-                            status   = "error";
-                            building = false;
-                            logs     = [...logs, {type: "error", message}];
-                        } else {
-                            logs = [...logs, {type: eventLine, message}];
-                        }
-                    } catch {
-                        logs = [...logs, {type: eventLine ?? "build", message: dataLine}];
-                    }
-                }
-            }
-        } catch (e) {
-            logs     = [...logs, {type: "error", message: String(e)}];
-            status   = "error";
-            building = false;
-        }
-    }
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			buffer += decoder.decode(value, { stream: true });
+			const parts = buffer.split("\n\n");
+			buffer = parts.pop() ?? "";
+			for (const part of parts) {
+				const eventLine = part.match(/^event: (\w+)/m)?.[1];
+				const dataLine = part.match(/^data: (.+)/m)?.[1];
+				if (!eventLine || !dataLine) continue;
+				try {
+					const parsed = JSON.parse(dataLine);
+					const message = parsed.message ?? dataLine;
+					if (eventLine === "done") {
+						status = "success";
+						building = false;
+						logs = [...logs, { type: "done", message }];
+						await qc.invalidateQueries({ queryKey: ["containers"] });
+					} else if (eventLine === "error") {
+						status = "error";
+						building = false;
+						logs = [...logs, { type: "error", message }];
+					} else {
+						logs = [...logs, { type: eventLine, message }];
+					}
+				} catch {
+					logs = [...logs, { type: eventLine ?? "build", message: dataLine }];
+				}
+			}
+		}
+	} catch (e) {
+		logs = [...logs, { type: "error", message: String(e) }];
+		status = "error";
+		building = false;
+	}
+}
 
-    const steps = ["Project", "Config", "Dockerfile", "Deploy"];
+const steps = ["Project", "Config", "Dockerfile", "Deploy"];
 
-    function workerLabel(w: WorkerNode) {
-        return w.name.length > 28 ? w.name.slice(0, 24) + "…" : w.name;
-    }
+function workerLabel(w: WorkerNode) {
+	return w.name.length > 28 ? `${w.name.slice(0, 24)}…` : w.name;
+}
 </script>
 
 <div class="max-w-2xl mx-auto space-y-6">

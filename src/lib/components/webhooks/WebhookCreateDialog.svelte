@@ -1,148 +1,156 @@
 <script lang="ts">
-    import * as Dialog from '$lib/components/ui/dialog/index.js';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { Label } from '$lib/components/ui/label/index.js';
-    import { Badge } from '$lib/components/ui/badge/index.js';
-    import * as Select from '$lib/components/ui/select/index.js';
-    import type { CreateWebhookRequest, WebhookProvider, WebhookTriggerType, Webhook } from '$lib/api/v1/types/webhooks.js';
-    import {
-        ArrowLeftIcon,
-        ArrowRightIcon,
-        CheckIcon,
-        ClipboardIcon,
-        KeyRoundIcon,
-        ShieldCheckIcon,
-        ZapIcon,
-    } from '@lucide/svelte';
+import {
+	ArrowLeftIcon,
+	ArrowRightIcon,
+	CheckIcon,
+	ClipboardIcon,
+	KeyRoundIcon,
+	ShieldCheckIcon,
+	ZapIcon,
+} from "@lucide/svelte";
+import type {
+	CreateWebhookRequest,
+	Webhook,
+	WebhookProvider,
+	WebhookTriggerType,
+} from "$lib/api/v1/types/webhooks.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Dialog from "$lib/components/ui/dialog/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
+import * as Select from "$lib/components/ui/select/index.js";
 
-    let { projectId, open = $bindable(false), oncreated }: {
-        projectId: string;
-        open?: boolean;
-        oncreated: (req: CreateWebhookRequest) => Promise<Webhook>;
-    } = $props();
+let {
+	projectId,
+	open = $bindable(false),
+	oncreated,
+}: {
+	projectId: string;
+	open?: boolean;
+	oncreated: (req: CreateWebhookRequest) => Promise<Webhook>;
+} = $props();
 
-    // ── State ──────────────────────────────────────────────────────────────────
-    type Step = 1 | 2;
-    let step = $state<Step>(1);
+// ── State ──────────────────────────────────────────────────────────────────
+type Step = 1 | 2;
+let step = $state<Step>(1);
 
-    let name        = $state('');
-    let triggerType = $state<WebhookTriggerType>('redeploy');
-    let provider    = $state<WebhookProvider>('github');
-    let branch      = $state('');
-    let saving      = $state(false);
-    let error       = $state<string | null>(null);
+let name = $state("");
+let triggerType = $state<WebhookTriggerType>("redeploy");
+let provider = $state<WebhookProvider>("github");
+let branch = $state("");
+let saving = $state(false);
+let error = $state<string | null>(null);
 
-    let createdWebhook = $state<Webhook | null>(null);
-    let plainSecret    = $state<string | null>(null);
-    let copiedUrl      = $state(false);
-    let copiedSecret   = $state(false);
-    let guideStep      = $state(0);
+let createdWebhook = $state<Webhook | null>(null);
+let plainSecret = $state<string | null>(null);
+let copiedUrl = $state(false);
+let copiedSecret = $state(false);
+let guideStep = $state(0);
 
-    const steps = ['Configure', 'Connect'];
-    const step1Valid = $derived(name.trim().length > 0);
+const steps = ["Configure", "Connect"];
+const step1Valid = $derived(name.trim().length > 0);
 
-    // ── Provider guide steps ───────────────────────────────────────────────────
-    const providerSteps: Record<string, string[]> = {
-        github: [
-            'Go to your repository on GitHub',
-            'Open Settings → Webhooks → Add webhook',
-            'Paste the Payload URL into the "Payload URL" field',
-            'Set Content type to application/json',
-            'Paste your secret into the "Secret" field',
-            'Choose "Just the push event" or "Send me everything"',
-            'Click Add webhook — GitHub will send a ping to verify',
-        ],
-        gitlab: [
-            'Go to your project on GitLab',
-            'Open Settings → Webhooks',
-            'Paste the Payload URL into the "URL" field',
-            'Paste your secret into the "Secret token" field',
-            'Check "Push events" under Trigger',
-            'Click Add webhook',
-        ],
-        gitea: [
-            'Go to your repository on Gitea',
-            'Open Settings → Webhooks → Add Webhook → Gitea',
-            'Paste the Payload URL into the "Target URL" field',
-            'Set Content type to application/json',
-            'Paste your secret into the "Secret" field',
-            'Choose "Push Events" under Trigger On',
-            'Click Add Webhook',
-        ],
-        bitbucket: [
-            'Go to your repository on Bitbucket',
-            'Open Repository settings → Webhooks → Add webhook',
-            'Paste the Payload URL into the "URL" field',
-            'Check "Repository push" under Triggers',
-            'Click Save',
-        ],
-        generic: [
-            'Copy the Payload URL below',
-            'Configure your CI/CD or Git provider to POST to this URL',
-            'Set Content-Type: application/json',
-            'Include X-Hub-Signature-256: sha256=<hmac> header with your secret',
-            'Send a JSON body with at least a "ref" or "branch" field',
-        ],
-    };
+// ── Provider guide steps ───────────────────────────────────────────────────
+const providerSteps: Record<string, string[]> = {
+	github: [
+		"Go to your repository on GitHub",
+		"Open Settings → Webhooks → Add webhook",
+		'Paste the Payload URL into the "Payload URL" field',
+		"Set Content type to application/json",
+		'Paste your secret into the "Secret" field',
+		'Choose "Just the push event" or "Send me everything"',
+		"Click Add webhook — GitHub will send a ping to verify",
+	],
+	gitlab: [
+		"Go to your project on GitLab",
+		"Open Settings → Webhooks",
+		'Paste the Payload URL into the "URL" field',
+		'Paste your secret into the "Secret token" field',
+		'Check "Push events" under Trigger',
+		"Click Add webhook",
+	],
+	gitea: [
+		"Go to your repository on Gitea",
+		"Open Settings → Webhooks → Add Webhook → Gitea",
+		'Paste the Payload URL into the "Target URL" field',
+		"Set Content type to application/json",
+		'Paste your secret into the "Secret" field',
+		'Choose "Push Events" under Trigger On',
+		"Click Add Webhook",
+	],
+	bitbucket: [
+		"Go to your repository on Bitbucket",
+		"Open Repository settings → Webhooks → Add webhook",
+		'Paste the Payload URL into the "URL" field',
+		'Check "Repository push" under Triggers',
+		"Click Save",
+	],
+	generic: [
+		"Copy the Payload URL below",
+		"Configure your CI/CD or Git provider to POST to this URL",
+		"Set Content-Type: application/json",
+		"Include X-Hub-Signature-256: sha256=<hmac> header with your secret",
+		'Send a JSON body with at least a "ref" or "branch" field',
+	],
+};
 
-    const guideSteps = $derived(providerSteps[provider] ?? providerSteps.github);
+const guideSteps = $derived(providerSteps[provider] ?? providerSteps.github);
 
-    // ── Actions ───────────────────────────────────────────────────────────────
-    function reset() {
-        step           = 1;
-        name           = '';
-        triggerType    = 'redeploy';
-        provider       = 'github';
-        branch         = '';
-        error          = null;
-        saving         = false;
-        createdWebhook = null;
-        plainSecret    = null;
-        copiedUrl      = false;
-        copiedSecret   = false;
-        guideStep      = 0;
-    }
+// ── Actions ───────────────────────────────────────────────────────────────
+function reset() {
+	step = 1;
+	name = "";
+	triggerType = "redeploy";
+	provider = "github";
+	branch = "";
+	error = null;
+	saving = false;
+	createdWebhook = null;
+	plainSecret = null;
+	copiedUrl = false;
+	copiedSecret = false;
+	guideStep = 0;
+}
 
-    async function submit() {
-        if (!step1Valid) return;
-        saving = true;
-        error  = null;
-        try {
-            const wh = await oncreated({
-                name:         name.trim(),
-                trigger_type: triggerType,
-                provider,
-                branch:       branch.trim() || undefined,
-            });
-            createdWebhook = wh;
-            plainSecret    = wh.secret ?? null;
-            step = 2;
-        } catch (e: any) {
-            error = e?.message ?? 'Failed to create webhook';
-        } finally {
-            saving = false;
-        }
-    }
+async function submit() {
+	if (!step1Valid) return;
+	saving = true;
+	error = null;
+	try {
+		const wh = await oncreated({
+			name: name.trim(),
+			trigger_type: triggerType,
+			provider,
+			branch: branch.trim() || undefined,
+		});
+		createdWebhook = wh;
+		plainSecret = wh.secret ?? null;
+		step = 2;
+	} catch (e) {
+		error = e instanceof Error ? e.message : "Failed to create webhook";
+	} finally {
+		saving = false;
+	}
+}
 
-    async function copyUrl() {
-        if (!createdWebhook?.url) return;
-        await navigator.clipboard.writeText(createdWebhook.url);
-        copiedUrl = true;
-        setTimeout(() => (copiedUrl = false), 2000);
-    }
+async function copyUrl() {
+	if (!createdWebhook?.url) return;
+	await navigator.clipboard.writeText(createdWebhook.url);
+	copiedUrl = true;
+	setTimeout(() => (copiedUrl = false), 2000);
+}
 
-    async function copySecret() {
-        if (!plainSecret) return;
-        await navigator.clipboard.writeText(plainSecret);
-        copiedSecret = true;
-        setTimeout(() => (copiedSecret = false), 2000);
-    }
+async function copySecret() {
+	if (!plainSecret) return;
+	await navigator.clipboard.writeText(plainSecret);
+	copiedSecret = true;
+	setTimeout(() => (copiedSecret = false), 2000);
+}
 
-    const providerLabel = $derived(
-        provider === 'gitea' ? 'Gitea' :
-            provider.charAt(0).toUpperCase() + provider.slice(1)
-    );
+const providerLabel = $derived(
+	provider === "gitea" ? "Gitea" : provider.charAt(0).toUpperCase() + provider.slice(1)
+);
 </script>
 
 <Dialog.Root bind:open onOpenChange={(o) => { if (!o) reset(); }}>

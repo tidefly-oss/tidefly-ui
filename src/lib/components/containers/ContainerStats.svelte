@@ -1,88 +1,82 @@
 <script lang="ts">
-  import { containersApi } from "$lib/api/v1/containers";
-  import {
-    ClockIcon,
-    CpuIcon,
-    HardDriveIcon,
-    NetworkIcon,
-  } from "@lucide/svelte";
-  import { onDestroy } from "svelte";
+import { ClockIcon, CpuIcon, HardDriveIcon, NetworkIcon } from "@lucide/svelte";
+import { onDestroy } from "svelte";
+import { containersApi } from "$lib/api/v1/containers";
 
-  type Props = { containerId: string; containerStatus: string };
-  let { containerId, containerStatus }: Props = $props();
+type Props = { containerId: string; containerStatus: string };
+let { containerId, containerStatus }: Props = $props();
 
-  type StatEntry = {
-    cpu_percent: number;
-    mem_usage_mb: number;
-    mem_limit_mb: number;
-    mem_percent: number;
-    network_rx_mb: number;
-    network_tx_mb: number;
-    block_read_mb: number;
-    block_write_mb: number;
-    pids: number;
-  };
+type StatEntry = {
+	cpu_percent: number;
+	mem_usage_mb: number;
+	mem_limit_mb: number;
+	mem_percent: number;
+	network_rx_mb: number;
+	network_tx_mb: number;
+	block_read_mb: number;
+	block_write_mb: number;
+	pids: number;
+};
 
-  let stats = $state<StatEntry[]>([]);
-  let statsEs: EventSource | null = null;
-  let streaming = $state(false);
+let stats = $state<StatEntry[]>([]);
+let statsEs: EventSource | null = null;
+let streaming = $state(false);
 
-  const latestStats = $derived(stats[0] ?? null);
-  const cpuHistory = $derived(
-    [...stats]
-      .reverse()
-      .map((s) => s.cpu_percent)
-      .slice(-30),
-  );
-  const memHistory = $derived(
-    [...stats]
-      .reverse()
-      .map((s) => s.mem_percent)
-      .slice(-30),
-  );
+const latestStats = $derived(stats[0] ?? null);
+const cpuHistory = $derived(
+	[...stats]
+		.reverse()
+		.map((s) => s.cpu_percent)
+		.slice(-30)
+);
+const memHistory = $derived(
+	[...stats]
+		.reverse()
+		.map((s) => s.mem_percent)
+		.slice(-30)
+);
 
-  function resourceColor(p: number) {
-    return p > 80 ? "#ef4444" : p > 60 ? "#f59e0b" : "#22c55e";
-  }
+function resourceColor(p: number) {
+	return p > 80 ? "#ef4444" : p > 60 ? "#f59e0b" : "#22c55e";
+}
 
-  function sparkPath(values: number[], width = 200, height = 40): string {
-    if (values.length < 2) return "";
-    const max = Math.max(...values, 1);
-    const pts = values.map(
-      (v, i) =>
-        `${(i / (values.length - 1)) * width},${height - (v / max) * height}`,
-    );
-    return "M" + pts.join(" L");
-  }
+function sparkPath(values: number[], width = 200, height = 40): string {
+	if (values.length < 2) return "";
+	const max = Math.max(...values, 1);
+	const pts = values.map(
+		(v, i) => `${(i / (values.length - 1)) * width},${height - (v / max) * height}`
+	);
+	return `M${pts.join(" L")}`;
+}
 
-  function start() {
-    stop();
-    stats = [];
-    statsEs = new EventSource(containersApi.statsUrl(containerId));
-    streaming = true;
-    statsEs.addEventListener("stats", (e) => {
-      try {
-        const entry = JSON.parse(e.data);
-        stats = [entry, ...stats].slice(0, 60);
-      } catch {}
-    });
-    statsEs.onerror = () => {
-      streaming = false;
-    };
-  }
+function start() {
+	stop();
+	stats = [];
+	statsEs = new EventSource(containersApi.statsUrl(containerId));
+	streaming = true;
+	statsEs.addEventListener("stats", (e) => {
+		try {
+			const entry = JSON.parse(e.data);
+			stats = [entry, ...stats].slice(0, 60);
+		} catch {}
+	});
+	statsEs.onerror = () => {
+		streaming = false;
+	};
+}
 
-  function stop() {
-    statsEs?.close();
-    statsEs = null;
-    streaming = false;
-  }
+function stop() {
+	statsEs?.close();
+	statsEs = null;
+	streaming = false;
+}
 
-  $effect(() => {
-    start();
-    return () => stop();
-  });
+$effect(() => {
+	start();
+	return () => stop();
+});
 
-  onDestroy(() => stop());
+onDestroy(() => stop());
 </script>
 
 <div class="space-y-4">

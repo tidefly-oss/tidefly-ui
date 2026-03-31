@@ -1,68 +1,66 @@
 <script lang="ts">
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { Input } from "$lib/components/ui/input/index.js";
-    import { Label } from "$lib/components/ui/label/index.js";
-    import { tokenStore } from "$lib/api/client";
-    import { toast } from "svelte-sonner";
-    import { DatabaseIcon, DownloadIcon, Loader } from "@lucide/svelte";
+import { DatabaseIcon, DownloadIcon, Loader } from "@lucide/svelte";
+import { toast } from "svelte-sonner";
+import { tokenStore } from "$lib/api/client";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-    let loading = $state(false);
+let loading = $state(false);
 
-    let dbName     = $state("");
-    let dbHost     = $state("localhost");
-    let dbPort     = $state("5432");
-    let dbUser     = $state("postgres");
-    let dbPassword = $state("");
+let dbName = $state("");
+let dbHost = $state("localhost");
+let dbPort = $state("5432");
+let dbUser = $state("postgres");
+let dbPassword = $state("");
 
-    const isValid = $derived(
-        dbName.trim().length > 0 &&
-        dbUser.trim().length > 0 &&
-        dbPassword.trim().length > 0
-    );
+const isValid = $derived(
+	dbName.trim().length > 0 && dbUser.trim().length > 0 && dbPassword.trim().length > 0
+);
 
-    async function submit() {
-        if (!isValid || loading) return;
-        loading = true;
+async function submit() {
+	if (!isValid || loading) return;
+	loading = true;
 
-        try {
-            const res = await fetch("/api/v1/backups/postgres/download", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${tokenStore.get()}`,
-                },
-                credentials: "include",
-                body: JSON.stringify({
-                    db_name:     dbName,
-                    db_host:     dbHost,
-                    db_port:     dbPort,
-                    db_user:     dbUser,
-                    db_password: dbPassword,
-                }),
-            });
+	try {
+		const res = await fetch("/api/v1/backups/postgres/download", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+				Authorization: `Bearer ${tokenStore.get()}`,
+			},
+			credentials: "include",
+			body: JSON.stringify({
+				db_name: dbName,
+				db_host: dbHost,
+				db_port: dbPort,
+				db_user: dbUser,
+				db_password: dbPassword,
+			}),
+		});
 
-            if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                throw new Error(err.detail ?? `HTTP ${res.status}`);
-            }
+		if (!res.ok) {
+			const err = await res.json().catch(() => ({}));
+			throw new Error(err.detail ?? `HTTP ${res.status}`);
+		}
 
-            const blob = await res.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = blobUrl;
-            a.download = `${dbName}-${new Date().toISOString().slice(0, 10)}.dump`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(blobUrl);
+		const blob = await res.blob();
+		const blobUrl = URL.createObjectURL(blob);
+		const a = document.createElement("a");
+		a.href = blobUrl;
+		a.download = `${dbName}-${new Date().toISOString().slice(0, 10)}.dump`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(blobUrl);
 
-            toast.success("Backup downloaded successfully");
-        } catch (e: unknown) {
-            toast.error(e instanceof Error ? e.message : "Backup failed");
-        } finally {
-            loading = false;
-        }
-    }
+		toast.success("Backup downloaded successfully");
+	} catch (e: unknown) {
+		toast.error(e instanceof Error ? e.message : "Backup failed");
+	} finally {
+		loading = false;
+	}
+}
 </script>
 
 <div class="rounded-xl border bg-card divide-y">

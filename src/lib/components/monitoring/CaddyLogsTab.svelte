@@ -1,57 +1,64 @@
 <script lang="ts">
-    import { caddyLogsStore, type CaddyLogEntry } from '$lib/stores/caddy.logs.svelte.js';
-    import { RefreshCwIcon, WifiIcon, WifiOffIcon } from '@lucide/svelte';
-    import { onDestroy, onMount } from 'svelte';
+import { RefreshCwIcon, WifiIcon, WifiOffIcon } from "@lucide/svelte";
+import { onDestroy, onMount } from "svelte";
+import { type CaddyLogEntry, caddyLogsStore } from "$lib/stores/caddy.logs.svelte.js";
 
-    onMount(() => caddyLogsStore.connect(100));
-    onDestroy(() => caddyLogsStore.disconnect());
+onMount(() => caddyLogsStore.connect(100));
+onDestroy(() => caddyLogsStore.disconnect());
 
-    function statusBg(status: number) {
-        if (!status) return 'bg-muted/50 text-muted-foreground';
-        if (status >= 500) return 'bg-red-500/10 text-red-500';
-        if (status >= 400) return 'bg-amber-500/10 text-amber-500';
-        if (status >= 300) return 'bg-blue-500/10 text-blue-400';
-        return 'bg-green-500/10 text-green-500';
-    }
+function statusBg(status: number) {
+	if (!status) return "bg-muted/50 text-muted-foreground";
+	if (status >= 500) return "bg-red-500/10 text-red-500";
+	if (status >= 400) return "bg-amber-500/10 text-amber-500";
+	if (status >= 300) return "bg-blue-500/10 text-blue-400";
+	return "bg-green-500/10 text-green-500";
+}
 
-    function methodColor(method: string) {
-        const map: Record<string, string> = {
-            GET: 'text-blue-400', POST: 'text-green-500',
-            PUT: 'text-amber-500', PATCH: 'text-amber-400', DELETE: 'text-red-500',
-        };
-        return map[method] ?? 'text-muted-foreground';
-    }
+function methodColor(method: string) {
+	const map: Record<string, string> = {
+		GET: "text-blue-400",
+		POST: "text-green-500",
+		PUT: "text-amber-500",
+		PATCH: "text-amber-400",
+		DELETE: "text-red-500",
+	};
+	return map[method] ?? "text-muted-foreground";
+}
 
-    function levelColor(level: string) {
-        if (level === 'error') return 'text-red-500';
-        if (level === 'warn')  return 'text-amber-500';
-        return 'text-muted-foreground';
-    }
+function levelColor(level: string) {
+	if (level === "error") return "text-red-500";
+	if (level === "warn") return "text-amber-500";
+	return "text-muted-foreground";
+}
 
-    function fmtDuration(d: number) {
-        if (!d) return '';
-        if (d < 0.001) return `${(d * 1000000).toFixed(0)}µs`;
-        if (d < 1)     return `${(d * 1000).toFixed(1)}ms`;
-        return `${d.toFixed(2)}s`;
-    }
+function fmtDuration(d: number) {
+	if (!d) return "";
+	if (d < 0.001) return `${(d * 1000000).toFixed(0)}µs`;
+	if (d < 1) return `${(d * 1000).toFixed(1)}ms`;
+	return `${d.toFixed(2)}s`;
+}
 
-    function fmtSize(bytes: number) {
-        if (!bytes) return '';
-        if (bytes < 1024)        return `${bytes}B`;
-        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-        return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
-    }
+function fmtSize(bytes: number) {
+	if (!bytes) return "";
+	if (bytes < 1024) return `${bytes}B`;
+	if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+	return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+}
 
-    function fmtTime(iso: string) {
-        const d = new Date(iso);
-        return isNaN(d.getTime()) ? '—' : d.toLocaleTimeString('de-DE', {
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-        });
-    }
+function fmtTime(iso: string) {
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? "—"
+		: d.toLocaleTimeString("de-DE", {
+				hour: "2-digit",
+				minute: "2-digit",
+				second: "2-digit",
+			});
+}
 
-    function isAccessLog(entry: CaddyLogEntry) {
-        return !!entry.method;
-    }
+function isAccessLog(entry: CaddyLogEntry) {
+	return !!entry.method;
+}
 </script>
 
 <div class="space-y-3">

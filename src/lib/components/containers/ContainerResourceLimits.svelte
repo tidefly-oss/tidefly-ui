@@ -1,127 +1,128 @@
 <script lang="ts">
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Input } from "$lib/components/ui/input/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
-  import {
-    CheckIcon,
-    CpuIcon,
-    HardDriveIcon,
-    RefreshCwIcon,
-    RotateCcwIcon,
-    TriangleAlert,
-  } from "@lucide/svelte";
-  import { containersApi } from "$lib/api/v1/containers";
-  import type {ResourceLimits} from "$lib/api/v1/types";
+import {
+	CheckIcon,
+	CpuIcon,
+	HardDriveIcon,
+	RefreshCwIcon,
+	RotateCcwIcon,
+	TriangleAlert,
+} from "@lucide/svelte";
+import { containersApi } from "$lib/api/v1/containers";
+import type { ResourceLimits } from "$lib/api/v1/types";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
+import { Label } from "$lib/components/ui/label/index.js";
 
-  type Props = {
-    containerId?: string;
-    value?: ResourceLimits;
-    onchange?: (v: ResourceLimits) => void;
-    readonly?: boolean;
-    compact?: boolean;
-  };
+type Props = {
+	containerId?: string;
+	value?: ResourceLimits;
+	onchange?: (v: ResourceLimits) => void;
+	readonly?: boolean;
+	compact?: boolean;
+};
 
-  let {
-    containerId,
-    value = $bindable<ResourceLimits>({
-      cpu_cores:      0,
-      memory_mb:      0,
-      memory_swap_mb: 0,
-      restart_policy: "unless-stopped",
-      max_retries:    0,
-    }),
-    onchange,
-    readonly = false,
-    compact = false,
-  }: Props = $props();
+let {
+	containerId,
+	value = $bindable<ResourceLimits>({
+		cpu_cores: 0,
+		memory_mb: 0,
+		memory_swap_mb: 0,
+		restart_policy: "unless-stopped",
+		max_retries: 0,
+	}),
+	onchange,
+	readonly = false,
+	compact = false,
+}: Props = $props();
 
-  let saving     = $state(false);
-  let saveResult = $state<{ ok: boolean; message: string; restarted: boolean } | null>(null);
-  let localValue = $state<ResourceLimits>({ ...value });
+let saving = $state(false);
+let saveResult = $state<{ ok: boolean; message: string; restarted: boolean } | null>(null);
+let localValue = $state<ResourceLimits>({ ...value });
 
-  $effect(() => {
-    if (containerId) {
-      loadCurrent();
-    }
-  });
+$effect(() => {
+	if (containerId) {
+		loadCurrent();
+	}
+});
 
-  async function loadCurrent() {
-    try {
-      const cfg = await containersApi.getResources(containerId!);
-      localValue = {
-        cpu_cores:      cfg.cpu_cores      ?? 0,
-        memory_mb:      cfg.memory_mb      ?? 0,
-        memory_swap_mb: cfg.memory_swap_mb ?? 0,
-        restart_policy: cfg.restart_policy || "unless-stopped",
-        max_retries:    cfg.max_retries    ?? 0,
-      };
-      originalMemoryMB = localValue.memory_mb;
-    } catch {}
-  }
+async function loadCurrent() {
+	if (!containerId) return;
+	try {
+		const cfg = await containersApi.getResources(containerId);
+		localValue = {
+			cpu_cores: cfg.cpu_cores ?? 0,
+			memory_mb: cfg.memory_mb ?? 0,
+			memory_swap_mb: cfg.memory_swap_mb ?? 0,
+			restart_policy: cfg.restart_policy || "unless-stopped",
+			max_retries: cfg.max_retries ?? 0,
+		};
+		originalMemoryMB = localValue.memory_mb;
+	} catch {}
+}
 
-  $effect(() => {
-    if (!containerId) {
-      value = { ...localValue };
-      onchange?.(localValue);
-    }
-  });
+$effect(() => {
+	if (!containerId) {
+		value = { ...localValue };
+		onchange?.(localValue);
+	}
+});
 
-  let originalMemoryMB = $state(0);
+let originalMemoryMB = $state(0);
 
-  const willRestart = $derived(
-          containerId !== undefined &&
-          originalMemoryMB > 0 &&
-          localValue.memory_mb > 0 &&
-          localValue.memory_mb < originalMemoryMB,
-  );
+const willRestart = $derived(
+	containerId !== undefined &&
+		originalMemoryMB > 0 &&
+		localValue.memory_mb > 0 &&
+		localValue.memory_mb < originalMemoryMB
+);
 
-  async function save() {
-    if (!containerId) return;
-    saving = true;
-    saveResult = null;
-    try {
-      const data = await containersApi.updateResources(containerId, localValue);
-      saveResult = { ok: true, message: data.message, restarted: data.restart_required };
-      originalMemoryMB = localValue.memory_mb;
-      setTimeout(() => (saveResult = null), 4000);
-    } catch {
-      saveResult = { ok: false, message: "Failed to update", restarted: false };
-    } finally {
-      saving = false;
-    }
-  }
+async function save() {
+	if (!containerId) return;
+	saving = true;
+	saveResult = null;
+	try {
+		const data = await containersApi.updateResources(containerId, localValue);
+		saveResult = { ok: true, message: data.message, restarted: data.restart_required };
+		originalMemoryMB = localValue.memory_mb;
+		setTimeout(() => (saveResult = null), 4000);
+	} catch {
+		saveResult = { ok: false, message: "Failed to update", restarted: false };
+	} finally {
+		saving = false;
+	}
+}
 
-  const restartPolicies = [
-    { value: "no",             label: "No",             desc: "Never restart" },
-    { value: "always",         label: "Always",         desc: "Always restart" },
-    { value: "on-failure",     label: "On Failure",     desc: "Restart only on error" },
-    { value: "unless-stopped", label: "Unless Stopped", desc: "Always, except manual stop" },
-  ];
+const restartPolicies = [
+	{ value: "no", label: "No", desc: "Never restart" },
+	{ value: "always", label: "Always", desc: "Always restart" },
+	{ value: "on-failure", label: "On Failure", desc: "Restart only on error" },
+	{ value: "unless-stopped", label: "Unless Stopped", desc: "Always, except manual stop" },
+];
 
-  const memoryPresets = [
-    { label: "∞",    value: 0    },
-    { label: "128",  value: 128  },
-    { label: "256",  value: 256  },
-    { label: "512",  value: 512  },
-    { label: "1 GB", value: 1024 },
-    { label: "2 GB", value: 2048 },
-    { label: "4 GB", value: 4096 },
-  ];
+const memoryPresets = [
+	{ label: "∞", value: 0 },
+	{ label: "128", value: 128 },
+	{ label: "256", value: 256 },
+	{ label: "512", value: 512 },
+	{ label: "1 GB", value: 1024 },
+	{ label: "2 GB", value: 2048 },
+	{ label: "4 GB", value: 4096 },
+];
 
-  const cpuPresets = [
-    { label: "∞",    value: 0    },
-    { label: "0.25", value: 0.25 },
-    { label: "0.5",  value: 0.5  },
-    { label: "1",    value: 1    },
-    { label: "2",    value: 2    },
-    { label: "4",    value: 4    },
-  ];
+const cpuPresets = [
+	{ label: "∞", value: 0 },
+	{ label: "0.25", value: 0.25 },
+	{ label: "0.5", value: 0.5 },
+	{ label: "1", value: 1 },
+	{ label: "2", value: 2 },
+	{ label: "4", value: 4 },
+];
 
-  function formatMemory(mb: number) {
-    if (mb === 0) return "Unlimited";
-    if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
-    return `${mb} MB`;
-  }
+function formatMemory(mb: number) {
+	if (mb === 0) return "Unlimited";
+	if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
+	return `${mb} MB`;
+}
 </script>
 
 <div class="space-y-5 {compact ? 'text-sm' : ''}">

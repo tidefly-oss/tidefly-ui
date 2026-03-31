@@ -1,85 +1,85 @@
 <script lang="ts">
-    import { createMutation, createQuery, useQueryClient } from '@tanstack/svelte-query';
-    import { Button } from '$lib/components/ui/button/index.js';
-    import { Input } from '$lib/components/ui/input/index.js';
-    import { adminApi } from '$lib/api/v1/admin';
-    import { toast } from 'svelte-sonner';
-    import { BellIcon, CircleCheckBig, CircleIcon, FlaskConicalIcon } from '@lucide/svelte';
+import { BellIcon, CircleCheckBig, CircleIcon, FlaskConicalIcon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { toast } from "svelte-sonner";
+import { adminApi } from "$lib/api/v1/admin";
+import { Button } from "$lib/components/ui/button/index.js";
+import { Input } from "$lib/components/ui/input/index.js";
 
-    const qc = useQueryClient();
+const qc = useQueryClient();
 
-    const settingsQuery = createQuery(() => ({
-        queryKey: ['admin-settings'],
-        queryFn: () => adminApi.getSettings(),
-    }));
+const settingsQuery = createQuery(() => ({
+	queryKey: ["admin-settings"],
+	queryFn: () => adminApi.getSettings(),
+}));
 
-    const updateMutation = createMutation(() => ({
-        mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: ['admin-settings'] });
-            toast.success('Notification settings saved');
-        },
-        onError: () => toast.error('Failed to save notification settings'),
-    }));
+const updateMutation = createMutation(() => ({
+	mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["admin-settings"] });
+		toast.success("Notification settings saved");
+	},
+	onError: () => toast.error("Failed to save notification settings"),
+}));
 
-    const testMutation = createMutation(() => ({
-        mutationFn: (channel: string) => adminApi.testNotification(channel),
-        onSuccess: (_: unknown, channel: string) => toast.success(`Test sent via ${channel}`),
-        onError: (_: unknown, channel: string) => toast.error(`Test failed via ${channel}`),
-    }));
+const testMutation = createMutation(() => ({
+	mutationFn: (channel: string) => adminApi.testNotification(channel),
+	onSuccess: (_: unknown, channel: string) => toast.success(`Test sent via ${channel}`),
+	onError: (_: unknown, channel: string) => toast.error(`Test failed via ${channel}`),
+}));
 
-    const settings = $derived(settingsQuery.data ?? null);
+const settings = $derived(settingsQuery.data ?? null);
 
-    let enabled               = $state(false);
-    let slackWebhookURL       = $state('');
-    let discordWebhookURL     = $state('');
-    let notifyOnDeploy        = $state(true);
-    let notifyOnContainerDown = $state(true);
-    let notifyOnWebhookFail   = $state(true);
+let enabled = $state(false);
+let slackWebhookURL = $state("");
+let discordWebhookURL = $state("");
+let notifyOnDeploy = $state(true);
+let notifyOnContainerDown = $state(true);
+let notifyOnWebhookFail = $state(true);
 
-    $effect(() => {
-        if (settings) {
-            enabled               = settings.notifications_enabled   ?? false;
-            slackWebhookURL       = settings.slack_webhook_url       ?? '';
-            discordWebhookURL     = settings.discord_webhook_url     ?? '';
-            notifyOnDeploy        = settings.notify_on_deploy        ?? true;
-            notifyOnContainerDown = settings.notify_on_container_down ?? true;
-            notifyOnWebhookFail   = settings.notify_on_webhook_fail  ?? true;
-        }
-    });
+$effect(() => {
+	if (settings) {
+		enabled = settings.notifications_enabled ?? false;
+		slackWebhookURL = settings.slack_webhook_url ?? "";
+		discordWebhookURL = settings.discord_webhook_url ?? "";
+		notifyOnDeploy = settings.notify_on_deploy ?? true;
+		notifyOnContainerDown = settings.notify_on_container_down ?? true;
+		notifyOnWebhookFail = settings.notify_on_webhook_fail ?? true;
+	}
+});
 
-    const slackConfigured   = $derived(!!settings?.slack_webhook_url);
-    const discordConfigured = $derived(!!settings?.discord_webhook_url);
-    const smtpConfigured    = $derived(!!settings?.smtp_host);
+const slackConfigured = $derived(!!settings?.slack_webhook_url);
+const discordConfigured = $derived(!!settings?.discord_webhook_url);
+const smtpConfigured = $derived(!!settings?.smtp_host);
 
-    function save() {
-        updateMutation.mutate({
-            notifications_enabled:    enabled,
-            slack_webhook_url:        slackWebhookURL,
-            discord_webhook_url:      discordWebhookURL,
-            notify_on_deploy:         notifyOnDeploy,
-            notify_on_container_down: notifyOnContainerDown,
-            notify_on_webhook_fail:   notifyOnWebhookFail,
-        });
-    }
+function save() {
+	updateMutation.mutate({
+		notifications_enabled: enabled,
+		slack_webhook_url: slackWebhookURL,
+		discord_webhook_url: discordWebhookURL,
+		notify_on_deploy: notifyOnDeploy,
+		notify_on_container_down: notifyOnContainerDown,
+		notify_on_webhook_fail: notifyOnWebhookFail,
+	});
+}
 
-    const triggers = [
-        { key: 'deploy',    label: 'Successful deploy',       desc: 'When a service or container is deployed' },
-        { key: 'container', label: 'Container down',          desc: 'When a container stops unexpectedly'     },
-        { key: 'webhook',   label: 'Webhook delivery failed', desc: 'When a webhook job fails'                },
-    ] as const;
+const triggers = [
+	{ key: "deploy", label: "Successful deploy", desc: "When a service or container is deployed" },
+	{ key: "container", label: "Container down", desc: "When a container stops unexpectedly" },
+	{ key: "webhook", label: "Webhook delivery failed", desc: "When a webhook job fails" },
+] as const;
 
-    function triggerValue(key: typeof triggers[number]['key']): boolean {
-        if (key === 'deploy')    return notifyOnDeploy;
-        if (key === 'container') return notifyOnContainerDown;
-        return notifyOnWebhookFail;
-    }
+function triggerValue(key: (typeof triggers)[number]["key"]): boolean {
+	if (key === "deploy") return notifyOnDeploy;
+	if (key === "container") return notifyOnContainerDown;
+	return notifyOnWebhookFail;
+}
 
-    function triggerToggle(key: typeof triggers[number]['key']) {
-        if (key === 'deploy')    notifyOnDeploy        = !notifyOnDeploy;
-        if (key === 'container') notifyOnContainerDown = !notifyOnContainerDown;
-        if (key === 'webhook')   notifyOnWebhookFail   = !notifyOnWebhookFail;
-    }
+function triggerToggle(key: (typeof triggers)[number]["key"]) {
+	if (key === "deploy") notifyOnDeploy = !notifyOnDeploy;
+	if (key === "container") notifyOnContainerDown = !notifyOnContainerDown;
+	if (key === "webhook") notifyOnWebhookFail = !notifyOnWebhookFail;
+}
 </script>
 
 <div class="space-y-4">

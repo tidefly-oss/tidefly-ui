@@ -1,23 +1,28 @@
-import { type Project, type CreateProjectRequest, type UpdateProjectRequest, type Container } from '$lib/api/v1/types';
-import {projectsApi} from "$lib/api";
+import { projectsApi } from "$lib/api";
+import type {
+	Container,
+	CreateProjectRequest,
+	Project,
+	UpdateProjectRequest,
+} from "$lib/api/v1/types";
 
 function createProjectsStore() {
-	let projects        = $state<Project[]>([]);
-	let loading         = $state(false);
-	let error           = $state<string | null>(null);
+	let projects = $state<Project[]>([]);
+	let loading = $state(false);
+	let error = $state<string | null>(null);
 	let containersCache = $state<Record<string, Container[]>>({});
-	let loaded          = false; // internes Flag, nicht reaktiv nötig
+	let loaded = false; // internes Flag, nicht reaktiv nötig
 
 	async function load(force = false) {
-		if (loading) return;           // läuft bereits → nicht doppelt feuern
-		if (loaded && !force) return;  // schon geladen → kein zweiter Request
+		if (loading) return; // läuft bereits → nicht doppelt feuern
+		if (loaded && !force) return; // schon geladen → kein zweiter Request
 		loading = true;
-		error   = null;
+		error = null;
 		try {
 			projects = await projectsApi.list();
-			loaded   = true;
+			loaded = true;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Failed to load projects';
+			error = e instanceof Error ? e.message : "Failed to load projects";
 		} finally {
 			loading = false;
 		}
@@ -62,17 +67,25 @@ function createProjectsStore() {
 	}
 
 	return {
-		get projects()        { return projects; },
-		get loading()         { return loading; },
-		get error()           { return error; },
-		get containersCache() { return containersCache; },
+		get projects() {
+			return projects;
+		},
+		get loading() {
+			return loading;
+		},
+		get error() {
+			return error;
+		},
+		get containersCache() {
+			return containersCache;
+		},
 		load,
 		get,
 		create,
 		update,
 		remove,
 		listContainers,
-		invalidateContainers
+		invalidateContainers,
 	};
 }
 

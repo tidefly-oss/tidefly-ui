@@ -1,41 +1,43 @@
 <script lang="ts">
-  import { createQuery, useQueryClient } from "@tanstack/svelte-query";
-  import { agentApi } from "$lib/api/v1/agent/index.js";
-  import WorkerList from "$lib/components/servers/WorkerList.svelte";
-  import TokenDialog from "$lib/components/servers/TokenDialog.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as Alert from "$lib/components/ui/alert/index.js";
-  import { KeyIcon, PlusIcon, ShieldIcon } from "@lucide/svelte";
+import { KeyIcon, PlusIcon, ShieldIcon } from "@lucide/svelte";
+import { createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { agentApi } from "$lib/api/v1/agent/index.js";
+import TokenDialog from "$lib/components/servers/TokenDialog.svelte";
+import WorkerList from "$lib/components/servers/WorkerList.svelte";
+import * as Alert from "$lib/components/ui/alert/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
 
-  const qc = useQueryClient();
+const qc = useQueryClient();
 
-  const workersQuery = createQuery(() => ({
-    queryKey: ["workers"],
-    queryFn: () => agentApi.listWorkers(),
-    refetchInterval: 10_000,
-  }));
+const workersQuery = createQuery(() => ({
+	queryKey: ["workers"],
+	queryFn: () => agentApi.listWorkers(),
+	refetchInterval: 10_000,
+}));
 
-  const tokensQuery = createQuery(() => ({
-    queryKey: ["agent-tokens"],
-    queryFn: () => agentApi.listTokens(),
-  }));
+const tokensQuery = createQuery(() => ({
+	queryKey: ["agent-tokens"],
+	queryFn: () => agentApi.listTokens(),
+}));
 
-  const workers = $derived(workersQuery.data ?? []);
-  const pendingTokens = $derived((tokensQuery.data ?? []).filter((t) => !t.used && !isExpired(t.expires_at)));
+const workers = $derived(workersQuery.data ?? []);
+const pendingTokens = $derived(
+	(tokensQuery.data ?? []).filter((t) => !t.used && !isExpired(t.expires_at))
+);
 
-  let tokenDialogOpen = $state(false);
+let tokenDialogOpen = $state(false);
 
-  function isExpired(dateStr: string) {
-    return new Date(dateStr) < new Date();
-  }
+function isExpired(dateStr: string) {
+	return new Date(dateStr) < new Date();
+}
 
-  function onWorkerRevoked() {
-    qc.invalidateQueries({ queryKey: ["workers"] });
-  }
+function onWorkerRevoked() {
+	qc.invalidateQueries({ queryKey: ["workers"] });
+}
 
-  function onTokenCreated() {
-    qc.invalidateQueries({ queryKey: ["agent-tokens"] });
-  }
+function onTokenCreated() {
+	qc.invalidateQueries({ queryKey: ["agent-tokens"] });
+}
 </script>
 
 <div class="space-y-6">

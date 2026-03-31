@@ -11,7 +11,7 @@ export interface TemplateSummary {
 export interface TemplateField {
 	key: string;
 	label: string;
-	type: 'string' | 'port' | 'credential' | 'select';
+	type: "string" | "port" | "credential" | "select";
 	default?: string;
 	placeholder?: string;
 	required: boolean;

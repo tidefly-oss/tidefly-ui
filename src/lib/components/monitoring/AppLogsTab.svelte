@@ -1,88 +1,93 @@
 <script lang="ts">
-  import { appLogsStore } from "$lib/stores/logs.svelte.js";
-  import {
-    ChevronDownIcon,
-    FilterIcon,
-    LoaderIcon,
-    PlayIcon,
-    RefreshCwIcon,
-  } from "@lucide/svelte";
-  import { onDestroy } from "svelte";
+import { ChevronDownIcon, FilterIcon, LoaderIcon, PlayIcon, RefreshCwIcon } from "@lucide/svelte";
+import { onDestroy } from "svelte";
+import { appLogsStore } from "$lib/stores/logs.svelte.js";
 
-  let levelFilter = $state("");
-  let componentFilter = $state("");
-  let liveMode = $state(false);
+interface RawLog {
+	CreatedAt?: string;
+	created_at?: string;
+	ID?: string | number;
+	id?: string | number;
+	Level?: string;
+	level?: string;
+	Message?: string;
+	message?: string;
+	Component?: string;
+	component?: string;
+	Error?: string;
+	error?: string;
+}
 
-  onDestroy(() => appLogsStore.stopStream());
+let levelFilter = $state("");
+let componentFilter = $state("");
+let liveMode = $state(false);
 
-  function toggleLive() {
-    if (liveMode) {
-      appLogsStore.stopStream();
-      liveMode = false;
-    } else {
-      appLogsStore.startStream({
-        level: levelFilter || undefined,
-        component: componentFilter || undefined,
-      });
-      liveMode = true;
-    }
-  }
+onDestroy(() => appLogsStore.stopStream());
 
-  function applyFilter() {
-    appLogsStore.load({
-      reset: true,
-      level: levelFilter || undefined,
-      component: componentFilter || undefined,
-    });
-    if (liveMode)
-      appLogsStore.startStream({
-        level: levelFilter || undefined,
-        component: componentFilter || undefined,
-      });
-  }
+function toggleLive() {
+	if (liveMode) {
+		appLogsStore.stopStream();
+		liveMode = false;
+	} else {
+		appLogsStore.startStream({
+			level: levelFilter || undefined,
+			component: componentFilter || undefined,
+		});
+		liveMode = true;
+	}
+}
 
-  function normalizeLogs(raw: any[] = []) {
-    return raw.map((l: any, i: number) => {
-      const createdRaw = l.CreatedAt ?? l.created_at ?? null;
-      const created = createdRaw ? new Date(createdRaw) : null;
-      const created_at =
-        created && !isNaN(created.getTime()) ? created.toISOString() : null;
-      const id =
-        l.ID ??
-        l.id ??
-        `${created_at ?? ""}-${l.Component ?? l.component ?? ""}-${i}`;
-      return {
-        ...l,
-        id,
-        created_at,
-        level: l.Level ?? l.level ?? "",
-        message: l.Message ?? l.message ?? "",
-        component: l.Component ?? l.component ?? "",
-        error: l.Error ?? l.error ?? "",
-      };
-    });
-  }
+function applyFilter() {
+	appLogsStore.load({
+		reset: true,
+		level: levelFilter || undefined,
+		component: componentFilter || undefined,
+	});
+	if (liveMode)
+		appLogsStore.startStream({
+			level: levelFilter || undefined,
+			component: componentFilter || undefined,
+		});
+}
 
-  const logs = $derived(normalizeLogs(appLogsStore.logs));
+function normalizeLogs(raw: RawLog[] = []) {
+	return raw.map((l, i) => {
+		const createdRaw = l.CreatedAt ?? l.created_at ?? null;
+		const created = createdRaw ? new Date(createdRaw) : null;
+		const created_at = created && !Number.isNaN(created.getTime()) ? created.toISOString() : null;
+		const id = l.ID ?? l.id ?? `${created_at ?? ""}-${l.Component ?? l.component ?? ""}-${i}`;
+		return {
+			...l,
+			id,
+			created_at,
+			level: l.Level ?? l.level ?? "",
+			message: l.Message ?? l.message ?? "",
+			component: l.Component ?? l.component ?? "",
+			error: l.Error ?? l.error ?? "",
+		};
+	});
+}
 
-  const levelColor: Record<string, string> = {
-    INFO: "text-blue-500 bg-blue-500/10",
-    WARN: "text-amber-500 bg-amber-500/10",
-    ERROR: "text-red-500 bg-red-500/10",
-    FATAL: "text-red-600 bg-red-600/10",
-  };
+const logs = $derived(normalizeLogs(appLogsStore.logs));
 
-  function formatTime(iso: string | null) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    return isNaN(d.getTime())
-      ? "—"
-      : d.toLocaleTimeString("de-DE", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        });
-  }
+const levelColor: Record<string, string> = {
+	INFO: "text-blue-500 bg-blue-500/10",
+	WARN: "text-amber-500 bg-amber-500/10",
+	ERROR: "text-red-500 bg-red-500/10",
+	FATAL: "text-red-600 bg-red-600/10",
+};
+
+function formatTime(iso: string | null) {
+	if (!iso) return "—";
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? "—"
+		: d.toLocaleTimeString("de-DE", {
+				hour: "2-digit",
+				minute: "2-digit",
+				second: "2-digit",
+			});
+}
 </script>
 
 <div class="space-y-3">
