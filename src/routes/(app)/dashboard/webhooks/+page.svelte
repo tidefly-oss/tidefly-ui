@@ -1,45 +1,62 @@
 <script lang="ts">
-    import type {CreateWebhookRequest, Webhook} from '$lib/api/v1/types/webhooks.js';
-    import WebhookCreateDialog from '$lib/components/webhooks/WebhookCreateDialog.svelte';
-    import WebhookRow from '$lib/components/webhooks/WebhookRow.svelte';
+    import type { CreateWebhookRequest, Webhook } from "$lib/api/v1/types/webhooks.js";
+    import WebhookCreateDialog from "$lib/components/webhooks/WebhookCreateDialog.svelte";
+    import WebhookRow from "$lib/components/webhooks/WebhookRow.svelte";
     import * as Select from "$lib/components/ui/select/index.js";
-    import {Button} from '$lib/components/ui/button';
-    import {projectsStore} from '$lib/stores/projects.svelte.js';
-    import {webhooksStore} from '$lib/stores/webhooks.svelte.js';
-    import {auth} from '$lib/stores/auth.svelte.js';
-    import {BookOpen, PlusIcon, ZapIcon} from '@lucide/svelte';
-    import {onMount} from 'svelte';
-    import {goto} from "$app/navigation";
+    import { Button } from "$lib/components/ui/button";
+    import { auth } from "$lib/stores/auth.svelte.js";
+    import { projectQueries } from "$lib/queries/projects.js";
+    import { webhookQueries, webhookKeys } from "$lib/queries/webhooks.js";
+    import { webhooksApi } from "$lib/api/v1/webhooks/index.js";
+    import { type WebhookDelivery } from "$lib/api/v1/types/webhooks.js";
+    import { createQuery, createMutation, useQueryClient } from "@tanstack/svelte-query";
+    import { PlusIcon, ZapIcon } from "@lucide/svelte";
 
-    const isAdmin = $derived(auth.user?.role === 'admin');
+    const qc = useQueryClient();
+    const isAdmin = $derived(auth.user?.role === "admin");
 
-    const visibleProjects = $derived(
-        isAdmin
-            ? projectsStore.projects
-            : projectsStore.projects.filter((p) => auth.projectIds.includes(p.id)),
-    );
+    // ── Projects ──────────────────────────────────────────────────────────────
+    const projectsQuery = createQuery(() => projectQueries.list());
+    const visibleProjects = $derived(() => {
+        const all = projectsQuery.data ?? [];
+        return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
+    });
 
-    let selectedProjectId = $state<string>('');
+    let selectedProjectId = $state("");
+    $effect(() => {
+        if (!selectedProjectId && visibleProjects().length > 0) {
+            selectedProjectId = visibleProjects()[0].id;
+        }
+    });
+
+    // ── Webhooks ──────────────────────────────────────────────────────────────
+    const webhooksQuery = createQuery(() => webhookQueries.list(selectedProjectId));
+    const webhooks = $derived(webhooksQuery.data ?? []);
+
+    // ── Mutations ─────────────────────────────────────────────────────────────
+    const createMut = createMutation(() => ({
+        mutationFn: (req: CreateWebhookRequest) => webhooksApi.create(selectedProjectId, req),
+        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+    }));
+
+    const deleteMut = createMutation(() => ({
+        mutationFn: (id: string) => webhooksApi.delete(selectedProjectId, id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+    }));
+
+    const rotateMut = createMutation(() => ({
+        mutationFn: (id: string) => webhooksApi.rotate(selectedProjectId, id),
+        onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
+    }));
+
     let createOpen = $state(false);
 
-    // Auto-select first project
-    $effect(() => {
-        if (!selectedProjectId && visibleProjects.length > 0) {
-            selectedProjectId = visibleProjects[0].id;
-        }
-    });
-
-    // Load webhooks when project changes
-    $effect(() => {
-        if (selectedProjectId) {
-            webhooksStore.load(selectedProjectId);
-        }
-    });
-
-    onMount(() => projectsStore.load());
-
     async function handleCreate(req: CreateWebhookRequest): Promise<Webhook> {
-        return await webhooksStore.create(selectedProjectId, req);
+        return createMut.mutateAsync(req);
+    }
+
+    function getDeliveries(projectId: string, id: string): WebhookDelivery[] {
+        return qc.getQueryData<WebhookDelivery[]>(webhookKeys.deliveries(projectId, id)) ?? [];
     }
 </script>
 
@@ -47,19 +64,16 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
-            <ZapIcon class="size-5"/>
+            <ZapIcon class="size-5" />
             <h1 class="text-xl font-semibold">Webhooks</h1>
         </div>
-        <div class="flex items-center gap-2">
-            <Button size="sm" onclick={() => (createOpen = true)} disabled={!selectedProjectId}>
-                <PlusIcon class="size-4 mr-1"/>
-                Add webhook
-            </Button>
-        </div>
+        <Button size="sm" onclick={() => (createOpen = true)} disabled={!selectedProjectId}>
+            <PlusIcon class="size-4 mr-1" /> Add webhook
+        </Button>
     </div>
 
     <!-- Project selector -->
-    {#if visibleProjects.length > 1}
+    {#if visibleProjects().length > 1}
         <div class="flex items-center gap-2">
             <span class="text-sm text-muted-foreground">Project</span>
             <Select.Root
@@ -68,10 +82,10 @@
                     onValueChange={(v) => { if (v) selectedProjectId = v; }}
             >
                 <Select.Trigger class="w-56">
-                    {visibleProjects.find((p) => p.id === selectedProjectId)?.name ?? 'Select project'}
+                    {visibleProjects().find((p) => p.id === selectedProjectId)?.name ?? "Select project"}
                 </Select.Trigger>
                 <Select.Content>
-                    {#each visibleProjects as p (p.id)}
+                    {#each visibleProjects() as p (p.id)}
                         <Select.Item value={p.id}>{p.name}</Select.Item>
                     {/each}
                 </Select.Content>
@@ -79,42 +93,39 @@
         </div>
     {/if}
 
-    <!-- Error -->
-    {#if webhooksStore.error}
-        <p class="text-sm text-destructive">{webhooksStore.error}</p>
-    {/if}
-
     <!-- Loading -->
-    {#if webhooksStore.loading}
+    {#if webhooksQuery.isPending && selectedProjectId}
         <div class="space-y-3">
-            {#each [1, 2] as _}
+            {#each Array(2) as _, i (i)}
                 <div class="h-24 rounded-lg border bg-muted animate-pulse"></div>
             {/each}
         </div>
 
         <!-- Empty -->
-    {:else if webhooksStore.webhooks.length === 0}
+    {:else if webhooks.length === 0}
         <div class="flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <ZapIcon class="size-10 text-muted-foreground/40"/>
+            <ZapIcon class="size-10 text-muted-foreground/40" />
             <p class="text-sm text-muted-foreground">No webhooks yet.</p>
             <p class="text-xs text-muted-foreground max-w-sm">
                 Create a webhook to automatically trigger deploys when you push to your Git repository.
             </p>
             <Button size="sm" variant="outline" onclick={() => (createOpen = true)}>
-                <PlusIcon class="size-4 mr-1"/>
-                Add first webhook
+                <PlusIcon class="size-4 mr-1" /> Add first webhook
             </Button>
         </div>
 
         <!-- List -->
     {:else}
         <div class="space-y-3">
-            {#each webhooksStore.webhooks as wh (wh.id)}
+            {#each webhooks as wh (wh.id)}
                 <WebhookRow
                         webhook={wh}
-                        ondelete={(id) => webhooksStore.remove(selectedProjectId, id)}
-                        onrotate={(id) => webhooksStore.rotate(selectedProjectId, id)}
-                        onloaddeliveries={(id) => webhooksStore.deliveries(selectedProjectId, id)}
+                        ondelete={async (id) => deleteMut.mutateAsync(id)}
+                        onrotate={async (id) => rotateMut.mutateAsync(id)}
+                        onloaddeliveries={async (id) => {
+                            await qc.invalidateQueries({ queryKey: webhookKeys.deliveries(selectedProjectId, id) });
+                            return getDeliveries(selectedProjectId, id);
+                        }}
                 />
             {/each}
         </div>

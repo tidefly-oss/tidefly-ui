@@ -79,7 +79,7 @@
         smtpPort = 1025;
         smtpUsername = '';
         smtpPassword = '';
-        smtpFrom = 'noreply@tidefly.local';
+        smtpFrom = 'noreply@tidefly-plane.local';
         smtpTLS = false;
         toast.info('Mailpit defaults filled — click Save Changes to apply');
     }

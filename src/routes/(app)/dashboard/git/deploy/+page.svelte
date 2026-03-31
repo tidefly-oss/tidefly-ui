@@ -4,16 +4,10 @@
     import { Button } from "$lib/components/ui/button/index.js";
     import { Input } from "$lib/components/ui/input/index.js";
     import { Badge } from "$lib/components/ui/badge/index.js";
+    import { agentApi, type WorkerNode } from "$lib/api/v1/agent/index.js";
     import {
-        GitBranchIcon,
-        BookOpenIcon,
-        ChevronRightIcon,
-        ChevronLeftIcon,
-        CheckIcon,
-        SearchIcon,
-        LockIcon,
-        RocketIcon,
-        PlusIcon,
+        GitBranchIcon, BookOpenIcon, ChevronRightIcon, ChevronLeftIcon,
+        CheckIcon, SearchIcon, LockIcon, RocketIcon, PlusIcon, ServerIcon,
     } from "@lucide/svelte";
     import { SiGithub, SiGitlab, SiGitea, SiBitbucket } from "@icons-pack/svelte-simple-icons";
     import { createQuery } from "@tanstack/svelte-query";
@@ -26,6 +20,7 @@
         defaultBranch: string; private: boolean; cloneUrl: string;
     } | null>(null);
     let selectedBranch = $state("");
+    let workerId = $state<string | null>(null); // null = Plane
     let repoSearch = $state("");
     let selectedOwner = $state("all");
     let branchSearch = $state("");
@@ -49,7 +44,16 @@
         staleTime: 30_000,
     }));
 
+    const workersQuery = createQuery(() => ({
+        queryKey: ["workers"],
+        queryFn: () => agentApi.listWorkers(),
+        staleTime: 30_000,
+    }));
+
     const integrations = $derived(integrationsQuery.data ?? []);
+    const connectedWorkers = $derived(
+        (workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
+    );
 
     const owners = $derived(
         [...new Set((reposQuery.data ?? []).map((r: any) => r.full_name.split("/")[0]))].sort()
@@ -67,6 +71,10 @@
     const filteredBranches = $derived(
         branchSearch ? branches.filter((b: any) => b.name.toLowerCase().includes(branchSearch.toLowerCase())) : branches
     );
+
+    // Step 4 only shown when workers are available
+    const hasWorkers = $derived(connectedWorkers.length > 0);
+    const totalSteps = $derived(hasWorkers ? 4 : 3);
 
     function selectIntegration(id: string) {
         selectedIntegrationId = id;
@@ -93,6 +101,7 @@
             git_url: selectedRepo!.cloneUrl,
             branch: selectedBranch,
             name: selectedRepo!.name.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+            ...(workerId ? { worker_id: workerId } : {}),
         });
         goto(`/dashboard/containers/deploy?${params}`);
     }
@@ -104,11 +113,16 @@
         return map[provider] ?? GitBranchIcon;
     }
 
-    const steps = [
+    function workerLabel(w: WorkerNode) {
+        return w.name.length > 28 ? w.name.slice(0, 24) + "…" : w.name;
+    }
+
+    const steps = $derived([
         { n: 1, label: "Integration" },
         { n: 2, label: "Repository" },
         { n: 3, label: "Branch" },
-    ];
+        ...(hasWorkers ? [{ n: 4, label: "Server" }] : []),
+    ]);
 </script>
 
 <div class="min-h-[calc(100vh-8rem)] flex flex-col items-center justify-center">
@@ -122,7 +136,7 @@
 
         <!-- Stepper -->
         <div class="flex items-center gap-0">
-            {#each steps as s, i}
+            {#each steps as s, i (s.n)}
                 {@const isActive = step === s.n}
                 {@const isDone = step > s.n}
                 <div class="flex items-center gap-0 flex-1 last:flex-none">
@@ -130,9 +144,10 @@
                             onclick={() => { if (isDone) step = s.n; }}
                             class="flex items-center gap-2 shrink-0 {isDone ? 'cursor-pointer' : 'cursor-default'}"
                     >
-                        <div class="size-7 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all {isDone ? 'bg-primary border-primary text-primary-foreground' : isActive ? 'border-primary text-primary' : 'border-muted-foreground/30 text-muted-foreground'}">
+                        <span class="size-7 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all
+                            {isDone ? 'bg-primary border-primary text-primary-foreground' : isActive ? 'border-primary text-primary' : 'border-muted-foreground/30 text-muted-foreground'}">
                             {#if isDone}<CheckIcon class="size-3.5" />{:else}{s.n}{/if}
-                        </div>
+                        </span>
                         <span class="text-xs font-medium hidden sm:block {isActive ? 'text-foreground' : isDone ? 'text-primary' : 'text-muted-foreground'}">
                             {s.label}
                         </span>
@@ -174,15 +189,18 @@
                         {@const Icon = providerIcon(integration.provider)}
                         <button
                                 onclick={() => selectIntegration(integration.id)}
-                                class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all {selectedIntegrationId === integration.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                                class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all
+                                {selectedIntegrationId === integration.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
                         >
-                            <div class="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <span class="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
                                 <Icon class="size-4" style="color: {meta.color}" />
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium">{integration.name}</p>
-                                <p class="text-xs text-muted-foreground capitalize">{meta.label}{integration.base_url ? ` · ${integration.base_url}` : ""}</p>
-                            </div>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="text-sm font-medium block">{integration.name}</span>
+                                <span class="text-xs text-muted-foreground capitalize block">
+                                    {meta.label}{integration.base_url ? ` · ${integration.base_url}` : ""}
+                                </span>
+                            </span>
                             {#if selectedIntegrationId === integration.id}
                                 <CheckIcon class="size-4 text-primary shrink-0" />
                             {/if}
@@ -213,12 +231,14 @@
                     <div class="flex flex-wrap gap-1.5">
                         <button
                                 onclick={() => (selectedOwner = "all")}
-                                class="px-3 py-1 rounded-full text-xs font-medium border transition-colors {selectedOwner === 'all' ? 'bg-primary border-primary text-primary-foreground' : 'border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:border-primary/40'}"
+                                class="px-3 py-1 rounded-full text-xs font-medium border transition-colors
+                                {selectedOwner === 'all' ? 'bg-primary border-primary text-primary-foreground' : 'border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:border-primary/40'}"
                         >All</button>
                         {#each owners as owner (owner)}
                             <button
                                     onclick={() => (selectedOwner = owner)}
-                                    class="px-3 py-1 rounded-full text-xs font-medium border transition-colors {selectedOwner === owner ? 'bg-primary border-primary text-primary-foreground' : 'border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:border-primary/40'}"
+                                    class="px-3 py-1 rounded-full text-xs font-medium border transition-colors
+                                    {selectedOwner === owner ? 'bg-primary border-primary text-primary-foreground' : 'border-border bg-muted/50 text-muted-foreground hover:text-foreground hover:border-primary/40'}"
                             >{owner}</button>
                         {/each}
                     </div>
@@ -243,23 +263,24 @@
                         {#each filteredRepos as repo (repo.id)}
                             <button
                                     onclick={() => selectRepo(repo)}
-                                    class="w-full px-4 py-3 border-b last:border-0 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left {selectedRepo?.fullName === repo.full_name ? 'bg-primary/5' : ''}"
+                                    class="w-full px-4 py-3 border-b last:border-0 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left
+                                    {selectedRepo?.fullName === repo.full_name ? 'bg-primary/5' : ''}"
                             >
                                 <LockIcon class="size-3.5 shrink-0 {repo.private ? 'text-muted-foreground' : 'text-muted-foreground/30'}" />
-                                <div class="flex-1 min-w-0">
-                                    <p class="text-sm font-medium truncate">{repo.full_name}</p>
+                                <span class="flex-1 min-w-0">
+                                    <span class="text-sm font-medium truncate block">{repo.full_name}</span>
                                     {#if repo.description}
-                                        <p class="text-xs text-muted-foreground truncate">{repo.description}</p>
+                                        <span class="text-xs text-muted-foreground truncate block">{repo.description}</span>
                                     {/if}
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
+                                </span>
+                                <span class="flex items-center gap-2 shrink-0">
                                     <span class="flex items-center gap-1 text-xs text-muted-foreground">
                                         <GitBranchIcon class="size-3" />{repo.default_branch}
                                     </span>
                                     {#if selectedRepo?.fullName === repo.full_name}
                                         <CheckIcon class="size-4 text-primary" />
                                     {/if}
-                                </div>
+                                </span>
                             </button>
                         {/each}
                     {/if}
@@ -285,10 +306,10 @@
                 {#if selectedRepo}
                     <div class="bg-muted/50 rounded-xl px-4 py-3 flex items-center gap-3">
                         <BookOpenIcon class="size-4 text-muted-foreground shrink-0" />
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium">{selectedRepo.fullName}</p>
-                            <p class="text-xs text-muted-foreground font-mono truncate">{selectedRepo.cloneUrl}</p>
-                        </div>
+                        <span class="flex-1 min-w-0">
+                            <span class="text-sm font-medium block">{selectedRepo.fullName}</span>
+                            <span class="text-xs text-muted-foreground font-mono truncate block">{selectedRepo.cloneUrl}</span>
+                        </span>
                         {#if selectedRepo.private}
                             <Badge variant="secondary" class="text-xs">Private</Badge>
                         {/if}
@@ -316,7 +337,8 @@
                         {#each filteredBranches as branch (branch.name)}
                             <button
                                     onclick={() => (selectedBranch = branch.name)}
-                                    class="w-full px-4 py-3 border-b last:border-0 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left {selectedBranch === branch.name ? 'bg-primary/5' : ''}"
+                                    class="w-full px-4 py-3 border-b last:border-0 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left
+                                    {selectedBranch === branch.name ? 'bg-primary/5' : ''}"
                             >
                                 <GitBranchIcon class="size-3.5 text-muted-foreground shrink-0" />
                                 <span class="text-sm font-medium flex-1">{branch.name}</span>
@@ -336,6 +358,66 @@
             </div>
             <div class="flex justify-between">
                 <Button variant="outline" onclick={() => (step = 2)}>
+                    <ChevronLeftIcon class="size-3.5 mr-1.5" /> Back
+                </Button>
+                {#if hasWorkers}
+                    <Button onclick={() => (step = 4)} disabled={!selectedBranch}>
+                        Continue <ChevronRightIcon class="size-3.5 ml-1.5" />
+                    </Button>
+                {:else}
+                    <Button onclick={handleDeploy} disabled={!selectedBranch}>
+                        <RocketIcon class="size-3.5 mr-1.5" /> Continue to Deploy
+                    </Button>
+                {/if}
+            </div>
+
+            <!-- Step 4: Server (only when workers connected) -->
+        {:else if step === 4}
+            <div class="bg-card border rounded-xl p-6 space-y-3">
+                <div>
+                    <h2 class="font-semibold">Select Deploy Target</h2>
+                    <p class="text-sm text-muted-foreground mt-0.5">Choose which server to deploy this container on.</p>
+                </div>
+
+                <!-- Plane (default) -->
+                <button
+                        onclick={() => (workerId = null)}
+                        class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all
+                        {workerId === null ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                >
+                    <span class="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <ServerIcon class="size-4 text-muted-foreground" />
+                    </span>
+                    <span class="flex-1 min-w-0">
+                        <span class="text-sm font-medium block">Plane <span class="text-xs text-muted-foreground font-normal">(this server)</span></span>
+                        <span class="text-xs text-muted-foreground block">Default — runs locally on the Plane node</span>
+                    </span>
+                    {#if workerId === null}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
+                </button>
+
+                <!-- Workers -->
+                {#each connectedWorkers as w (w.id)}
+                    <button
+                            onclick={() => (workerId = w.id)}
+                            class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all
+                            {workerId === w.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                    >
+                        <span class="size-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                            <ServerIcon class="size-4 text-muted-foreground" />
+                        </span>
+                        <span class="flex-1 min-w-0">
+                            <span class="text-sm font-medium block">{workerLabel(w)}</span>
+                            <span class="text-xs text-muted-foreground font-mono block">
+                                {w.last_seen_ip ?? ""}{w.os ? ` · ${w.os}/${w.arch}` : ""}
+                                {#if w.cpu_percent > 0} · CPU {w.cpu_percent.toFixed(0)}%{/if}
+                            </span>
+                        </span>
+                        {#if workerId === w.id}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
+                    </button>
+                {/each}
+            </div>
+            <div class="flex justify-between">
+                <Button variant="outline" onclick={() => (step = 3)}>
                     <ChevronLeftIcon class="size-3.5 mr-1.5" /> Back
                 </Button>
                 <Button onclick={handleDeploy} disabled={!selectedBranch}>

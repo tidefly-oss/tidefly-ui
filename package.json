@@ -14,8 +14,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "2.4.8",
 		"@internationalized/date": "^3.12.0",
-		"@lucide/svelte": "^0.577.0",
-		"@sveltejs/adapter-auto": "^7.0.1",
+		"@lucide/svelte": "^1.7.0",
 		"@sveltejs/kit": "^2.55.0",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"@tailwindcss/forms": "^0.5.11",
@@ -25,11 +24,11 @@
 		"@types/d3-shape": "^3.1.8",
 		"@types/d3-time": "^3.0.4",
 		"@types/node": "^25.5.0",
-		"bits-ui": "^2.16.4",
+		"bits-ui": "^2.16.5",
 		"clsx": "^2.1.1",
 		"layerchart": "2.0.0-next.43",
-		"svelte": "^5.55.0",
-		"svelte-check": "^4.4.5",
+		"svelte": "^5.55.1",
+		"svelte-check": "^4.4.6",
 		"tailwind-merge": "^3.5.0",
 		"tailwind-variants": "^3.2.2",
 		"tailwindcss": "^4.2.2",
@@ -39,6 +38,7 @@
 	},
 	"dependencies": {
 		"@icons-pack/svelte-simple-icons": "^7.2.0",
+		"@sveltejs/adapter-node": "^5.5.4",
 		"@tanstack/svelte-query": "^6.1.10",
 		"@tanstack/table-core": "^8.21.3",
 		"@xterm/addon-fit": "^0.11.0",
@@ -49,5 +49,5 @@
 		"d3-time": "^3.1.0",
 		"svelte-sonner": "^1.1.0"
 	},
-	"packageManager": "pnpm@10.32.1+sha512.a706938f0e89ac1456b6563eab4edf1d1faf3368d1191fc5c59790e96dc918e4456ab2e67d613de1043d2e8c81f87303e6b40d4ffeca9df15ef1ad567348f2be"
+	"packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }

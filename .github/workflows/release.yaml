@@ -45,7 +45,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/tidefly-oss/tidefly-ui
+          images: ghcr.io/tidefly-plane-oss/tidefly-plane-ui
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}

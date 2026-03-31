@@ -1,22 +1,16 @@
 <script lang="ts">
     import {goto} from "$app/navigation";
     import {containersApi} from "$lib/api/v1/containers";
-    import {projectsApi} from "$lib/api/v1/projects";
+    import {projectQueries} from "$lib/queries/projects.js";
+    import {agentApi, type WorkerNode} from "$lib/api/v1/agent/index.js";
     import {Button} from "$lib/components/ui/button/index.js";
     import {Input} from "$lib/components/ui/input/index.js";
     import {Label} from "$lib/components/ui/label/index.js";
     import {auth} from "$lib/stores/auth.svelte";
     import {
-        ArrowLeftIcon,
-        ArrowRightIcon,
-        CheckIcon,
-        CircleCheckBig,
-        CircleIcon,
-        CircleX,
-        GlobeIcon,
-        Loader,
-        RocketIcon,
-        TerminalIcon,
+        ArrowLeftIcon, ArrowRightIcon, CheckIcon,
+        CircleCheckBig, CircleIcon, CircleX,
+        GlobeIcon, Loader, RocketIcon, ServerIcon, TerminalIcon,
     } from "@lucide/svelte";
     import {createQuery, useQueryClient} from "@tanstack/svelte-query";
 
@@ -31,8 +25,14 @@
     let {initialName = "", initialGitUrl = "", initialBranch = ""}: Props = $props();
 
     const projectsQuery = createQuery(() => ({
-        queryKey: ["projects"],
-        queryFn: () => projectsApi.list(),
+        ...projectQueries.list(),
+        enabled: !!auth.user,
+    }));
+
+    const workersQuery = createQuery(() => ({
+        queryKey: ["workers"],
+        queryFn: () => agentApi.listWorkers(),
+        staleTime: 30_000,
     }));
 
     const isAdmin = $derived(auth.user?.role === 'admin');
@@ -41,12 +41,16 @@
             ? (projectsQuery.data ?? [])
             : (projectsQuery.data ?? []).filter(p => auth.projectIds.includes(p.id))
     );
+    const connectedWorkers = $derived(
+        (workersQuery.data ?? []).filter((w: WorkerNode) => w.status === "connected")
+    );
 
     type Step = 1 | 2 | 3 | 4;
     let step = $state<Step>(1);
 
     let projectId    = $state("");
     let projectName  = $state("");
+    let workerId     = $state<string | null>(null); // null = Plane (default)
     let name         = $state("");
     let tag          = $state("");
     let port         = $state("");
@@ -63,17 +67,9 @@
     $effect(() => {
         if (dockerfile) return;
         if (initialGitUrl) {
-            dockerfile = `FROM alpine/git AS clone
-RUN git clone --branch ${initialBranch || "main"} --depth 1 ${initialGitUrl} /app
-
-FROM alpine
-WORKDIR /app
-COPY --from=clone /app .
-# Add your build steps here`;
+            dockerfile = `FROM alpine/git AS clone\nRUN git clone --branch ${initialBranch || "main"} --depth 1 ${initialGitUrl} /app\n\nFROM alpine\nWORKDIR /app\nCOPY --from=clone /app .\n# Add your build steps here`;
         } else {
-            dockerfile = `FROM nginx:alpine
-RUN echo "<h1>Hello from Tidefly!</h1>" > /usr/share/nginx/html/index.html
-EXPOSE 80`;
+            dockerfile = `FROM nginx:alpine\nRUN echo "<h1>Hello from Tidefly!</h1>" > /usr/share/nginx/html/index.html\nEXPOSE 80`;
         }
     });
 
@@ -110,6 +106,7 @@ EXPOSE 80`;
                     restart,
                     dockerfile:    dockerfile.trim(),
                     project_id:    projectId,
+                    worker_id:     workerId ?? undefined,
                 }),
                 credentials: "include",
             });
@@ -163,6 +160,10 @@ EXPOSE 80`;
     }
 
     const steps = ["Project", "Config", "Dockerfile", "Deploy"];
+
+    function workerLabel(w: WorkerNode) {
+        return w.name.length > 28 ? w.name.slice(0, 24) + "…" : w.name;
+    }
 </script>
 
 <div class="max-w-2xl mx-auto space-y-6">
@@ -177,10 +178,10 @@ EXPOSE 80`;
                         onclick={() => { if (isDone) step = n; }}
                         class="flex items-center gap-2 shrink-0 {isDone ? 'cursor-pointer' : 'cursor-default'}"
                 >
-                    <div class="size-7 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all
+                    <span class="size-7 rounded-full flex items-center justify-center text-xs font-medium border-2 transition-all
                         {isDone ? 'bg-primary border-primary text-primary-foreground' : isActive ? 'border-primary text-primary' : 'border-muted-foreground/30 text-muted-foreground'}">
                         {#if isDone}<CheckIcon class="size-3.5"/>{:else}{n}{/if}
-                    </div>
+                    </span>
                     <span class="text-xs font-medium hidden sm:block {isActive ? 'text-foreground' : isDone ? 'text-primary' : 'text-muted-foreground'}">
                         {label}
                     </span>
@@ -221,13 +222,13 @@ EXPOSE 80`;
                         <button
                                 onclick={() => selectProject(p.id, p.name)}
                                 class="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-left transition-all
-                                    {projectId === p.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                                {projectId === p.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
                         >
                             <CircleIcon class="size-3 fill-current shrink-0" style="color: {p.color}"/>
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium">{p.name}</p>
-                                <p class="text-xs text-muted-foreground font-mono mt-0.5">{p.network_name}</p>
-                            </div>
+                            <span class="flex-1 min-w-0">
+                                <span class="text-sm font-medium block">{p.name}</span>
+                                <span class="text-xs text-muted-foreground font-mono mt-0.5 block">{p.network_name}</span>
+                            </span>
                             {#if projectId === p.id}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
                         </button>
                     {/each}
@@ -284,16 +285,16 @@ EXPOSE 80`;
             <button
                     onclick={() => expose = !expose}
                     class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all
-                        {expose ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}"
+                    {expose ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}"
             >
-                <div class="size-8 rounded-lg flex items-center justify-center shrink-0
+                <span class="size-8 rounded-lg flex items-center justify-center shrink-0
                     {expose ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}">
                     <GlobeIcon class="size-4"/>
-                </div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium">Expose via Caddy</p>
-                    <p class="text-xs text-muted-foreground">Automatically create a public HTTPS route</p>
-                </div>
+                </span>
+                <span class="flex-1">
+                    <span class="text-sm font-medium block">Expose via Caddy</span>
+                    <span class="text-xs text-muted-foreground">Automatically create a public HTTPS route</span>
+                </span>
                 {#if expose}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
             </button>
 
@@ -308,6 +309,50 @@ EXPOSE 80`;
                         <Label for="df-domain">Custom Domain <span class="text-muted-foreground text-xs">(optional)</span></Label>
                         <Input id="df-domain" bind:value={customDomain} placeholder="myapp.example.com"/>
                     </div>
+                </div>
+            {/if}
+
+            <!-- Worker selection — only shown when workers are connected -->
+            {#if connectedWorkers.length > 0}
+                <div class="space-y-2 pt-1">
+                    <p class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Deploy Target</p>
+
+                    <!-- Plane (default) -->
+                    <button
+                            onclick={() => (workerId = null)}
+                            class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all
+                            {workerId === null ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                    >
+                        <span class="size-8 rounded-lg flex items-center justify-center shrink-0 bg-muted">
+                            <ServerIcon class="size-4 text-muted-foreground"/>
+                        </span>
+                        <span class="flex-1 min-w-0">
+                            <span class="text-sm font-medium block">Plane (this server)</span>
+                            <span class="text-xs text-muted-foreground">Default — runs locally on the Plane node</span>
+                        </span>
+                        {#if workerId === null}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
+                    </button>
+
+                    <!-- Connected workers -->
+                    {#each connectedWorkers as w (w.id)}
+                        <button
+                                onclick={() => (workerId = w.id)}
+                                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all
+                                {workerId === w.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'}"
+                        >
+                            <span class="size-8 rounded-lg flex items-center justify-center shrink-0 bg-muted">
+                                <ServerIcon class="size-4 text-muted-foreground"/>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="text-sm font-medium block">{workerLabel(w)}</span>
+                                <span class="text-xs text-muted-foreground font-mono">
+                                    {w.last_seen_ip ?? ""}{w.os ? ` · ${w.os}/${w.arch}` : ""}
+                                    {#if w.cpu_percent > 0} · CPU {w.cpu_percent.toFixed(0)}%{/if}
+                                </span>
+                            </span>
+                            {#if workerId === w.id}<CheckIcon class="size-4 text-primary shrink-0"/>{/if}
+                        </button>
+                    {/each}
                 </div>
             {/if}
         </div>
@@ -350,6 +395,11 @@ EXPOSE 80`;
             <div class="px-5 py-4 border-b flex items-center gap-3">
                 <TerminalIcon class="size-4 text-muted-foreground"/>
                 <span class="text-sm font-medium">Build Output</span>
+                {#if workerId}
+                    <span class="text-xs text-muted-foreground ml-1">
+                        → {connectedWorkers.find(w => w.id === workerId)?.name ?? "Worker"}
+                    </span>
+                {/if}
                 {#if status === "building"}
                     <span class="flex items-center gap-1.5 text-xs text-blue-500 ml-auto">
                         <Loader class="size-3 animate-spin"/> Building…
@@ -369,9 +419,9 @@ EXPOSE 80`;
                     <span class="text-muted-foreground">Starting build…</span>
                 {:else}
                     {#each logs as log, i (i)}
-                        <div class="{log.type === 'error' ? 'text-red-400' : log.type === 'done' ? 'text-green-400' : log.type === 'status' ? 'text-blue-400' : 'text-gray-300'} leading-5">
+                        <p class="{log.type === 'error' ? 'text-red-400' : log.type === 'done' ? 'text-green-400' : log.type === 'status' ? 'text-blue-400' : 'text-gray-300'} leading-5">
                             {log.message}
-                        </div>
+                        </p>
                     {/each}
                 {/if}
             </div>
@@ -388,7 +438,7 @@ EXPOSE 80`;
                 <Button variant="outline" onclick={() => goto("/dashboard/containers")} class="flex-1">
                     View Containers
                 </Button>
-                <Button onclick={() => { step = 1; projectId = ""; name = ""; tag = ""; port = ""; logs = []; status = "idle"; expose = false; caddyPort = "80"; customDomain = ""; }}
+                <Button onclick={() => { step = 1; projectId = ""; name = ""; tag = ""; port = ""; logs = []; status = "idle"; expose = false; caddyPort = "80"; customDomain = ""; workerId = null; }}
                         class="flex-1">
                     Deploy Another
                 </Button>
