@@ -9,6 +9,9 @@ permissions:
   contents: write
   packages: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   validate-tag:
     name: Validate Release Tag
@@ -45,7 +48,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/tidefly-plane-oss/tidefly-plane-ui
+          images: ghcr.io/tidefly-oss/tidefly-ui
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -98,9 +101,7 @@ jobs:
 
             ## Docker
 
-            ```bash
             docker pull ghcr.io/tidefly-oss/tidefly-ui:${{ github.ref_name }}
-            ```
           draft: false
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: false
