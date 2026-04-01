@@ -41,7 +41,7 @@
 	"dependencies": {
 		"@icons-pack/svelte-simple-icons": "^7.2.0",
 		"@sveltejs/adapter-node": "^5.5.4",
-		"@tanstack/svelte-query": "^6.1.10",
+		"@tanstack/svelte-query": "^6.1.11",
 		"@tanstack/table-core": "^8.21.3",
 		"@xterm/addon-fit": "^0.11.0",
 		"@xterm/addon-web-links": "^0.12.0",
