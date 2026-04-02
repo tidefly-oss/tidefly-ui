@@ -6,7 +6,7 @@ import { curveNatural } from "d3-shape";
 import { AreaChart } from "layerchart";
 import { systemApi } from "$lib/api/v1/system/index.js";
 import * as Card from "$lib/components/ui/card/index.js";
-import * as Chart from "$lib/components/ui/chart/index.js";
+import type * as Chart from "$lib/components/ui/chart/index.js";
 
 interface ChartPoint {
 	date: Date;
