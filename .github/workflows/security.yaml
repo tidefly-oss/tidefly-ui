@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Audit
-        run: pnpm audit --audit-level=critical
+        run: pnpm audit --audit-level=high
 
   trivy:
     name: Trivy Scan
