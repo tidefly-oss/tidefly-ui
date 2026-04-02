@@ -58,10 +58,12 @@
 - [pnpm](https://pnpm.io) — `npm install -g pnpm`
 - A running [tidefly-plane](https://github.com/tidefly-oss/tidefly-plane) instance
 
+## License
+
+AGPLv3 — see [LICENSE](LICENSE)
+
 ---
 
 <div align="center">
-
-Built with ❤️ · [AGPLv3](https://github.com/tidefly-oss/tidefly-plane/blob/main/LICENSE) · [Report a vulnerability](https://github.com/tidefly-oss/tidefly-plane/security/advisories/new)
-
+  <sub>Built with ❤️ by <a href="https://github.com/dbuettgen">@dbuettgen</a> · Part of the <a href="https://github.com/tidefly-oss">tidefly-oss</a> project</sub>
 </div>
