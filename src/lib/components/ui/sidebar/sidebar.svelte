@@ -1,25 +1,25 @@
 <script lang="ts">
-import * as Sheet from "$lib/components/ui/sheet/index.js";
-import { cn, type WithElementRef } from "$lib/utils.js";
-import type { HTMLAttributes } from "svelte/elements";
-import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
-import { useSidebar } from "./context.svelte.js";
+	import * as Sheet from "$lib/components/ui/sheet/index.js";
+	import { cn, type WithElementRef } from "$lib/utils.js";
+	import type { HTMLAttributes } from "svelte/elements";
+	import { SIDEBAR_WIDTH_MOBILE } from "./constants.js";
+	import { useSidebar } from "./context.svelte.js";
 
-let {
-	ref = $bindable(null),
-	side = "left",
-	variant = "sidebar",
-	collapsible = "offcanvas",
-	class: className,
-	children,
-	...restProps
-}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
-	side?: "left" | "right";
-	variant?: "sidebar" | "floating" | "inset";
-	collapsible?: "offcanvas" | "icon" | "none";
-} = $props();
+	let {
+		ref = $bindable(null),
+		side = "left",
+		variant = "sidebar",
+		collapsible = "offcanvas",
+		class: className,
+		children,
+		...restProps
+	}: WithElementRef<HTMLAttributes<HTMLDivElement>> & {
+		side?: "left" | "right";
+		variant?: "sidebar" | "floating" | "inset";
+		collapsible?: "offcanvas" | "icon" | "none";
+	} = $props();
 
-const sidebar = useSidebar();
+	const sidebar = useSidebar();
 </script>
 
 {#if collapsible === "none"}
@@ -39,10 +39,14 @@ const sidebar = useSidebar();
 		{...restProps}
 	>
 		<Sheet.Content
+			bind:ref
 			data-sidebar="sidebar"
 			data-slot="sidebar"
 			data-mobile="true"
-			class="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
+			class={cn(
+				"bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden",
+				className
+			)}
 			style="--sidebar-width: {SIDEBAR_WIDTH_MOBILE};"
 			{side}
 		>
@@ -69,11 +73,11 @@ const sidebar = useSidebar();
 		<div
 			data-slot="sidebar-gap"
 			class={cn(
-				"relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+				"transition-[width] duration-200 ease-linear relative w-(--sidebar-width) bg-transparent",
 				"group-data-[collapsible=offcanvas]:w-0",
 				"group-data-[side=right]:rotate-180",
 				variant === "floating" || variant === "inset"
-					? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
+					? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
 					: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
 			)}
 		></div>
@@ -95,7 +99,7 @@ const sidebar = useSidebar();
 			<div
 				data-sidebar="sidebar"
 				data-slot="sidebar-inner"
-				class="bg-sidebar group-data-[variant=floating]:border-sidebar-border flex h-full w-full flex-col group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:border group-data-[variant=floating]:shadow-sm"
+				class="bg-sidebar group-data-[variant=floating]:ring-sidebar-border group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 flex size-full flex-col"
 			>
 				{@render children?.()}
 			</div>
