@@ -8,6 +8,8 @@ updates:
       day: monday
       time: "08:00"
       timezone: "Europe/Berlin"
+    assignees:
+      - dbuettgen
     open-pull-requests-limit: 10
     labels:
       - dependencies
@@ -41,6 +43,8 @@ updates:
       day: monday
       time: "08:00"
       timezone: "Europe/Berlin"
+    assignees:
+      - dbuettgen
     labels:
       - dependencies
       - github-actions
