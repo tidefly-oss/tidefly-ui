@@ -38,6 +38,9 @@ importers:
       d3-time:
         specifier: ^3.1.0
         version: 3.1.0
+      frontend:
+        specifier: 'link:'
+        version: 'link:'
       svelte-sonner:
         specifier: ^1.1.0
         version: 1.1.0(svelte@5.55.1)
