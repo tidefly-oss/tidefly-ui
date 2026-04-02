@@ -26,7 +26,7 @@ import { systemApi } from "$lib/api/v1/system";
 import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
 import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import type * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte";
