@@ -16,14 +16,11 @@ jobs:
     name: pnpm Audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-
+      - uses: actions/checkout@v4
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
-        with:
-          version: latest
+        uses: pnpm/action-setup@v4
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
