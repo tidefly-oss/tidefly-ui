@@ -52,7 +52,7 @@ jobs:
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-alpha') && !contains(github.ref_name, '-beta') && !contains(github.ref_name, '-rc') }}
+            type=raw,value=latest
 
       - name: Build and push
         uses: docker/build-push-action@v7
@@ -102,6 +102,6 @@ jobs:
             ## Docker
 
             docker pull ghcr.io/tidefly-oss/tidefly-ui:${{ github.ref_name }}
-          draft: false
+          draft: true
           prerelease: ${{ contains(github.ref_name, '-alpha') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-rc') }}
           generate_release_notes: false
