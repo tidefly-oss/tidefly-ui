@@ -31,7 +31,8 @@
 				"noNonNullAssertion": "warn",
 				"useConst": "error",
 				"useSingleVarDeclarator": "error",
-				"noParameterAssign": "warn"
+				"noParameterAssign": "warn",
+				"useImportType": "off"
 			},
 			"performance": {
 				"noDelete": "warn"

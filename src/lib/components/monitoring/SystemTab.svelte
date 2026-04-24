@@ -71,7 +71,9 @@ $effect(() => {
 	}
 });
 
-const cpuConfig = { cpu: { label: "CPU %", color: "var(--chart-1)" } } satisfies Chart.ChartConfig;
+const cpuConfig = {
+	cpu: { label: "CPU %", color: "var(--chart-1)" },
+} satisfies Chart.ChartConfig;
 const memConfig = {
 	memory: { label: "Memory %", color: "var(--chart-2)" },
 } satisfies Chart.ChartConfig;
@@ -80,7 +82,10 @@ const diskConfig = {
 } satisfies Chart.ChartConfig;
 
 function xFmt(v: Date) {
-	return v.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+	return v.toLocaleTimeString("de-DE", {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 }
 function tooltipFmt(v: Date) {
 	return v.toLocaleString("de-DE", {
@@ -115,81 +120,140 @@ function fmtUptime(s: number) {
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div class="bg-card border rounded-xl p-4 space-y-2">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div
+                    class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
                     <CpuIcon class="size-3.5" /> CPU
                 </div>
-                <span class="text-sm font-bold tabular-nums {resourceColor(cpu)}">
-          {cpu != null ? `${cpu.toFixed(1)}%` : '—'}
-        </span>
+                <span
+                    class="text-sm font-bold tabular-nums {resourceColor(cpu)}"
+                >
+                    {cpu != null ? `${cpu.toFixed(1)}%` : "—"}
+                </span>
             </div>
             <div class="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-500 {resourceBg(cpu)}" style="width: {cpu ?? 0}%"></div>
+                <div
+                    class="h-full rounded-full transition-all duration-500 {resourceBg(
+                        cpu,
+                    )}"
+                    style="width: {cpu ?? 0}%"
+                ></div>
             </div>
         </div>
 
         <div class="bg-card border rounded-xl p-4 space-y-2">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div
+                    class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
                     <NetworkIcon class="size-3.5" /> Memory
                 </div>
-                <span class="text-sm font-bold tabular-nums {resourceColor(mem)}">
-          {mem != null ? `${mem.toFixed(1)}%` : '—'}
-        </span>
+                <span
+                    class="text-sm font-bold tabular-nums {resourceColor(mem)}"
+                >
+                    {mem != null ? `${mem.toFixed(1)}%` : "—"}
+                </span>
             </div>
             <div class="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-500 {resourceBg(mem)}" style="width: {mem ?? 0}%"></div>
+                <div
+                    class="h-full rounded-full transition-all duration-500 {resourceBg(
+                        mem,
+                    )}"
+                    style="width: {mem ?? 0}%"
+                ></div>
             </div>
             {#if memUsed && memTotal}
-                <p class="text-xs text-muted-foreground">{fmtGB(memUsed)} / {fmtGB(memTotal)}</p>
+                <p class="text-xs text-muted-foreground">
+                    {fmtGB(memUsed)} / {fmtGB(memTotal)}
+                </p>
             {/if}
         </div>
 
         <div class="bg-card border rounded-xl p-4 space-y-2">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <div
+                    class="flex items-center gap-1.5 text-xs text-muted-foreground"
+                >
                     <HardDriveIcon class="size-3.5" /> Disk
                 </div>
-                <span class="text-sm font-bold tabular-nums {resourceColor(disk)}">
-          {disk != null ? `${disk.toFixed(1)}%` : '—'}
-        </span>
+                <span
+                    class="text-sm font-bold tabular-nums {resourceColor(disk)}"
+                >
+                    {disk != null ? `${disk.toFixed(1)}%` : "—"}
+                </span>
             </div>
             <div class="h-1.5 rounded-full bg-muted overflow-hidden">
-                <div class="h-full rounded-full transition-all duration-500 {resourceBg(disk)}" style="width: {disk ?? 0}%"></div>
+                <div
+                    class="h-full rounded-full transition-all duration-500 {resourceBg(
+                        disk,
+                    )}"
+                    style="width: {disk ?? 0}%"
+                ></div>
             </div>
             {#if diskUsed && diskTotal}
-                <p class="text-xs text-muted-foreground">{fmtGB(diskUsed)} / {fmtGB(diskTotal)}</p>
+                <p class="text-xs text-muted-foreground">
+                    {fmtGB(diskUsed)} / {fmtGB(diskTotal)}
+                </p>
             {/if}
         </div>
     </div>
 
     {#if metricsQuery.data}
         <div class="flex gap-6 text-xs text-muted-foreground">
-      <span class="flex items-center gap-1.5">
-        <ClockIcon class="size-3" />
-        Uptime: <span class="text-foreground font-medium">{fmtUptime(metricsQuery.data.uptime_seconds)}</span>
-      </span>
             <span class="flex items-center gap-1.5">
-        <ActivityIcon class="size-3" />
-        Goroutines: <span class="text-foreground font-medium">{metricsQuery.data.goroutines}</span>
-      </span>
+                <ClockIcon class="size-3" />
+                Uptime:
+                <span class="text-foreground font-medium"
+                    >{fmtUptime(metricsQuery.data.uptime_seconds)}</span
+                >
+            </span>
+            <span class="flex items-center gap-1.5">
+                <ActivityIcon class="size-3" />
+                Goroutines:
+                <span class="text-foreground font-medium"
+                    >{metricsQuery.data.goroutines}</span
+                >
+            </span>
         </div>
     {/if}
 
     {#if history.length > 1}
         <Card.Root>
             <Card.Header class="pb-2">
-                <Card.Title class="text-sm font-medium flex items-center gap-1.5">
+                <Card.Title
+                    class="text-sm font-medium flex items-center gap-1.5"
+                >
                     <CpuIcon class="size-3.5 text-muted-foreground" /> CPU Usage
                 </Card.Title>
             </Card.Header>
             <Card.Content>
                 <Chart.Container config={cpuConfig} class="h-40 w-full">
-                    <AreaChart data={history} x="date" xScale={scaleUtc()} yPadding={[0, 8]}
-                               series={[{ key: 'cpu', label: 'CPU %', color: cpuConfig.cpu.color }]}
-                               props={{ area: { curve: curveNatural, 'fill-opacity': 0.15, line: { class: 'stroke-1' } },
-                     xAxis: { format: xFmt, ticks: 4 },
-                     yAxis: { format: (v: number) => `${v}%` } }}>
-                        {#snippet tooltip()}<Chart.Tooltip labelFormatter={tooltipFmt} indicator="line" />{/snippet}
+                    <AreaChart
+                        data={history}
+                        x="date"
+                        xScale={scaleUtc()}
+                        yPadding={[0, 8]}
+                        series={[
+                            {
+                                key: "cpu",
+                                label: "CPU %",
+                                color: cpuConfig.cpu.color,
+                            },
+                        ]}
+                        props={{
+                            area: {
+                                curve: curveNatural,
+                                "fill-opacity": 0.15,
+                                line: { class: "stroke-1" },
+                            },
+                            xAxis: { format: xFmt, ticks: 4 },
+                            yAxis: { format: (v: number) => `${v}%` },
+                        }}
+                    >
+                        {#snippet tooltip()}<Chart.Tooltip
+                                labelFormatter={tooltipFmt}
+                                indicator="line"
+                            />{/snippet}
                     </AreaChart>
                 </Chart.Container>
             </Card.Content>
@@ -197,18 +261,41 @@ function fmtUptime(s: number) {
 
         <Card.Root>
             <Card.Header class="pb-2">
-                <Card.Title class="text-sm font-medium flex items-center gap-1.5">
-                    <NetworkIcon class="size-3.5 text-muted-foreground" /> Memory Usage
+                <Card.Title
+                    class="text-sm font-medium flex items-center gap-1.5"
+                >
+                    <NetworkIcon class="size-3.5 text-muted-foreground" /> Memory
+                    Usage
                 </Card.Title>
             </Card.Header>
             <Card.Content>
                 <Chart.Container config={memConfig} class="h-40 w-full">
-                    <AreaChart data={history} x="date" xScale={scaleUtc()} yPadding={[0, 8]}
-                               series={[{ key: 'memory', label: 'Memory %', color: memConfig.memory.color }]}
-                               props={{ area: { curve: curveNatural, 'fill-opacity': 0.15, line: { class: 'stroke-1' } },
-                     xAxis: { format: xFmt, ticks: 4 },
-                     yAxis: { format: (v: number) => `${v}%` } }}>
-                        {#snippet tooltip()}<Chart.Tooltip labelFormatter={tooltipFmt} indicator="line" />{/snippet}
+                    <AreaChart
+                        data={history}
+                        x="date"
+                        xScale={scaleUtc()}
+                        yPadding={[0, 8]}
+                        series={[
+                            {
+                                key: "memory",
+                                label: "Memory %",
+                                color: memConfig.memory.color,
+                            },
+                        ]}
+                        props={{
+                            area: {
+                                curve: curveNatural,
+                                "fill-opacity": 0.15,
+                                line: { class: "stroke-1" },
+                            },
+                            xAxis: { format: xFmt, ticks: 4 },
+                            yAxis: { format: (v: number) => `${v}%` },
+                        }}
+                    >
+                        {#snippet tooltip()}<Chart.Tooltip
+                                labelFormatter={tooltipFmt}
+                                indicator="line"
+                            />{/snippet}
                     </AreaChart>
                 </Chart.Container>
             </Card.Content>
@@ -216,18 +303,41 @@ function fmtUptime(s: number) {
 
         <Card.Root>
             <Card.Header class="pb-2">
-                <Card.Title class="text-sm font-medium flex items-center gap-1.5">
-                    <HardDriveIcon class="size-3.5 text-muted-foreground" /> Disk Usage
+                <Card.Title
+                    class="text-sm font-medium flex items-center gap-1.5"
+                >
+                    <HardDriveIcon class="size-3.5 text-muted-foreground" /> Disk
+                    Usage
                 </Card.Title>
             </Card.Header>
             <Card.Content>
                 <Chart.Container config={diskConfig} class="h-40 w-full">
-                    <AreaChart data={history} x="date" xScale={scaleUtc()} yPadding={[0, 8]}
-                               series={[{ key: 'disk', label: 'Disk %', color: diskConfig.disk.color }]}
-                               props={{ area: { curve: curveNatural, 'fill-opacity': 0.15, line: { class: 'stroke-1' } },
-                     xAxis: { format: xFmt, ticks: 4 },
-                     yAxis: { format: (v: number) => `${v}%` } }}>
-                        {#snippet tooltip()}<Chart.Tooltip labelFormatter={tooltipFmt} indicator="line" />{/snippet}
+                    <AreaChart
+                        data={history}
+                        x="date"
+                        xScale={scaleUtc()}
+                        yPadding={[0, 8]}
+                        series={[
+                            {
+                                key: "disk",
+                                label: "Disk %",
+                                color: diskConfig.disk.color,
+                            },
+                        ]}
+                        props={{
+                            area: {
+                                curve: curveNatural,
+                                "fill-opacity": 0.15,
+                                line: { class: "stroke-1" },
+                            },
+                            xAxis: { format: xFmt, ticks: 4 },
+                            yAxis: { format: (v: number) => `${v}%` },
+                        }}
+                    >
+                        {#snippet tooltip()}<Chart.Tooltip
+                                labelFormatter={tooltipFmt}
+                                indicator="line"
+                            />{/snippet}
                     </AreaChart>
                 </Chart.Container>
             </Card.Content>
