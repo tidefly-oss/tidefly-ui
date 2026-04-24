@@ -2,40 +2,32 @@
 # Build Stage
 # =============================================================================
 FROM node:22-alpine AS builder
-
 WORKDIR /app
 
-# pnpm aktivieren
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable
 
-# Dependencies cachen
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile
 
-# Source kopieren und bauen
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
 COPY . .
-RUN pnpm build
+
+RUN pnpm build && pnpm prune --prod
 
 # =============================================================================
 # Runtime Stage
 # =============================================================================
 FROM node:22-alpine AS runtime
-
 WORKDIR /app
 
-RUN corepack enable && corepack prepare pnpm@latest --activate
-
-# Nur production dependencies
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
-
-# Build output vom builder
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build
+COPY --from=builder /app/package.json ./package.json
 
-ENV NODE_ENV=production
-ENV PORT=3000
-ENV HOST=0.0.0.0
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOST=0.0.0.0
 
 EXPOSE 3000
-
 CMD ["node", "build"]

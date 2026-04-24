@@ -1,0 +1,38 @@
+# Dependencies
+node_modules
+
+# Build output
+build
+.svelte-kit
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# CI/CD
+.github
+
+# Docs
+*.md
+LICENSE
+changelog.md
+
+# Local config
+.env
+.env.*
+!.env.example
+
+# Editor
+.vscode
+.idea
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
