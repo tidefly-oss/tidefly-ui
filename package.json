@@ -14,7 +14,7 @@
 		"format": "biome format --write ."
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.4.10",
+		"@biomejs/biome": "2.4.13",
 		"@internationalized/date": "^3.12.1",
 		"@lucide/svelte": "^1.11.0",
 		"@sveltejs/kit": "^2.58.0",
@@ -41,7 +41,7 @@
 	"dependencies": {
 		"@icons-pack/svelte-simple-icons": "^7.2.0",
 		"@sveltejs/adapter-node": "^5.5.4",
-		"@tanstack/svelte-query": "^6.1.20",
+		"@tanstack/svelte-query": "^6.1.24",
 		"@tanstack/table-core": "^8.21.3",
 		"@xterm/addon-fit": "^0.11.0",
 		"@xterm/addon-web-links": "^0.12.0",
