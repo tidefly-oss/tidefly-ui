@@ -1,12 +1,8 @@
 {
   "name": "frontend",
   "private": true,
+  "version": "0.0.1",
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -18,7 +14,7 @@
     "format": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.10",
+    "@biomejs/biome": "2.4.14",
     "@internationalized/date": "^3.12.1",
     "@lucide/svelte": "^1.14.0",
     "@sveltejs/kit": "^2.59.1",
