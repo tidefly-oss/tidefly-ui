@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build native dependencies
+        run: pnpm rebuild esbuild
+
       - name: Type check
         run: pnpm check
 
@@ -58,6 +61,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Build native dependencies
+        run: pnpm rebuild esbuild
 
       - name: Build
         env:
