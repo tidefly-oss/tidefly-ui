@@ -31,9 +31,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build native dependencies
-        run: pnpm rebuild esbuild
-
       - name: Type check
         run: pnpm check
 
@@ -60,10 +57,7 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build native dependencies
-        run: pnpm rebuild esbuild
+        run: pnpm install --frozen-lockfile --allow-build=esbuild
 
       - name: Build
         env:
