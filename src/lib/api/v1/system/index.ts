@@ -5,6 +5,7 @@ import type {
 	OverviewResponse,
 	SystemInfo,
 	UsedPortsResponse,
+	VersionInfo,
 } from "$lib/api/v1/types/system.js";
 
 export const systemApi = {
@@ -15,4 +16,6 @@ export const systemApi = {
 	usedPorts: (fetchFn?: typeof fetch) =>
 		api.get<UsedPortsResponse>("/api/v1/system/ports", fetchFn),
 	metrics: () => api.get<SystemSnapshot>("/api/v1/system/metrics"),
+	version: () => api.get<VersionInfo>("/api/v1/system/version"),
+	triggerUpdate: () => api.post<{ message: string; version: string }>("/api/v1/admin/system/update"),
 };

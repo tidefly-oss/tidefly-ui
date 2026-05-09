@@ -27,7 +27,6 @@ import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
 import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
 import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte";
 import { updateStore } from "$lib/stores/update.svelte.js";
@@ -242,54 +241,36 @@ function isActive(href: string) {
         {/each}
     </Sidebar.Content>
 
-    <Sidebar.Footer>
-        <div class="px-3 py-3 space-y-2">
+    <!-- In AppSidebar.svelte — version aus systemQuery ersetzen durch updateStore.planeVersion -->
+    <!-- $effect bleibt: if (version && version !== "dev") updateStore.startPolling(version); -->
 
-            <!-- Update banner — klickbar, öffnet Dialog -->
-            {#if updateStore.hasUpdate && updateStore.update}
+    <!-- Footer ersetzen mit: -->
+    <Sidebar.Footer>
+        <div class="px-2 py-2">
+            {#if updateStore.hasUpdate}
                 <button
                         onclick={() => (updateDialogOpen = true)}
-                        class="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg bg-primary/10 hover:bg-primary/15 border border-primary/20 transition-colors group text-left"
+                        class="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/25 transition-all group text-left"
                 >
-                    <ArrowUpCircleIcon class="size-4 text-primary shrink-0 group-hover:scale-110 transition-transform" />
-                    <div class="flex-1 min-w-0">
-                        <p class="text-xs font-medium text-primary leading-tight">Update available</p>
-                        <p class="text-xs text-primary/70 font-mono leading-tight truncate">
-                            {updateStore.update.current} → {updateStore.update.latest}
-                        </p>
-                    </div>
-                    <ArrowUpCircleIcon class="size-3 text-primary/50 shrink-0" />
+                    <ArrowUpCircleIcon class="size-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                    <span class="flex-1 min-w-0">
+                        <span class="text-xs font-semibold text-primary leading-tight">Updates available</span>
+                        <span class="text-xs text-primary/70 leading-tight">
+                            {updateStore.components.filter(c => c.update_available).length} component(s)
+                        </span>
+                    </span>
                 </button>
+            {:else}
+                <div class="flex items-center justify-between px-3 py-2">
+                <span class="text-xs font-mono text-muted-foreground/70">
+                    {#if systemQuery.isPending}
+                        <Loader2Icon class="size-3 animate-spin inline" />
+                    {:else}
+                        {version}
+                    {/if}
+                </span>
+                </div>
             {/if}
-
-            <!-- Version — klickbar wenn Update verfügbar, sonst plain text -->
-            <div class="flex items-center justify-center">
-                {#if systemQuery.isPending}
-          <span class="text-xs text-muted-foreground font-mono">
-            <Loader2Icon class="size-3 animate-spin inline" />
-          </span>
-                {:else if updateStore.hasUpdate}
-                    <Tooltip.Provider delayDuration={200}>
-                        <Tooltip.Root>
-                            <Tooltip.Trigger>
-                                <button
-                                        onclick={() => (updateDialogOpen = true)}
-                                        class="text-xs font-mono text-primary hover:underline flex items-center gap-1 group"
-                                >
-                                    v{version}
-                                    <span class="size-1.5 rounded-full bg-primary animate-pulse"></span>
-                                </button>
-                            </Tooltip.Trigger>
-                            <Tooltip.Content side="top" class="text-xs">
-                                {updateStore.update?.latest} is available — click to see what's new
-                            </Tooltip.Content>
-                        </Tooltip.Root>
-                    </Tooltip.Provider>
-                {:else}
-                    <span class="text-xs text-muted-foreground font-mono">v{version}</span>
-                {/if}
-            </div>
-
         </div>
     </Sidebar.Footer>
 </Sidebar.Root>

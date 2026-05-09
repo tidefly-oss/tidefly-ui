@@ -1,52 +1,32 @@
-const GITHUB_API = "https://api.github.com/repos/tidefly-oss/tidefly-plane/releases/latest";
 const POLL_INTERVAL = 30 * 60 * 1000; // 30min
 
-interface UpdateInfo {
+export interface ComponentVersion {
+	name: string;
 	current: string;
 	latest: string;
-	has_update: boolean;
+	update_available: boolean;
+	changelog: string;
 	release_url: string;
-	release_name: string;
+	prerelease: boolean;
 }
 
-function semverGt(a: string, b: string): boolean {
-	const parse = (s: string) => s.replace(/^v/, "").split(/[-.]/).slice(0, 3).map(Number);
-	const [aMaj, aMin, aPatch] = parse(a);
-	const [bMaj, bMin, bPatch] = parse(b);
-	if (aMaj !== bMaj) return aMaj > bMaj;
-	if (aMin !== bMin) return aMin > bMin;
-	return aPatch > bPatch;
+export interface VersionInfo {
+	components: ComponentVersion[];
+	any_update_available: boolean;
 }
 
 function createUpdateStore() {
-	let update = $state<UpdateInfo | null>(null);
+	let info = $state<VersionInfo | null>(null);
 	let loading = $state(false);
-	let releaseNotes = $state<string | null>(null);
 	let loadingNotes = $state(false);
+	let updating = $state(false);
 	let interval: ReturnType<typeof setInterval> | null = null;
 
-	async function check(currentVersion: string) {
-		if (!currentVersion || currentVersion === "dev") return;
+	async function check() {
 		loading = true;
 		try {
-			const res = await fetch(GITHUB_API, {
-				headers: { Accept: "application/vnd.github+json" },
-			});
-			if (!res.ok) return;
-			const data = await res.json();
-			const latest = (data.tag_name as string) ?? "";
-			update = {
-				current: currentVersion,
-				latest,
-				has_update: semverGt(latest, currentVersion),
-				release_url:
-					data.html_url ?? `https://github.com/tidefly-oss/tidefly-plane/releases/latest`,
-				release_name: data.name ?? latest,
-			};
-			// Cache notes from initial fetch
-			if (releaseNotes === null && data.body) {
-				releaseNotes = data.body;
-			}
+			const { systemApi } = await import("$lib/api/v1/system");
+			info = await systemApi.version();
 		} catch {
 			// silently ignore
 		} finally {
@@ -55,26 +35,28 @@ function createUpdateStore() {
 	}
 
 	async function fetchNotes() {
-		if (releaseNotes !== null || !update) return;
+		if (info?.components.some(c => c.changelog)) return;
 		loadingNotes = true;
+		await check();
+		loadingNotes = false;
+	}
+
+	async function triggerUpdate() {
+		if (updating) return;
+		updating = true;
 		try {
-			const res = await fetch(GITHUB_API, {
-				headers: { Accept: "application/vnd.github+json" },
-			});
-			if (!res.ok) return;
-			const data = await res.json();
-			releaseNotes = data.body ?? "";
-		} catch {
-			releaseNotes = "";
+			const { systemApi } = await import("$lib/api/v1/system");
+			await systemApi.triggerUpdate();
 		} finally {
-			loadingNotes = false;
+			updating = false;
 		}
 	}
 
 	function startPolling(currentVersion: string) {
-		check(currentVersion);
+		if (!currentVersion || currentVersion === "dev") return;
+		void check();
 		stopPolling();
-		interval = setInterval(() => check(currentVersion), POLL_INTERVAL);
+		interval = setInterval(() => check(), POLL_INTERVAL);
 	}
 
 	function stopPolling() {
@@ -84,24 +66,24 @@ function createUpdateStore() {
 		}
 	}
 
+	// Plane component for backward compat (sidebar version display)
+	const planeComponent = $derived(info?.components.find(c => c.name === "plane") ?? null);
+
 	return {
-		get update() {
-			return update;
-		},
-		get hasUpdate() {
-			return update?.has_update ?? false;
-		},
-		get loading() {
-			return loading;
-		},
+		get info() { return info; },
+		get hasUpdate() { return info?.any_update_available ?? false; },
+		get loading() { return loading; },
+		get loadingNotes() { return loadingNotes; },
+		get updating() { return updating; },
+		get components() { return info?.components ?? []; },
+		get planeVersion() { return planeComponent?.current ?? null; },
+		// changelog from first component that has an update
 		get releaseNotes() {
-			return releaseNotes;
-		},
-		get loadingNotes() {
-			return loadingNotes;
+			return info?.components.find(c => c.update_available)?.changelog ?? null;
 		},
 		check,
 		fetchNotes,
+		triggerUpdate,
 		startPolling,
 		stopPolling,
 	};
