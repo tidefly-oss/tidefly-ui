@@ -35,7 +35,7 @@ function createUpdateStore() {
 	}
 
 	async function fetchNotes() {
-		if (info?.components.some(c => c.changelog)) return;
+		if (info?.components.some((c) => c.changelog)) return;
 		loadingNotes = true;
 		await check();
 		loadingNotes = false;
@@ -67,19 +67,33 @@ function createUpdateStore() {
 	}
 
 	// Plane component for backward compat (sidebar version display)
-	const planeComponent = $derived(info?.components.find(c => c.name === "plane") ?? null);
+	const planeComponent = $derived(info?.components.find((c) => c.name === "plane") ?? null);
 
 	return {
-		get info() { return info; },
-		get hasUpdate() { return info?.any_update_available ?? false; },
-		get loading() { return loading; },
-		get loadingNotes() { return loadingNotes; },
-		get updating() { return updating; },
-		get components() { return info?.components ?? []; },
-		get planeVersion() { return planeComponent?.current ?? null; },
+		get info() {
+			return info;
+		},
+		get hasUpdate() {
+			return info?.any_update_available ?? false;
+		},
+		get loading() {
+			return loading;
+		},
+		get loadingNotes() {
+			return loadingNotes;
+		},
+		get updating() {
+			return updating;
+		},
+		get components() {
+			return info?.components ?? [];
+		},
+		get planeVersion() {
+			return planeComponent?.current ?? null;
+		},
 		// changelog from first component that has an update
 		get releaseNotes() {
-			return info?.components.find(c => c.update_available)?.changelog ?? null;
+			return info?.components.find((c) => c.update_available)?.changelog ?? null;
 		},
 		check,
 		fetchNotes,
