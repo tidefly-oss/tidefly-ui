@@ -3,20 +3,22 @@
 # =============================================================================
 FROM node:24-alpine AS builder
 WORKDIR /app
-RUN corepack enable
-COPY package.json pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,id=npm-cache,target=/root/.npm \
+    npm ci
+
 COPY . .
 ARG VERSION=dev
 ENV PUBLIC_VERSION=${VERSION}
-RUN pnpm build && pnpm prune --prod
+RUN npm run build
 
 # =============================================================================
 # Runtime Stage
 # =============================================================================
 FROM node:24-alpine AS runtime
 WORKDIR /app
+
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/package.json ./package.json
