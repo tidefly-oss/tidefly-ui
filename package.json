@@ -3,10 +3,6 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"],
-    "strictDepBuilds": false
-  },
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
@@ -18,7 +14,7 @@
     "format": "biome format --write ."
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.14",
+    "@biomejs/biome": "2.4.15",
     "@internationalized/date": "^3.12.1",
     "@lucide/svelte": "^1.14.0",
     "@sveltejs/kit": "^2.59.1",
@@ -53,7 +49,6 @@
     "d3-scale": "^4.0.2",
     "d3-shape": "^3.2.0",
     "d3-time": "^3.1.0",
-    "frontend": "link:",
     "svelte-sonner": "^1.1.1"
   }
 }

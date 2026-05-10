@@ -14,28 +14,23 @@ jobs:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.2
+      - uses: actions/checkout@v6
 
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --allow-build=esbuild
+        run: npm ci
 
       - name: Type check
-        run: pnpm check
+        run: npm run check
 
       - name: Lint
-        run: pnpm lint
+        run: npm run lint
 
   build:
     name: Build
@@ -44,22 +39,17 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v6
-        with:
-          version: 10.33.2
-
       - name: Set up Node
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
+          cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --allow-build=esbuild
+        run: npm ci
 
       - name: Build
         env:
           NODE_ENV: production
-        run: pnpm build
+        run: npm run build
