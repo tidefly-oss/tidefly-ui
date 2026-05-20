@@ -1,6 +1,6 @@
-import { tokenStore } from "$lib/api/client";
 import { notificationsApi } from "$lib/api/v1/notifications/index.js";
 import type { Notification } from "$lib/api/v1/types";
+import { type NotificationCreatedPayload, wsStore } from "$lib/stores/ws.svelte";
 
 class NotificationsStore {
 	items = $state<Notification[]>([]);
@@ -15,35 +15,28 @@ class NotificationsStore {
 		return this.unread.length;
 	}
 
-	private sseSource: EventSource | null = null;
+	private unsub: (() => void) | null = null;
 
-	connectSSE() {
-		if (this.sseSource) return;
-
-		const token = tokenStore.get();
-		if (!token) return; // Kein Token — nicht verbinden
-
-		const url = `/api/v1/notifications/stream?token=${encodeURIComponent(token)}`;
-		const source = new EventSource(url, { withCredentials: true });
-
-		source.addEventListener("notification", (e: MessageEvent) => {
-			try {
-				const notification: Notification = JSON.parse(e.data);
-				this.upsertLocal(notification);
-			} catch {
-				// ignore malformed events
-			}
+	connectWS() {
+		if (this.unsub) return;
+		this.unsub = wsStore.on<NotificationCreatedPayload>("notification.created", (payload) => {
+			const incoming = {
+				id: payload.id,
+				container_name: payload.title,
+				message: payload.message,
+				severity: payload.level as Notification["severity"],
+				acknowledged_at: null,
+				occurrence_count: 1,
+				created_at: new Date().toISOString(),
+				updated_at: new Date().toISOString(),
+			} as Notification;
+			this.upsertLocal(incoming);
 		});
-
-		source.addEventListener("ping", () => {});
-		source.onerror = () => {};
-
-		this.sseSource = source;
 	}
 
-	disconnectSSE() {
-		this.sseSource?.close();
-		this.sseSource = null;
+	disconnectWS() {
+		this.unsub?.();
+		this.unsub = null;
 	}
 
 	async load() {

@@ -1,12 +1,8 @@
 <script lang="ts">
-import LogOutIcon from "@lucide/svelte/icons/log-out";
-import MonitorIcon from "@lucide/svelte/icons/monitor";
-import MoonIcon from "@lucide/svelte/icons/moon";
-import SunIcon from "@lucide/svelte/icons/sun";
-import UserIcon from "@lucide/svelte/icons/user";
+import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "@lucide/svelte";
 import { QueryClientProvider } from "@tanstack/svelte-query";
 import type { Snippet } from "svelte";
-import { onDestroy, onMount } from "svelte";
+import { onDestroy } from "svelte";
 import { goto } from "$app/navigation";
 import type { User } from "$lib/api/v1/types";
 import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
@@ -19,8 +15,10 @@ import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { initQueryClient } from "$lib/query";
 import { auth } from "$lib/stores/auth.svelte";
 import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
-import { dockerEventsStore } from "$lib/stores/events.svelte";
+import { notificationsStore } from "$lib/stores/notifications.svelte";
+import { systemStore } from "$lib/stores/system.svelte";
 import { theme } from "$lib/stores/theme.svelte";
+import { wsStore } from "$lib/stores/ws.svelte";
 
 let { children }: { children: Snippet } = $props();
 
@@ -28,11 +26,15 @@ const queryClient = initQueryClient();
 
 $effect(() => {
 	theme.init();
-	dockerEventsStore.connect();
+	wsStore.connect();
+	notificationsStore.connectWS();
+	systemStore.connectWS();
 });
 
 onDestroy(() => {
-	dockerEventsStore.disconnect();
+	wsStore.disconnect();
+	notificationsStore.disconnectWS();
+	systemStore.disconnectWS();
 });
 
 async function handleLogout() {

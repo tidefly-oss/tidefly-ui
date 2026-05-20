@@ -64,13 +64,13 @@ function jumpToBottom() {
 }
 
 function logLineClass(line: string, stream: string): string {
-	if (stream === "stderr") return "text-red-400";
 	const l = line.toLowerCase();
 	if (/\b(error|fatal|fail|exception)\b/.test(l)) return "text-red-400";
 	if (/\b(warn|warning)\b/.test(l)) return "text-amber-400";
-	if (/\b(info|notice)\b/.test(l)) return "text-sky-300";
+	if (/\b(info|notice|note)\b/.test(l)) return "text-sky-300";
 	if (/\b(debug|trace)\b/.test(l)) return "text-zinc-500";
 	if (/\b(success|ok|ready|started|running)\b/.test(l)) return "text-green-400";
+	if (stream === "stderr" && /\b(error|fatal|fail)\b/.test(l)) return "text-red-400";
 	return "text-zinc-300";
 }
 

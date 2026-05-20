@@ -48,8 +48,8 @@ export interface SystemInfo {
 	mem_used_mb: number;
 	mem_total_mb: number;
 	mem_percent: number;
-	disk_used_mb: number;
-	disk_total_mb: number;
+	disk_used: number;
+	disk_total: number;
 	disk_percent: number;
 	uptime_seconds: number;
 	tidefly_version: string;

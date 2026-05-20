@@ -58,6 +58,7 @@ export interface SystemSettings {
 	notify_on_container_down: boolean;
 	notify_on_webhook_fail: boolean;
 	caddy_base_domain: string;
+	api_docs_enabled: boolean;
 }
 
 export interface UpdateSettingsRequest {
@@ -78,6 +79,7 @@ export interface UpdateSettingsRequest {
 	notify_on_container_down?: boolean;
 	notify_on_webhook_fail?: boolean;
 	caddy_base_domain?: string;
+	api_docs_enabled?: boolean;
 }
 
 export interface User {

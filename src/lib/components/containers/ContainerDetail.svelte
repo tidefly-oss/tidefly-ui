@@ -10,8 +10,9 @@ import {
 } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
 import { goto } from "$app/navigation";
-import { page } from "$app/stores";
+import { page } from "$app/state";
 import { containersApi } from "$lib/api/v1/containers/index.js";
+import { servicesApi } from "$lib/api/v1/services";
 import type { ContainerDetails, ContainerStatus } from "$lib/api/v1/types/index.js";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -38,12 +39,16 @@ const actionMutation = createMutation(() => ({
 		if (action === "start") return containersApi.start(initialData.id);
 		if (action === "stop") return containersApi.stop(initialData.id);
 		if (action === "restart") return containersApi.restart(initialData.id);
-		await containersApi.delete(initialData.id, true);
+		const serviceId = initialData.labels?.["tidefly.service-id"];
+		if (serviceId) {
+			await servicesApi.delete(serviceId);
+		}
 		return { status: "exited" as ContainerStatus };
 	},
 	onSuccess: (_, action) => {
 		if (action === "delete") {
 			queryClient.invalidateQueries({ queryKey: ["containers"] });
+			queryClient.invalidateQueries({ queryKey: ["services"] });
 			goto("/dashboard/containers");
 			return;
 		}
@@ -64,7 +69,7 @@ type Tab = "overview" | "logs" | "stats" | "resources" | "terminal";
 const validTabs: Tab[] = ["overview", "logs", "stats", "resources", "terminal"];
 
 function getInitialTab(): Tab {
-	const t = $page.url.searchParams.get("tab") as Tab;
+	const t = page.url.searchParams.get("tab") as Tab;
 	return validTabs.includes(t) ? t : "overview";
 }
 
@@ -81,8 +86,11 @@ const statusDot: Record<ContainerStatus, string> = {
 	running: "#22c55e",
 	stopped: "#6b7280",
 	exited: "#6b7280",
+	dead: "#ef4444",
 	paused: "#f59e0b",
+	restarting: "#3b82f6",
 	created: "#3b82f6",
+	unknown: "#6b7280",
 };
 
 function formatDate(iso: string) {
@@ -279,7 +287,7 @@ function formatDate(iso: string) {
         {:else if tab === "stats"}
             <ContainerStats containerId={container.id} containerStatus={container.status} />
         {:else if tab === "resources"}
-            <div class="max-w-lg">
+            <div class="max-w-2xl mx-auto">
                 <div class="bg-card border rounded-xl overflow-hidden">
                     <div class="px-4 py-3 border-b flex items-center justify-between">
                         <h2 class="text-sm font-medium">Resource Limits</h2>

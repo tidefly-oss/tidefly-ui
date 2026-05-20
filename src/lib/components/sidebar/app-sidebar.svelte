@@ -1,22 +1,25 @@
 <script lang="ts">
-import { DatabaseBackupIcon, GitBranchIcon, LayoutTemplate } from "@lucide/svelte";
-import ActivityIcon from "@lucide/svelte/icons/activity";
-import ArrowUpCircleIcon from "@lucide/svelte/icons/arrow-up-circle";
-import BoxIcon from "@lucide/svelte/icons/box";
-import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
-import CircleIcon from "@lucide/svelte/icons/circle";
-import ContainerIcon from "@lucide/svelte/icons/container";
-import DatabaseIcon from "@lucide/svelte/icons/database";
-import FolderIcon from "@lucide/svelte/icons/folder";
-import ImageIcon from "@lucide/svelte/icons/image";
-import LayoutDashboardIcon from "@lucide/svelte/icons/layout-dashboard";
-import Loader2Icon from "@lucide/svelte/icons/loader-2";
-import NetworkIcon from "@lucide/svelte/icons/network";
-import PlusIcon from "@lucide/svelte/icons/plus";
-import ServerIcon from "@lucide/svelte/icons/server";
-import SettingsIcon from "@lucide/svelte/icons/settings";
-import UsersIcon from "@lucide/svelte/icons/users";
-import ZapIcon from "@lucide/svelte/icons/zap";
+import {
+	ActivityIcon,
+	ArrowUp,
+	BoxIcon,
+	ChevronDownIcon,
+	CircleIcon,
+	ContainerIcon,
+	DatabaseBackupIcon,
+	DatabaseIcon,
+	FolderIcon,
+	GitBranchIcon,
+	ImageIcon,
+	LayoutDashboardIcon,
+	LoaderCircle,
+	NetworkIcon,
+	PlusIcon,
+	ServerIcon,
+	SettingsIcon,
+	UsersIcon,
+	ZapIcon,
+} from "@lucide/svelte";
 import { createQuery } from "@tanstack/svelte-query";
 import type { ComponentProps } from "svelte";
 import { onDestroy } from "svelte";
@@ -89,16 +92,10 @@ const navGroups = $derived([
 		label: "Resources",
 		items: [
 			{ title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
+			{ title: "Templates", href: "/dashboard/containers/templates", icon: DatabaseIcon },
 			{ title: "Images", href: "/dashboard/images", icon: ImageIcon },
 			{ title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
 			{ title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
-		],
-	},
-	{
-		label: "Services",
-		items: [
-			{ title: "Deployed", href: "/dashboard/services", icon: DatabaseIcon },
-			{ title: "Templates", href: "/dashboard/services/templates", icon: LayoutTemplate },
 		],
 	},
 	{
@@ -125,7 +122,13 @@ const navGroups = $derived([
 
 function isActive(href: string) {
 	if (href === "/dashboard") return page.url.pathname === href;
-	if (href === "/dashboard/services") return page.url.pathname === href;
+	if (href === "/dashboard/containers") {
+		return (
+			page.url.pathname === href ||
+			(page.url.pathname.startsWith(href) &&
+				!page.url.pathname.startsWith("/dashboard/containers/templates"))
+		);
+	}
 	return page.url.pathname.startsWith(href);
 }
 </script>
@@ -158,7 +161,7 @@ function isActive(href: string) {
                 <Sidebar.MenuItem>
                     {#if projectsQuery.isPending}
                         <div class="flex items-center gap-2 px-2 py-2">
-                            <Loader2Icon class="size-3 animate-spin text-muted-foreground" />
+                            <LoaderCircle class="size-3 animate-spin text-muted-foreground" />
                             <span class="text-xs text-muted-foreground">Loading projects…</span>
                         </div>
                     {:else if visibleProjects.length === 0}
@@ -252,7 +255,7 @@ function isActive(href: string) {
                         onclick={() => (updateDialogOpen = true)}
                         class="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/25 transition-all group text-left"
                 >
-                    <ArrowUpCircleIcon class="size-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                    <ArrowUp class="size-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
                     <span class="flex-1 min-w-0">
                         <span class="text-xs font-semibold text-primary leading-tight">Updates available</span>
                         <span class="text-xs text-primary/70 leading-tight">
@@ -264,7 +267,7 @@ function isActive(href: string) {
                 <div class="flex items-center justify-between px-3 py-2">
                 <span class="text-xs font-mono text-muted-foreground/70">
                     {#if systemQuery.isPending}
-                        <Loader2Icon class="size-3 animate-spin inline" />
+                        <LoaderCircle class="size-3 animate-spin inline" />
                     {:else}
                         {version}
                     {/if}

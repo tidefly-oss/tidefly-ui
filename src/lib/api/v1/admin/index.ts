@@ -13,8 +13,6 @@ export const adminApi = {
 
 	listUsers: () => api.get<{ users: AdminUser[] }>("/api/v1/admin/users"),
 
-	getUser: (id: string) => api.get<{ user: AdminUser }>(`/api/v1/admin/users/${id}`),
-
 	createUser: (body: CreateUserRequest) =>
 		api.post<{ user: AdminUser; temp_password: string }>("/api/v1/admin/users", body),
 

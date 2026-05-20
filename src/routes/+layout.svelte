@@ -23,5 +23,5 @@ onMount(() => {
 
 <QueryClientProvider client={queryClient}>
   <Toaster richColors theme="system" position="top-right" />
-  {@render children()}
+  {@render children?.()}
 </QueryClientProvider>

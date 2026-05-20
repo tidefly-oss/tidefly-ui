@@ -269,7 +269,7 @@ function providerIcon(provider: string): Component {
           <a href="/dashboard/git">
             <Button variant="outline" size="sm">View integrations</Button>
           </a>
-          <a href="/dashboard/git/deploy">
+          <a href="/dashboard/containers/new">
             <Button size="sm">
               <GitBranchIcon class="size-3.5 mr-1.5" />
               Deploy from repo

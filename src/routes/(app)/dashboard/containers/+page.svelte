@@ -15,11 +15,11 @@ let { data }: { data: PageData } = $props();
       <Button
         size="sm"
         variant="outline"
-        onclick={() => goto("/dashboard/services/templates")}
+        onclick={() => goto("/dashboard/containers/templates")}
       >
         <DatabaseIcon class="size-3.5 mr-1.5" /> From Template
       </Button>
-      <Button size="sm" onclick={() => goto("/dashboard/containers/deploy")}>
+      <Button size="sm" onclick={() => goto("/dashboard/containers/new")}>
         <FileCodeIcon class="size-3.5 mr-1.5" /> Custom Deploy
       </Button>
     </div>

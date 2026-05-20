@@ -41,6 +41,7 @@ const deleteMutation = createMutation(() => ({
 let globalFilter = $state("");
 let columnFilters = $state<ColumnFiltersState>([]);
 let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+let deleteTarget = $state<Network | null>(null);
 
 $effect(() => {
 	(query.data ?? []).forEach((n) => {
@@ -92,15 +93,9 @@ const table = createSvelteTable({
 
 <div class="space-y-4">
   <div class="relative max-w-xs">
-    <SearchIcon
-            class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
-    />
-    <input
-            type="text"
-            placeholder="Search networks..."
-            bind:value={globalFilter}
-            class="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring"
-    />
+    <SearchIcon class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+    <input type="text" placeholder="Search networks..." bind:value={globalFilter}
+           class="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring" />
   </div>
 
   <div class="bg-card border rounded-xl overflow-hidden">
@@ -114,23 +109,16 @@ const table = createSvelteTable({
         </div>
       {/each}
     {:else if query.isError}
-      <div class="px-4 py-8 text-center text-sm text-destructive">
-        {query.error.message}
-      </div>
+      <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
     {:else}
       <Table.Root>
         <Table.Header>
           {#each table.getHeaderGroups() as hg (hg.id)}
             <Table.Row class="border-b hover:bg-transparent">
               {#each hg.headers as header (header.id)}
-                <Table.Head
-                        class="text-xs font-medium text-muted-foreground h-9 px-4"
-                >
+                <Table.Head class="text-xs font-medium text-muted-foreground h-9 px-4">
                   {#if !header.isPlaceholder}
-                    <FlexRender
-                            content={header.column.columnDef.header}
-                            context={header.getContext()}
-                    />
+                    <FlexRender content={header.column.columnDef.header} context={header.getContext()} />
                   {/if}
                 </Table.Head>
               {/each}
@@ -144,9 +132,7 @@ const table = createSvelteTable({
             <Table.Row class="border-b last:border-0 hover:bg-muted/30 group">
               <Table.Cell class="px-4 py-3">
                 <span class="text-sm font-medium block">{n.name}</span>
-                <span class="text-xs text-muted-foreground font-mono"
-                >{n.id.slice(0, 12)}</span
-                >
+                <span class="text-xs text-muted-foreground font-mono">{n.id.slice(0, 12)}</span>
               </Table.Cell>
 
               <Table.Cell class="px-4 py-3">
@@ -155,26 +141,18 @@ const table = createSvelteTable({
                     <span class="text-xs text-muted-foreground/50">—</span>
                   {:else}
                     {#each containers as ct}
-                      <button
-                              onclick={() => goto(`/dashboard/containers/${ct.id}`)}
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
-                      >{ct.name}</button
-                      >
+                      <button onclick={() => goto(`/dashboard/containers/${ct.id}`)}
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors">
+                        {ct.name}
+                      </button>
                     {/each}
                   {/if}
                 </div>
               </Table.Cell>
 
-              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground"
-              >{n.driver}</Table.Cell
-              >
-              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground"
-              >{n.scope}</Table.Cell
-              >
-              <Table.Cell
-                      class="px-4 py-3 text-xs text-muted-foreground font-mono"
-              >{n.ipam?.[0]?.subnet ?? "—"}</Table.Cell
-              >
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground">{n.driver}</Table.Cell>
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground">{n.scope}</Table.Cell>
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground font-mono">{n.ipam?.[0]?.subnet ?? "—"}</Table.Cell>
 
               <Table.Cell class="px-4 py-3">
                 {#if isAdmin}
@@ -185,43 +163,13 @@ const table = createSvelteTable({
                           <Trash2Icon class="size-3" />
                         </Button>
                       </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        In use by: {containers.map((c) => c.name).join(", ")}
-                      </Tooltip.Content>
+                      <Tooltip.Content>In use by: {containers.map((c) => c.name).join(", ")}</Tooltip.Content>
                     </Tooltip.Root>
                   {:else}
-                    <AlertDialog.Root>
-                      <AlertDialog.Trigger>
-                        {#snippet child({ props })}
-                          <Button
-                                  {...props}
-                                  variant="ghost"
-                                  size="icon"
-                                  class="size-7 text-destructive hover:text-destructive"
-                                  disabled={deleteMutation.isPending && deleteMutation.variables === n.id}
-                          >
-                            <Trash2Icon class="size-3" />
-                          </Button>
-                        {/snippet}
-                      </AlertDialog.Trigger>
-                      <AlertDialog.Content>
-                        <AlertDialog.Header>
-                          <AlertDialog.Title>Delete network "{n.name}"?</AlertDialog.Title>
-                          <AlertDialog.Description>
-                            This will permanently remove the network. Containers that depend on it may lose connectivity.
-                          </AlertDialog.Description>
-                        </AlertDialog.Header>
-                        <AlertDialog.Footer>
-                          <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-                          <AlertDialog.Action
-                                  class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onclick={() => deleteMutation.mutate(n.id)}
-                          >
-                            Delete Network
-                          </AlertDialog.Action>
-                        </AlertDialog.Footer>
-                      </AlertDialog.Content>
-                    </AlertDialog.Root>
+                    <Button variant="ghost" size="icon" class="size-7 text-destructive hover:text-destructive"
+                            onclick={() => (deleteTarget = n)}>
+                      <Trash2Icon class="size-3" />
+                    </Button>
                   {/if}
                 {/if}
               </Table.Cell>
@@ -229,9 +177,7 @@ const table = createSvelteTable({
           {:else}
             <Table.Row>
               <Table.Cell colspan={columns.length} class="py-12 text-center">
-                <NetworkIcon
-                        class="size-8 mx-auto mb-2 text-muted-foreground opacity-30"
-                />
+                <NetworkIcon class="size-8 mx-auto mb-2 text-muted-foreground opacity-30" />
                 <p class="text-sm text-muted-foreground">No networks found</p>
               </Table.Cell>
             </Table.Row>
@@ -241,3 +187,26 @@ const table = createSvelteTable({
     {/if}
   </div>
 </div>
+
+<AlertDialog.Root open={deleteTarget !== null} onOpenChange={(o) => { if (!o) deleteTarget = null; }}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete network "{deleteTarget?.name}"?</AlertDialog.Title>
+      <AlertDialog.Description>
+        This will permanently remove the network. Containers that depend on it may lose connectivity.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onclick={() => {
+          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+          deleteTarget = null;
+        }}
+      >
+        Delete Network
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

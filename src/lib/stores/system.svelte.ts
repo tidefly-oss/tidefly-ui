@@ -1,24 +1,20 @@
 import { systemApi } from "$lib/api";
-import type { HealthResponse, OverviewResponse, SystemInfo } from "$lib/api/v1/types";
+import type { HealthResponse, SystemInfo } from "$lib/api/v1/types";
+import { type SystemMetricsPayload, wsStore } from "$lib/stores/ws.svelte";
 
+interface LiveMetrics {
+	cpu_percent: number;
+	mem_percent: number;
+	disk_used: number;
+	disk_total: number;
+}
 function createSystemStore() {
 	let health = $state<HealthResponse | null>(null);
 	let info = $state<SystemInfo | null>(null);
-	let overview = $state<OverviewResponse | null>(null);
+	let metrics = $state<LiveMetrics | null>(null);
 	let loading = $state(false);
-	let overviewLoaded = false;
 	let infoLoaded = false;
-
-	async function loadOverview(force = false) {
-		if (overviewLoaded && !force) return;
-		loading = true;
-		try {
-			overview = await systemApi.overview();
-			overviewLoaded = true;
-		} finally {
-			loading = false;
-		}
-	}
+	let unsub: (() => void) | null = null;
 
 	async function loadInfo(force = false) {
 		if (infoLoaded && !force) return;
@@ -31,8 +27,21 @@ function createSystemStore() {
 		}
 	}
 
-	async function loadAll(force = false) {
-		await Promise.all([loadOverview(force), loadInfo(force)]);
+	function connectWS() {
+		if (unsub) return;
+		unsub = wsStore.on<SystemMetricsPayload>("system.metrics", (payload) => {
+			metrics = {
+				cpu_percent: payload.cpu_percent,
+				mem_percent: payload.mem_percent,
+				disk_used: payload.disk_used,
+				disk_total: payload.disk_total,
+			};
+		});
+	}
+
+	function disconnectWS() {
+		unsub?.();
+		unsub = null;
 	}
 
 	return {
@@ -42,15 +51,15 @@ function createSystemStore() {
 		get info() {
 			return info;
 		},
-		get overview() {
-			return overview;
+		get metrics() {
+			return metrics;
 		},
 		get loading() {
 			return loading;
 		},
-		loadOverview,
 		loadInfo,
-		loadAll,
+		connectWS,
+		disconnectWS,
 	};
 }
 

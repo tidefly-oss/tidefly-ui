@@ -170,7 +170,7 @@ function formatDate(iso: string) {
                         <!-- Deploy — everyone -->
                         <Tooltip.Root>
                             <Tooltip.Trigger>
-                                <a href="/dashboard/git/deploy">
+                                <a href="/dashboard/containers/new">
                                     <Button variant="ghost" size="icon" class="size-7 text-muted-foreground hover:text-foreground">
                                         <RocketIcon class="size-3.5" />
                                     </Button>

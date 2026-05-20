@@ -11,13 +11,15 @@ export interface TemplateSummary {
 export interface TemplateField {
 	key: string;
 	label: string;
-	type: "string" | "port" | "credential" | "select";
-	default?: string;
+	type: "string" | "port" | "credential" | "boolean" | "select";
+	default?: string | boolean | number;
 	placeholder?: string;
 	required: boolean;
 	generated: boolean;
 	store_hash?: boolean;
 	show_plaintext_once?: boolean;
+	depends_on?: string;
+	hint?: string;
 	options?: { value: string; label: string }[];
 }
 

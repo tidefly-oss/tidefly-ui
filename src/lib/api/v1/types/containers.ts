@@ -1,6 +1,14 @@
-// Mirrors: backend/internal/runtime/runtime.go
+// Mirrors: internal/infrastructure/runtime/runtime.go
 
-export type ContainerStatus = "running" | "stopped" | "paused" | "exited" | "created";
+export type ContainerStatus =
+	| "running"
+	| "stopped"
+	| "paused"
+	| "exited"
+	| "dead"
+	| "restarting"
+	| "created"
+	| "unknown";
 
 export interface Port {
 	host_ip: string;
@@ -38,18 +46,16 @@ export interface ContainerDetails extends Container {
 	restart_policy: string;
 }
 
-export type DeployComposeRequest = {
-	compose: string;
-	stack_name: string;
-	project_id?: string;
-	expose?: boolean;
-};
+export type DeployStrategy = "rolling" | "recreate" | "blue-green";
+export type ScalingMetric = "cpu" | "memory" | "requests";
 
-export type DeployComposeResponse = {
-	stack_id: string;
-	containers: string[];
-	urls?: Record<string, string>;
-};
+export interface AutoscalingConfig {
+	enabled: boolean;
+	min: number;
+	max: number;
+	metric: ScalingMetric;
+	target: number;
+}
 
 export type ResourceLimits = {
 	cpu_cores: number;
@@ -57,8 +63,10 @@ export type ResourceLimits = {
 	memory_swap_mb: number;
 	restart_policy: string;
 	max_retries: number;
+	replicas: number;
+	deploy_strategy: DeployStrategy;
+	autoscaling?: AutoscalingConfig;
 };
-
 export interface SystemSnapshot {
 	cpu_percent: number;
 	mem_used_mb: number;
@@ -69,4 +77,11 @@ export interface SystemSnapshot {
 	disk_percent: number;
 	goroutines: number;
 	uptime_seconds: number;
+}
+
+// EnvVar mirrors internal/domain/deploy/manifest/schema.go
+export interface EnvVar {
+	name: string;
+	value?: string;
+	secret?: string; // "secret-name/key" reference
 }

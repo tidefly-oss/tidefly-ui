@@ -26,6 +26,4 @@ export const logsApi = {
 		if (params.success !== undefined) q.set("success", String(params.success));
 		return api.get<LogsResponse<AuditLog>>(`/api/v1/logs/audit?${q}`);
 	},
-
-	appStreamUrl: () => `/api/v1/logs/app/stream`,
 };

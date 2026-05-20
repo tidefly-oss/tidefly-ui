@@ -39,6 +39,7 @@ const deleteMutation = createMutation(() => ({
 let globalFilter = $state("");
 let columnFilters = $state<ColumnFiltersState>([]);
 let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+let deleteTarget = $state<Image | null>(null);
 
 $effect(() => {
 	(query.data ?? []).forEach((img) => {
@@ -103,15 +104,9 @@ const table = createSvelteTable({
 
 <div class="space-y-4">
   <div class="relative max-w-xs">
-    <SearchIcon
-            class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground"
-    />
-    <input
-            type="text"
-            placeholder="Search images..."
-            bind:value={globalFilter}
-            class="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring"
-    />
+    <SearchIcon class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+    <input type="text" placeholder="Search images..." bind:value={globalFilter}
+           class="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring" />
   </div>
 
   <div class="bg-card border rounded-xl overflow-hidden">
@@ -125,23 +120,16 @@ const table = createSvelteTable({
         </div>
       {/each}
     {:else if query.isError}
-      <div class="px-4 py-8 text-center text-sm text-destructive">
-        {query.error.message}
-      </div>
+      <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
     {:else}
       <Table.Root>
         <Table.Header>
           {#each table.getHeaderGroups() as hg (hg.id)}
             <Table.Row class="border-b hover:bg-transparent">
               {#each hg.headers as header (header.id)}
-                <Table.Head
-                        class="text-xs font-medium text-muted-foreground h-9 px-4"
-                >
+                <Table.Head class="text-xs font-medium text-muted-foreground h-9 px-4">
                   {#if !header.isPlaceholder}
-                    <FlexRender
-                            content={header.column.columnDef.header}
-                            context={header.getContext()}
-                    />
+                    <FlexRender content={header.column.columnDef.header} context={header.getContext()} />
                   {/if}
                 </Table.Head>
               {/each}
@@ -153,58 +141,37 @@ const table = createSvelteTable({
             {@const img = row.original}
             {@const containers = usedBy[img.id] ?? []}
             <Table.Row class="border-b last:border-0 hover:bg-muted/30 group">
-              <!-- Tag -->
               <Table.Cell class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   {#if img.tags.length === 0}
-                    <span class="text-xs text-muted-foreground font-mono"
-                    >{img.id.slice(7, 19)}</span
-                    >
+                    <span class="text-xs text-muted-foreground font-mono">{img.id.slice(7, 19)}</span>
                   {:else}
                     {#each img.tags as tag}
-                      <Badge variant="secondary" class="text-xs font-normal"
-                      >{tag}</Badge
-                      >
+                      <Badge variant="secondary" class="text-xs font-normal">{tag}</Badge>
                     {/each}
                   {/if}
                 </div>
-                <div class="text-xs text-muted-foreground mt-0.5 font-mono">
-                  {img.id.slice(7, 19)}
-                </div>
+                <div class="text-xs text-muted-foreground mt-0.5 font-mono">{img.id.slice(7, 19)}</div>
               </Table.Cell>
 
-              <!-- Used by -->
               <Table.Cell class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   {#if containers.length === 0}
                     <span class="text-xs text-muted-foreground/50">—</span>
                   {:else}
                     {#each containers as ct}
-                      <button
-                              onclick={() => goto(`/containers/${ct.id}`)}
-                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors"
-                      >{ct.name}</button
-                      >
+                      <button onclick={() => goto(`/dashboard/containers/${ct.id}`)}
+                              class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 transition-colors">
+                        {ct.name}
+                      </button>
                     {/each}
                   {/if}
                 </div>
               </Table.Cell>
 
-              <!-- Size -->
-              <Table.Cell
-                      class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap"
-              >
-                {formatSize(img.size)}
-              </Table.Cell>
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatSize(img.size)}</Table.Cell>
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(img.created)}</Table.Cell>
 
-              <!-- Created -->
-              <Table.Cell
-                      class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap"
-              >
-                {formatDate(img.created)}
-              </Table.Cell>
-
-              <!-- Actions -->
               <Table.Cell class="px-4 py-3">
                 {#if isAdmin}
                   {#if containers.length > 0}
@@ -214,60 +181,20 @@ const table = createSvelteTable({
                           <Trash2Icon class="size-3" />
                         </Button>
                       </Tooltip.Trigger>
-                      <Tooltip.Content>
-                        In use by: {containers.map((c) => c.name).join(", ")}
-                      </Tooltip.Content>
+                      <Tooltip.Content>In use by: {containers.map((c) => c.name).join(", ")}</Tooltip.Content>
                     </Tooltip.Root>
                   {:else}
-                    <AlertDialog.Root>
-                      <AlertDialog.Trigger>
-                        {#snippet child({ props })}
-                          <Button
-                                  {...props}
-                                  variant="ghost"
-                                  size="icon"
-                                  class="size-7 text-destructive hover:text-destructive"
-                                  disabled={deleteMutation.isPending && deleteMutation.variables?.id === img.id}
-                          >
-                            <Trash2Icon class="size-3" />
-                          </Button>
-                        {/snippet}
-                      </AlertDialog.Trigger>
-                      <AlertDialog.Content>
-                        <AlertDialog.Header>
-                          <AlertDialog.Title>Delete image?</AlertDialog.Title>
-                          <AlertDialog.Description>
-                            {#if img.tags.length > 0}
-                              This will permanently delete <span class="font-medium text-foreground">{img.tags[0]}</span>.
-                            {:else}
-                              This will permanently delete image <span class="font-mono text-foreground">{img.id.slice(7, 19)}</span>.
-                            {/if}
-                            This action cannot be undone.
-                          </AlertDialog.Description>
-                        </AlertDialog.Header>
-                        <AlertDialog.Footer>
-                          <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-                          <AlertDialog.Action
-                                  class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onclick={() => deleteMutation.mutate({ id: img.id, force: true })}
-                          >
-                            Delete
-                          </AlertDialog.Action>
-                        </AlertDialog.Footer>
-                      </AlertDialog.Content>
-                    </AlertDialog.Root>
+                    <Button variant="ghost" size="icon" class="size-7 text-destructive hover:text-destructive"
+                            onclick={() => (deleteTarget = img)}>
+                      <Trash2Icon class="size-3" />
+                    </Button>
                   {/if}
                 {/if}
               </Table.Cell>
             </Table.Row>
           {:else}
             <Table.Row>
-              <Table.Cell
-                      colspan={columns.length}
-                      class="py-12 text-center text-sm text-muted-foreground"
-              >
-                No images found
-              </Table.Cell>
+              <Table.Cell colspan={columns.length} class="py-12 text-center text-sm text-muted-foreground">No images found</Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
@@ -275,3 +202,31 @@ const table = createSvelteTable({
     {/if}
   </div>
 </div>
+
+<AlertDialog.Root open={deleteTarget !== null} onOpenChange={(o) => { if (!o) deleteTarget = null; }}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete image?</AlertDialog.Title>
+      <AlertDialog.Description>
+        {#if deleteTarget && deleteTarget.tags.length > 0}
+          This will permanently delete <span class="font-medium text-foreground">{deleteTarget.tags[0]}</span>.
+        {:else}
+          This will permanently delete image <span class="font-mono text-foreground">{deleteTarget?.id.slice(7, 19)}</span>.
+        {/if}
+        This action cannot be undone.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onclick={() => {
+          if (deleteTarget) deleteMutation.mutate({ id: deleteTarget.id, force: true });
+          deleteTarget = null;
+        }}
+      >
+        Delete
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

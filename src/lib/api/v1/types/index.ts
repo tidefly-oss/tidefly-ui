@@ -1,7 +1,6 @@
 export * from "./admin.js";
 export * from "./backup.ts";
 export * from "./containers.js";
-export * from "./deploy.js";
 export * from "./git.js";
 export * from "./images.js";
 export * from "./logs.js";
@@ -9,7 +8,8 @@ export * from "./metrics.js";
 export * from "./networks.js";
 export * from "./notifications.js";
 export * from "./projects.js";
+export * from "./services.js";
 export * from "./system.js";
 export * from "./templates.js";
-export * from "./templates.js";
 export * from "./volumes.js";
+export * from "./webhooks.js";

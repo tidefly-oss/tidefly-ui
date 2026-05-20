@@ -1,3 +1,4 @@
+import { tokenStore } from "$lib/api/client.js";
 import { logsApi } from "$lib/api/v1/logs";
 import type { AppLog, AuditLog } from "$lib/api/v1/types";
 
@@ -49,9 +50,9 @@ function createAppLogsStore() {
 		const q = new URLSearchParams();
 		if (params.level) q.set("level", params.level);
 		if (params.component) q.set("component", params.component);
-
-		const queryString = q.size ? `?${q.toString()}` : "";
-		const url = `/api/v1/logs/app/stream${queryString}`;
+		const token = tokenStore.get();
+		if (token) q.set("token", token);
+		const url = `/api/v1/logs/app/stream${q.size ? `?${q}` : ""}`;
 		eventSource = new EventSource(url);
 		streaming = true;
 

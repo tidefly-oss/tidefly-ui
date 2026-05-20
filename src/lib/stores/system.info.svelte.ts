@@ -37,9 +37,6 @@ function createSystemInfoStore() {
 		get info() {
 			return info;
 		},
-		get uptime() {
-			return info ? formatUptime(info.uptime_seconds) : "—";
-		},
 		get version() {
 			return info?.tidefly_version ?? "dev";
 		},
