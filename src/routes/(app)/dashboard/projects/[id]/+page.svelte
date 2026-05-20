@@ -111,13 +111,15 @@ async function confirmDelete() {
 }
 
 const statusDot: Record<ContainerStatus, string> = {
-	running: "#22c55e",
-	stopped: "#6b7280",
-	exited: "#6b7280",
-	paused: "#f59e0b",
-	created: "#3b82f6",
+  running: "#22c55e",
+  stopped: "#6b7280",
+  exited: "#6b7280",
+  paused: "#f59e0b",
+  created: "#3b82f6",
+  dead: "#ef4444",
+  restarting: "#3b82f6",
+  unknown: "#6b7280",
 };
-
 function formatDate(iso: string) {
 	return new Date(iso).toLocaleString("de-DE");
 }
