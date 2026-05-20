@@ -47,6 +47,7 @@ export interface ServiceCreateRequest {
 	name?: string;
 	stack_name?: string;
 	project_id?: string;
+	worker_id?: string;
 
 	// Networking
 	domain?: string;

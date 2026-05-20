@@ -22,7 +22,9 @@ import { goto } from "$app/navigation";
 import { agentApi } from "$lib/api/v1/agent";
 import { gitApi } from "$lib/api/v1/git";
 import { servicesApi } from "$lib/api/v1/services";
+import type { GitBranch, GitRepository } from "$lib/api/v1/types/git.js";
 import { providerMeta } from "$lib/api/v1/types/git.js";
+import type { ServiceCreateRequest } from "$lib/api/v1/types/services.js";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
@@ -136,14 +138,14 @@ const visibleProjects = $derived(
 		: (projectsQuery.data ?? []).filter((p) => auth.projectIds.includes(p.id))
 );
 const connectedWorkers = $derived(
-	(workersQuery.data ?? []).filter((w: any) => w.status === "connected")
+	(workersQuery.data ?? []).filter((w) => w.status === "connected")
 );
 const hasWorkers = $derived(connectedWorkers.length > 0);
 const owners = $derived(
-	[...new Set((reposQuery.data ?? []).map((r: any) => r.full_name.split("/")[0]))].sort()
+	[...new Set((reposQuery.data ?? []).map((r: GitRepository) => r.full_name.split("/")[0]))].sort()
 );
 const filteredRepos = $derived(
-	(reposQuery.data ?? []).filter((r: any) => {
+	(reposQuery.data ?? []).filter((r: GitRepository) => {
 		const matchOwner = selectedOwner === "all" || r.full_name.startsWith(`${selectedOwner}/`);
 		const matchSearch = !repoSearch || r.full_name.toLowerCase().includes(repoSearch.toLowerCase());
 		return matchOwner && matchSearch;
@@ -151,7 +153,7 @@ const filteredRepos = $derived(
 );
 const filteredBranches = $derived(
 	branchSearch
-		? (branchesQuery.data ?? []).filter((b: any) =>
+		? (branchesQuery.data ?? []).filter((b: GitBranch) =>
 				b.name.toLowerCase().includes(branchSearch.toLowerCase())
 			)
 		: (branchesQuery.data ?? [])
@@ -190,7 +192,7 @@ function selectIntegration(id: string) {
 	serviceName = "";
 }
 
-function selectRepo(repo: any) {
+function selectRepo(repo: GitRepository) {
 	gitRepo = {
 		owner: repo.full_name.split("/")[0],
 		name: repo.name,
@@ -209,7 +211,7 @@ async function handleDeploy() {
 	deployError = null;
 
 	try {
-		const payload: Record<string, any> = {
+		const payload: ServiceCreateRequest = {
 			name: serviceName.trim(),
 			project_id: projectId,
 			expose,
