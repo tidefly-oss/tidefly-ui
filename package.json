@@ -17,7 +17,7 @@
 		"@biomejs/biome": "2.4.15",
 		"@internationalized/date": "^3.12.1",
 		"@lucide/svelte": "^1.14.0",
-		"@sveltejs/kit": "^2.59.1",
+		"@sveltejs/kit": "^2.60.1",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/forms": "^0.5.11",
 		"@tailwindcss/typography": "^0.5.19",
