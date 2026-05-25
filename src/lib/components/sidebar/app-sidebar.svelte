@@ -79,41 +79,91 @@ $effect(() => {
 const navGroups = $derived([
 	{
 		label: "Overview",
-		items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
+		items: [
+			{
+				title: "Dashboard",
+				href: "/dashboard",
+				icon: LayoutDashboardIcon,
+			},
+		],
 	},
 	{
 		label: "Source",
 		items: [
-			{ title: "Git Integrations", href: "/dashboard/git/", icon: GitBranchIcon },
-			{ title: "Webhooks", href: "/dashboard/webhooks", icon: ZapIcon },
+			{
+				title: "Git Integrations",
+				href: "/dashboard/git/",
+				icon: GitBranchIcon,
+			},
+			{
+				title: "Webhooks",
+				href: "/dashboard/webhooks",
+				icon: ZapIcon,
+			},
 		],
 	},
 	{
 		label: "Resources",
 		items: [
-			{ title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
-			{ title: "Templates", href: "/dashboard/containers/templates", icon: DatabaseIcon },
+			{
+				title: "Containers",
+				href: "/dashboard/containers",
+				icon: ContainerIcon,
+			},
+			{
+				title: "Templates",
+				href: "/dashboard/containers/templates",
+				icon: DatabaseIcon,
+			},
 			{ title: "Images", href: "/dashboard/images", icon: ImageIcon },
 			{ title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
-			{ title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
+			{
+				title: "Networks",
+				href: "/dashboard/networks",
+				icon: NetworkIcon,
+			},
 		],
 	},
 	{
 		label: "Observability",
-		items: [{ title: "Monitoring", href: "/dashboard/monitoring", icon: ActivityIcon }],
+		items: [
+			{
+				title: "Monitoring",
+				href: "/dashboard/monitoring",
+				icon: ActivityIcon,
+			},
+		],
 	},
 	...(isAdmin
 		? [
 				{
 					label: "Infrastructure",
-					items: [{ title: "Servers", href: "/dashboard/servers", icon: ServerIcon }],
+					items: [
+						{
+							title: "Servers",
+							href: "/dashboard/servers",
+							icon: ServerIcon,
+						},
+					],
 				},
 				{
 					label: "Administration",
 					items: [
-						{ title: "Backups", href: "/dashboard/backups", icon: DatabaseBackupIcon },
-						{ title: "Users", href: "/dashboard/users", icon: UsersIcon },
-						{ title: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+						{
+							title: "Backups",
+							href: "/dashboard/backups",
+							icon: DatabaseBackupIcon,
+						},
+						{
+							title: "Users",
+							href: "/dashboard/users",
+							icon: UsersIcon,
+						},
+						{
+							title: "Settings",
+							href: "/dashboard/settings",
+							icon: SettingsIcon,
+						},
 					],
 				},
 			]
@@ -140,10 +190,18 @@ function isActive(href: string) {
                 <Sidebar.MenuButton size="lg">
                     {#snippet child({ props })}
                         <a href="/dashboard" {...props}>
-                            <div class="flex items-center justify-center size-10 rounded-full bg-[#1B1D30] shrink-0">
-                                <img src={TideflyMascot} alt="Tidefly" class="size-7 object-contain" />
+                            <div
+                                class="flex items-center justify-center size-10 rounded-full bg-[#1B1D30] shrink-0"
+                            >
+                                <img
+                                    src={TideflyMascot}
+                                    alt="Tidefly"
+                                    class="size-7 object-contain"
+                                />
                             </div>
-                            <span class="font-semibold tracking-tight">Tidefly</span>
+                            <span class="font-semibold tracking-tight"
+                                >Tidefly</span
+                            >
                         </a>
                     {/snippet}
                 </Sidebar.MenuButton>
@@ -154,21 +212,32 @@ function isActive(href: string) {
     <Sidebar.Content>
         <!-- Project Switcher -->
         <Sidebar.Group>
-            <Sidebar.GroupLabel class="text-xs font-medium uppercase tracking-wider opacity-50">
+            <Sidebar.GroupLabel
+                class="text-xs font-medium uppercase tracking-wider opacity-50"
+            >
                 Project
             </Sidebar.GroupLabel>
             <Sidebar.Menu>
                 <Sidebar.MenuItem>
                     {#if projectsQuery.isPending}
                         <div class="flex items-center gap-2 px-2 py-2">
-                            <LoaderCircle class="size-3 animate-spin text-muted-foreground" />
-                            <span class="text-xs text-muted-foreground">Loading projects…</span>
+                            <LoaderCircle
+                                class="size-3 animate-spin text-muted-foreground"
+                            />
+                            <span class="text-xs text-muted-foreground"
+                                >Loading projects…</span
+                            >
                         </div>
                     {:else if visibleProjects.length === 0}
                         <div class="px-2 py-2 space-y-1.5">
-                            <p class="text-xs text-muted-foreground">No projects assigned</p>
+                            <p class="text-xs text-muted-foreground">
+                                No projects assigned
+                            </p>
                             {#if isAdmin}
-                                <a href="/dashboard/projects/new" class="flex items-center gap-1.5 text-xs text-primary hover:underline">
+                                <a
+                                    href="/dashboard/projects/new"
+                                    class="flex items-center gap-1.5 text-xs text-primary hover:underline"
+                                >
                                     <PlusIcon class="size-3" /> New project
                                 </a>
                             {/if}
@@ -178,38 +247,73 @@ function isActive(href: string) {
                             <DropdownMenu.Trigger>
                                 {#snippet child({ props })}
                                     <Sidebar.MenuButton
-                                            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-10 cursor-pointer"
-                                            {...props}
+                                        class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground h-10 cursor-pointer"
+                                        {...props}
                                     >
-                                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                                            <CircleIcon class="size-2 shrink-0 fill-current" style="color: {activeProject?.color ?? '#6b7280'}" />
-                                            <span class="truncate font-medium">{activeProject?.name ?? "—"}</span>
+                                        <div
+                                            class="flex items-center gap-2 flex-1 min-w-0"
+                                        >
+                                            <CircleIcon
+                                                class="size-2 shrink-0 fill-current"
+                                                style="color: {activeProject?.color ??
+                                                    '#6b7280'}"
+                                            />
+                                            <span class="truncate font-medium"
+                                                >{activeProject?.name ??
+                                                    "—"}</span
+                                            >
                                         </div>
-                                        <ChevronDownIcon class="size-4 opacity-50" />
+                                        <ChevronDownIcon
+                                            class="size-4 opacity-50"
+                                        />
                                     </Sidebar.MenuButton>
                                 {/snippet}
                             </DropdownMenu.Trigger>
                             <DropdownMenu.Content class="w-56" align="start">
-                                <DropdownMenu.Label class="text-xs text-muted-foreground">Switch Project</DropdownMenu.Label>
+                                <DropdownMenu.Label
+                                    class="text-xs text-muted-foreground"
+                                    >Switch Project</DropdownMenu.Label
+                                >
                                 <DropdownMenu.Separator />
                                 {#each visibleProjects as project (project.id)}
                                     <DropdownMenu.Item
-                                            onclick={() => { activeProjectId = project.id; goto(`/dashboard/projects/${project.id}`); }}
-                                            class={activeProject?.id === project.id ? "bg-accent" : ""}
+                                        onclick={() => {
+                                            activeProjectId = project.id;
+                                            goto(
+                                                `/dashboard/projects/${project.id}`,
+                                            );
+                                        }}
+                                        class={activeProject?.id === project.id
+                                            ? "bg-accent"
+                                            : ""}
                                     >
-                                        <CircleIcon class="size-2 fill-current mr-2 shrink-0" style="color: {project.color}" />
-                                        <span class="flex-1 truncate">{project.name}</span>
+                                        <CircleIcon
+                                            class="size-2 fill-current mr-2 shrink-0"
+                                            style="color: {project.color}"
+                                        />
+                                        <span class="flex-1 truncate"
+                                            >{project.name}</span
+                                        >
                                         {#if project.network_name}
-                                            <span class="text-xs text-muted-foreground font-mono truncate max-w-20">{project.network_name}</span>
+                                            <span
+                                                class="text-xs text-muted-foreground font-mono truncate max-w-20"
+                                                >{project.network_name}</span
+                                            >
                                         {/if}
                                     </DropdownMenu.Item>
                                 {/each}
                                 <DropdownMenu.Separator />
                                 {#if isAdmin}
-                                    <DropdownMenu.Item onclick={() => goto("/dashboard/projects/new")}>
+                                    <DropdownMenu.Item
+                                        onclick={() =>
+                                            goto("/dashboard/projects/new")}
+                                    >
                                         <PlusIcon class="size-4 mr-2" /> New Project
                                     </DropdownMenu.Item>
-                                    <DropdownMenu.Item onclick={() => goto("/dashboard/projects")}>
+                                    <DropdownMenu.Item
+                                        onclick={() =>
+                                            goto("/dashboard/projects")}
+                                    >
                                         <FolderIcon class="size-4 mr-2" /> All Projects
                                     </DropdownMenu.Item>
                                 {/if}
@@ -223,7 +327,9 @@ function isActive(href: string) {
         <!-- Nav Groups -->
         {#each navGroups as group (group.label)}
             <Sidebar.Group>
-                <Sidebar.GroupLabel class="text-xs font-medium uppercase tracking-wider opacity-50">
+                <Sidebar.GroupLabel
+                    class="text-xs font-medium uppercase tracking-wider opacity-50"
+                >
                     {group.label}
                 </Sidebar.GroupLabel>
                 <Sidebar.Menu>
@@ -244,34 +350,37 @@ function isActive(href: string) {
         {/each}
     </Sidebar.Content>
 
-    <!-- In AppSidebar.svelte — version aus systemQuery ersetzen durch updateStore.planeVersion -->
-    <!-- $effect bleibt: if (version && version !== "dev") updateStore.startPolling(version); -->
-
-    <!-- Footer ersetzen mit: -->
     <Sidebar.Footer>
         <div class="px-2 py-2">
             {#if updateStore.hasUpdate}
                 <button
-                        onclick={() => (updateDialogOpen = true)}
-                        class="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/25 transition-all group text-left"
+                    onclick={() => (updateDialogOpen = true)}
+                    class="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg bg-primary/10 hover:bg-primary/20 border border-primary/25 transition-all group text-left"
                 >
-                    <ArrowUp class="size-5 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                    <ArrowUp
+                        class="size-5 text-primary shrink-0 group-hover:scale-110 transition-transform"
+                    />
                     <span class="flex-1 min-w-0">
-                        <span class="text-xs font-semibold text-primary leading-tight">Updates available</span>
+                        <span
+                            class="text-xs font-semibold text-primary leading-tight"
+                            >Updates available</span
+                        >
                         <span class="text-xs text-primary/70 leading-tight">
-                            {updateStore.components.filter(c => c.update_available).length} component(s)
+                            {updateStore.components.filter(
+                                (c) => c.update_available,
+                            ).length} component(s)
                         </span>
                     </span>
                 </button>
             {:else}
-                <div class="flex items-center justify-between px-3 py-2">
-                <span class="text-xs font-mono text-muted-foreground/70">
-                    {#if systemQuery.isPending}
-                        <LoaderCircle class="size-3 animate-spin inline" />
-                    {:else}
-                        {version}
-                    {/if}
-                </span>
+                <div class="flex items-center justify-center px-3 py-2">
+                    <span class="text-xs font-mono text-muted-foreground/70">
+                        {#if systemQuery.isPending}
+                            <LoaderCircle class="size-3 animate-spin inline" />
+                        {:else}
+                            {version}
+                        {/if}
+                    </span>
                 </div>
             {/if}
         </div>
