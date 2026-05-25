@@ -1,207 +1,196 @@
 <script lang="ts">
-    import {
-        ActivityIcon,
-        ArrowUp,
-        BoxIcon,
-        ChevronDownIcon,
-        CircleIcon,
-        ContainerIcon,
-        DatabaseBackupIcon,
-        DatabaseIcon,
-        FolderIcon,
-        GitBranchIcon,
-        ImageIcon,
-        LayoutDashboardIcon,
-        LoaderCircle,
-        NetworkIcon,
-        PlusIcon,
-        ServerIcon,
-        SettingsIcon,
-        UsersIcon,
-        ZapIcon,
-    } from "@lucide/svelte";
-    import { createQuery } from "@tanstack/svelte-query";
-    import type { ComponentProps } from "svelte";
-    import { onDestroy } from "svelte";
-    import { goto } from "$app/navigation";
-    import { page } from "$app/state";
-    import { systemApi } from "$lib/api/v1/system";
-    import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
-    import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
-    import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-    import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-    import { projectQueries } from "$lib/queries/projects.js";
-    import { auth } from "$lib/stores/auth.svelte";
-    import { updateStore } from "$lib/stores/update.svelte.js";
-    import { adminApi } from "$lib/api/v1/admin";
+import {
+	ActivityIcon,
+	ArrowUp,
+	BoxIcon,
+	ChevronDownIcon,
+	CircleIcon,
+	ContainerIcon,
+	DatabaseBackupIcon,
+	DatabaseIcon,
+	FolderIcon,
+	GitBranchIcon,
+	ImageIcon,
+	LayoutDashboardIcon,
+	LoaderCircle,
+	NetworkIcon,
+	PlusIcon,
+	ServerIcon,
+	SettingsIcon,
+	UsersIcon,
+	ZapIcon,
+} from "@lucide/svelte";
+import { createQuery } from "@tanstack/svelte-query";
+import type { ComponentProps } from "svelte";
+import { onDestroy } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import { systemApi } from "$lib/api/v1/system";
+import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
+import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { projectQueries } from "$lib/queries/projects.js";
+import { auth } from "$lib/stores/auth.svelte";
+import { updateStore } from "$lib/stores/update.svelte.js";
+import { adminApi } from "$lib/api/v1/admin";
 
-    let {
-        ref = $bindable(null),
-        ...restProps
-    }: ComponentProps<typeof Sidebar.Root> = $props();
+let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 
-    let updateDialogOpen = $state(false);
+let updateDialogOpen = $state(false);
 
-    // ── System info ───────────────────────────────────────────────────────────
-    const systemQuery = createQuery(() => ({
-        queryKey: ["system-info"],
-        queryFn: () => systemApi.info(),
-        refetchInterval: 60_000,
-        staleTime: 30_000,
-    }));
+// ── System info ───────────────────────────────────────────────────────────
+const systemQuery = createQuery(() => ({
+	queryKey: ["system-info"],
+	queryFn: () => systemApi.info(),
+	refetchInterval: 60_000,
+	staleTime: 30_000,
+}));
 
-    const version = $derived(systemQuery.data?.tidefly_version ?? "dev");
+const version = $derived(systemQuery.data?.tidefly_version ?? "dev");
 
-    const settingsQuery = createQuery(() => ({
-        queryKey: ["admin-settings"],
-        queryFn: () => adminApi.getSettings(),
-        staleTime: 60_000,
-        enabled: !!auth.user,
-    }));
+const settingsQuery = createQuery(() => ({
+	queryKey: ["admin-settings"],
+	queryFn: () => adminApi.getSettings(),
+	staleTime: 60_000,
+	enabled: !!auth.user,
+}));
 
-    const instanceName = $derived(
-        settingsQuery.data?.instance_name ?? "Tidefly",
-    );
+const instanceName = $derived(settingsQuery.data?.instance_name ?? "Tidefly");
 
-    $effect(() => {
-        if (version && version !== "dev") updateStore.startPolling(version);
-    });
-    onDestroy(() => updateStore.stopPolling());
+$effect(() => {
+	if (version && version !== "dev") updateStore.startPolling(version);
+});
+onDestroy(() => updateStore.stopPolling());
 
-    // ── Projects ──────────────────────────────────────────────────────────────
-    const projectsQuery = createQuery(() => ({
-        ...projectQueries.list(),
-        enabled: !!auth.user,
-    }));
+// ── Projects ──────────────────────────────────────────────────────────────
+const projectsQuery = createQuery(() => ({
+	...projectQueries.list(),
+	enabled: !!auth.user,
+}));
 
-    const isAdmin = $derived(auth.user?.role === "admin");
-    const allProjects = $derived(projectsQuery.data ?? []);
-    const visibleProjects = $derived(
-        isAdmin
-            ? allProjects
-            : allProjects.filter((p) => auth.projectIds.includes(p.id)),
-    );
+const isAdmin = $derived(auth.user?.role === "admin");
+const allProjects = $derived(projectsQuery.data ?? []);
+const visibleProjects = $derived(
+	isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
+);
 
-    let activeProjectId = $state<string | null>(null);
-    const activeProject = $derived(
-        visibleProjects.find((p) => p.id === activeProjectId) ??
-            visibleProjects[0] ??
-            null,
-    );
+let activeProjectId = $state<string | null>(null);
+const activeProject = $derived(
+	visibleProjects.find((p) => p.id === activeProjectId) ?? visibleProjects[0] ?? null
+);
 
-    $effect(() => {
-        const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
-        if (match && match[1] !== "new") activeProjectId = match[1];
-    });
+$effect(() => {
+	const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
+	if (match && match[1] !== "new") activeProjectId = match[1];
+});
 
-    // ── Nav ───────────────────────────────────────────────────────────────────
-    const navGroups = $derived([
-        {
-            label: "Overview",
-            items: [
-                {
-                    title: "Dashboard",
-                    href: "/dashboard",
-                    icon: LayoutDashboardIcon,
-                },
-            ],
-        },
-        {
-            label: "Source",
-            items: [
-                {
-                    title: "Git Integrations",
-                    href: "/dashboard/git/",
-                    icon: GitBranchIcon,
-                },
-                {
-                    title: "Webhooks",
-                    href: "/dashboard/webhooks",
-                    icon: ZapIcon,
-                },
-            ],
-        },
-        {
-            label: "Resources",
-            items: [
-                {
-                    title: "Containers",
-                    href: "/dashboard/containers",
-                    icon: ContainerIcon,
-                },
-                {
-                    title: "Templates",
-                    href: "/dashboard/containers/templates",
-                    icon: DatabaseIcon,
-                },
-                { title: "Images", href: "/dashboard/images", icon: ImageIcon },
-                { title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
-                {
-                    title: "Networks",
-                    href: "/dashboard/networks",
-                    icon: NetworkIcon,
-                },
-            ],
-        },
-        {
-            label: "Observability",
-            items: [
-                {
-                    title: "Monitoring",
-                    href: "/dashboard/monitoring",
-                    icon: ActivityIcon,
-                },
-            ],
-        },
-        ...(isAdmin
-            ? [
-                  {
-                      label: "Infrastructure",
-                      items: [
-                          {
-                              title: "Servers",
-                              href: "/dashboard/servers",
-                              icon: ServerIcon,
-                          },
-                      ],
-                  },
-                  {
-                      label: "Administration",
-                      items: [
-                          {
-                              title: "Backups",
-                              href: "/dashboard/backups",
-                              icon: DatabaseBackupIcon,
-                          },
-                          {
-                              title: "Users",
-                              href: "/dashboard/users",
-                              icon: UsersIcon,
-                          },
-                          {
-                              title: "Settings",
-                              href: "/dashboard/settings",
-                              icon: SettingsIcon,
-                          },
-                      ],
-                  },
-              ]
-            : []),
-    ]);
+// ── Nav ───────────────────────────────────────────────────────────────────
+const navGroups = $derived([
+	{
+		label: "Overview",
+		items: [
+			{
+				title: "Dashboard",
+				href: "/dashboard",
+				icon: LayoutDashboardIcon,
+			},
+		],
+	},
+	{
+		label: "Source",
+		items: [
+			{
+				title: "Git Integrations",
+				href: "/dashboard/git/",
+				icon: GitBranchIcon,
+			},
+			{
+				title: "Webhooks",
+				href: "/dashboard/webhooks",
+				icon: ZapIcon,
+			},
+		],
+	},
+	{
+		label: "Resources",
+		items: [
+			{
+				title: "Containers",
+				href: "/dashboard/containers",
+				icon: ContainerIcon,
+			},
+			{
+				title: "Templates",
+				href: "/dashboard/containers/templates",
+				icon: DatabaseIcon,
+			},
+			{ title: "Images", href: "/dashboard/images", icon: ImageIcon },
+			{ title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
+			{
+				title: "Networks",
+				href: "/dashboard/networks",
+				icon: NetworkIcon,
+			},
+		],
+	},
+	{
+		label: "Observability",
+		items: [
+			{
+				title: "Monitoring",
+				href: "/dashboard/monitoring",
+				icon: ActivityIcon,
+			},
+		],
+	},
+	...(isAdmin
+		? [
+				{
+					label: "Infrastructure",
+					items: [
+						{
+							title: "Servers",
+							href: "/dashboard/servers",
+							icon: ServerIcon,
+						},
+					],
+				},
+				{
+					label: "Administration",
+					items: [
+						{
+							title: "Backups",
+							href: "/dashboard/backups",
+							icon: DatabaseBackupIcon,
+						},
+						{
+							title: "Users",
+							href: "/dashboard/users",
+							icon: UsersIcon,
+						},
+						{
+							title: "Settings",
+							href: "/dashboard/settings",
+							icon: SettingsIcon,
+						},
+					],
+				},
+			]
+		: []),
+]);
 
-    function isActive(href: string) {
-        if (href === "/dashboard") return page.url.pathname === href;
-        if (href === "/dashboard/containers") {
-            return (
-                page.url.pathname === href ||
-                (page.url.pathname.startsWith(href) &&
-                    !page.url.pathname.startsWith(
-                        "/dashboard/containers/templates",
-                    ))
-            );
-        }
-        return page.url.pathname.startsWith(href);
-    }
+function isActive(href: string) {
+	if (href === "/dashboard") return page.url.pathname === href;
+	if (href === "/dashboard/containers") {
+		return (
+			page.url.pathname === href ||
+			(page.url.pathname.startsWith(href) &&
+				!page.url.pathname.startsWith("/dashboard/containers/templates"))
+		);
+	}
+	return page.url.pathname.startsWith(href);
+}
 </script>
 
 <Sidebar.Root variant="floating" {...restProps}>
