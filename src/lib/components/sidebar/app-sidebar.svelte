@@ -25,6 +25,7 @@ import type { ComponentProps } from "svelte";
 import { onDestroy } from "svelte";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
+import { adminApi } from "$lib/api/v1/admin";
 import { systemApi } from "$lib/api/v1/system";
 import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
 import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
@@ -33,7 +34,6 @@ import * as Sidebar from "$lib/components/ui/sidebar/index.js";
 import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte";
 import { updateStore } from "$lib/stores/update.svelte.js";
-import { adminApi } from "$lib/api/v1/admin";
 
 let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 
