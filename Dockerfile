@@ -30,5 +30,5 @@ ENV NODE_ENV=production \
     HOST=0.0.0.0
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
-    CMD wget -qO- http://localhost:3000/ || exit 1
+    CMD node -e "require('http').get('http://localhost:3000/', r => process.exit(r.statusCode < 500 ? 0 : 1)).on('error', () => process.exit(1))"
 CMD ["node", "build"]
