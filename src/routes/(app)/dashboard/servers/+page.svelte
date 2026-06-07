@@ -25,7 +25,7 @@ const pendingTokens = $derived(
 	(tokensQuery.data ?? []).filter((t) => !t.used && !isExpired(t.expires_at))
 );
 
-let tokenDialogOpen = $state(false);
+const tokenDialogOpen = $state(false);
 
 function isExpired(dateStr: string) {
 	return new Date(dateStr) < new Date();

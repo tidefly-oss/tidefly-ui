@@ -6,7 +6,7 @@ import type { Notification } from "$lib/api/v1/types/notifications.js";
 import { notificationsStore } from "$lib/stores/notifications.svelte";
 
 let open = $state(false);
-let dropdownRef: HTMLDivElement | null = null;
+const dropdownRef: HTMLDivElement | null = null;
 
 function severityClass(severity: Notification["severity"]): string {
 	switch (severity) {

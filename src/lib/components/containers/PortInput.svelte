@@ -12,7 +12,7 @@ interface Props {
 	ignorePorts?: number[];
 }
 
-let {
+const {
 	value = $bindable(),
 	onchange,
 	label = "Host Port",

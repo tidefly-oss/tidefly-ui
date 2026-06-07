@@ -4,7 +4,7 @@ import { onMount } from "svelte";
 import { goto } from "$app/navigation";
 import { auth } from "$lib/stores/auth.svelte";
 
-let { children }: { children: Snippet } = $props();
+const { children }: { children: Snippet } = $props();
 let ready = $state(false);
 
 onMount(async () => {

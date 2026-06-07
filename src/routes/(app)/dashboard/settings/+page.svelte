@@ -15,7 +15,7 @@ const tabs: { id: Tab; label: string; icon: Component }[] = [
 	{ id: "about", label: "About", icon: InfoIcon },
 ];
 
-let activeTab = $state<Tab>("general");
+const activeTab = $state<Tab>("general");
 </script>
 
 <div class="space-y-6">

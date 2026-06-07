@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
 	},
 });
 
-let { children }: { children: Snippet } = $props();
+const { children }: { children: Snippet } = $props();
 
 onMount(() => {
 	theme.init();

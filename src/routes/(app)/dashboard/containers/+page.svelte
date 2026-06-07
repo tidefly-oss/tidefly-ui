@@ -5,7 +5,7 @@ import ContainersList from "$lib/components/containers/ContainersList.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import type { PageData } from "./$types";
 
-let { data }: { data: PageData } = $props();
+const { data }: { data: PageData } = $props();
 </script>
 
 <div class="space-y-4">

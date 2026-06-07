@@ -22,7 +22,7 @@ import ContainerResourceLimits from "./ContainerResourceLimits.svelte";
 import ContainerStats from "./ContainerStats.svelte";
 import ContainerTerminalPanel from "./ContainerTerminalPanel.svelte";
 
-let { initialData }: { initialData: ContainerDetails } = $props();
+const { initialData }: { initialData: ContainerDetails } = $props();
 
 const queryClient = useQueryClient();
 
@@ -73,7 +73,7 @@ function getInitialTab(): Tab {
 	return validTabs.includes(t) ? t : "overview";
 }
 
-let tab = $state<Tab>(getInitialTab());
+const tab = $state<Tab>(getInitialTab());
 
 const container = $derived(query.data ?? initialData);
 

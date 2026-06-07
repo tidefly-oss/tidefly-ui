@@ -36,8 +36,8 @@ const testMutation = createMutation(() => ({
 let endpoint = $state("");
 let bucket = $state("");
 let region = $state("us-east-1");
-let accessKey = $state("");
-let secretKey = $state("");
+const accessKey = $state("");
+const secretKey = $state("");
 let useSSL = $state(true);
 let pathStyle = $state(false);
 let prefix = $state("backups");

@@ -18,8 +18,8 @@ interface RawLog {
 	error?: string;
 }
 
-let levelFilter = $state("");
-let componentFilter = $state("");
+const levelFilter = $state("");
+const componentFilter = $state("");
 let liveMode = $state(false);
 
 onDestroy(() => appLogsStore.stopStream());

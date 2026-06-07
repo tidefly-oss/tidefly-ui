@@ -13,7 +13,7 @@ import {
 import { Input } from "$lib/components/ui/input/index.js";
 import { cn, type WithElementRef } from "$lib/utils.js";
 
-let {
+const {
 	ref = $bindable(null),
 	class: className,
 	...restProps
@@ -21,8 +21,8 @@ let {
 
 const id = $props.id();
 
-let email = $state("");
-let password = $state("");
+const email = $state("");
+const password = $state("");
 let error = $state("");
 let loading = $state(false);
 

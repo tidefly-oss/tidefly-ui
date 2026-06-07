@@ -20,7 +20,7 @@ import { systemStore } from "$lib/stores/system.svelte";
 import { theme } from "$lib/stores/theme.svelte";
 import { wsStore } from "$lib/stores/ws.svelte";
 
-let { children }: { children: Snippet } = $props();
+const { children }: { children: Snippet } = $props();
 
 const queryClient = initQueryClient();
 

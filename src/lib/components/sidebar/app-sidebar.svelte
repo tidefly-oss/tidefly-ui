@@ -35,9 +35,9 @@ import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte";
 import { updateStore } from "$lib/stores/update.svelte.js";
 
-let { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
+const { ref = $bindable(null), ...restProps }: ComponentProps<typeof Sidebar.Root> = $props();
 
-let updateDialogOpen = $state(false);
+const updateDialogOpen = $state(false);
 
 // ── System info ───────────────────────────────────────────────────────────
 const systemQuery = createQuery(() => ({

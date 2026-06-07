@@ -19,7 +19,7 @@ import { Button } from "$lib/components/ui/button";
 import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte.js";
 
-let { summaries }: { summaries: TemplateSummary[] } = $props();
+const { summaries }: { summaries: TemplateSummary[] } = $props();
 
 const qc = useQueryClient();
 
@@ -46,7 +46,7 @@ let deployedName = $state<string | null>(null);
 let deployedUrl = $state<string | null>(null);
 let credentials = $state<Record<string, string>>({});
 let copiedKey = $state<string | null>(null);
-let expose = $state(false);
+const expose = $state(false);
 
 $effect(() => {
 	if (projectId === "" && visibleProjects.length === 1) {

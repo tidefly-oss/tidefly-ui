@@ -3,7 +3,7 @@ import { goto } from "$app/navigation";
 import TemplateDeployWizard from "$lib/components/containers/TemplateDeployWizard.svelte";
 import type { PageData } from "./$types";
 
-let { data }: { data: PageData } = $props();
+const { data }: { data: PageData } = $props();
 </script>
 
 <TemplateDeployWizard summaries={data.summaries} />

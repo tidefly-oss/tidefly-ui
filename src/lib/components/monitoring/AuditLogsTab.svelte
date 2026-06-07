@@ -17,8 +17,8 @@ interface RawAuditLog {
 	[key: string]: unknown;
 }
 
-let actionFilter = $state("");
-let successFilter = $state<"" | "true" | "false">("");
+const actionFilter = $state("");
+const successFilter = $state<"" | "true" | "false">("");
 
 function applyFilter() {
 	auditLogsStore.load({

@@ -48,7 +48,7 @@ const rotateMut = createMutation(() => ({
 	onSuccess: () => qc.invalidateQueries({ queryKey: webhookKeys.all(selectedProjectId) }),
 }));
 
-let createOpen = $state(false);
+const createOpen = $state(false);
 
 async function handleCreate(req: CreateWebhookRequest): Promise<Webhook> {
 	return createMut.mutateAsync(req);

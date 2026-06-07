@@ -8,9 +8,9 @@ import { Input } from "$lib/components/ui/input/index.js";
 import { Label } from "$lib/components/ui/label/index.js";
 import { auth } from "$lib/stores/auth.svelte";
 
-let currentPassword = $state("");
-let newPassword = $state("");
-let confirmPassword = $state("");
+const currentPassword = $state("");
+const newPassword = $state("");
+const confirmPassword = $state("");
 let loading = $state(false);
 
 const passwordsMatch = $derived(newPassword === confirmPassword);

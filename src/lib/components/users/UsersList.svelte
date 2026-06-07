@@ -86,8 +86,8 @@ const table = createSvelteTable({
 
 // ── Dialogs ───────────────────────────────────────────────────────────────
 
-let showCreate = $state(false);
-let resetTarget = $state<AdminUser | null>(null);
+const showCreate = $state(false);
+const resetTarget = $state<AdminUser | null>(null);
 
 const currentUserId = $derived(auth.user?.id);
 

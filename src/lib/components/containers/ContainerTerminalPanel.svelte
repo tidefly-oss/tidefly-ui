@@ -10,9 +10,9 @@ type Props = {
 	containerStatus: string;
 };
 
-let { containerId, containerStatus }: Props = $props();
+const { containerId, containerStatus }: Props = $props();
 
-let terminalEl = $state<HTMLElement | null>(null);
+const terminalEl = $state<HTMLElement | null>(null);
 let term: TerminalType | null = null;
 let fitAddon: FitAddonType | null = null;
 let ws: WebSocket | null = null;

@@ -14,7 +14,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Collapsible from "$lib/components/ui/collapsible/index.js";
 
-let {
+const {
 	webhook,
 	ondelete,
 	onrotate,
