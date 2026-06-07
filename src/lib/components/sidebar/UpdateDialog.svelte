@@ -1,5 +1,5 @@
 <script lang="ts">
-import { BadgeCheck, CircleArrowUp, ExternalLinkIcon, Loader, CircleX } from "@lucide/svelte";
+import { BadgeCheck, CircleArrowUp, CircleX, ExternalLinkIcon, Loader } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import * as Dialog from "$lib/components/ui/dialog/index.js";
 import { auth } from "$lib/stores/auth.svelte";
@@ -9,7 +9,7 @@ interface Props {
 	open: boolean;
 }
 
-let { open = $bindable() }: Props = $props();
+const { open = $bindable() }: Props = $props();
 
 const isAdmin = $derived(auth.user?.role === "admin");
 
