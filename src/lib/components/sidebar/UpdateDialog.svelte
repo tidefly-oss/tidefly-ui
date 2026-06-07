@@ -34,12 +34,24 @@ function renderMarkdown(md: string): string {
 			/^```\w*\n([\s\S]*?)```$/gm,
 			'<pre class="bg-muted rounded-md px-3 py-2 my-2 overflow-x-auto text-xs font-mono text-foreground">$1</pre>'
 		)
-		.replace(/^### (.+)$/gm, '<h3 class="text-sm font-semibold mt-4 mb-1.5 text-foreground">$1</h3>')
-		.replace(/^## (.+)$/gm, '<h2 class="text-base font-semibold mt-5 mb-2 text-foreground border-b border-border pb-1.5">$1</h2>')
+		.replace(
+			/^### (.+)$/gm,
+			'<h3 class="text-sm font-semibold mt-4 mb-1.5 text-foreground">$1</h3>'
+		)
+		.replace(
+			/^## (.+)$/gm,
+			'<h2 class="text-base font-semibold mt-5 mb-2 text-foreground border-b border-border pb-1.5">$1</h2>'
+		)
 		.replace(/^# (.+)$/gm, '<h1 class="text-lg font-bold mt-5 mb-2 text-foreground">$1</h1>')
 		.replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold text-foreground">$1</strong>')
-		.replace(/`([^`]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-foreground">$1</code>')
-		.replace(/^[-*] (.+)$/gm, '<li class="ml-4 list-disc text-sm text-muted-foreground leading-relaxed">$1</li>')
+		.replace(
+			/`([^`]+)`/g,
+			'<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono text-foreground">$1</code>'
+		)
+		.replace(
+			/^[-*] (.+)$/gm,
+			'<li class="ml-4 list-disc text-sm text-muted-foreground leading-relaxed">$1</li>'
+		)
 		.replace(/(<li[\s\S]*?<\/li>\n?)+/g, (match) => `<ul class="my-2 space-y-1">${match}</ul>`)
 		.replace(/\n\n/g, '<div class="my-2"></div>')
 		.replace(/\n/g, "<br/>");
@@ -47,14 +59,14 @@ function renderMarkdown(md: string): string {
 
 const componentLabel: Record<string, string> = {
 	plane: "Plane (Backend)",
-	ui:    "Dashboard (UI)",
+	ui: "Dashboard (UI)",
 	agent: "Agent",
 	caddy: "Caddy (Proxy)",
 };
 
 const componentIcon: Record<string, string> = {
 	plane: "⚙️",
-	ui:    "🖥️",
+	ui: "🖥️",
 	agent: "🤖",
 	caddy: "🔀",
 };

@@ -67,10 +67,7 @@ function createUpdateStore() {
 	}
 
 	function onUpdateProgress(step: string, message: string) {
-		progressMessages = [
-			...progressMessages,
-			{ step, message, ts: Date.now() },
-		].slice(-20); // keep last 20 messages
+		progressMessages = [...progressMessages, { step, message, ts: Date.now() }].slice(-20); // keep last 20 messages
 	}
 
 	function onUpdateDone() {
@@ -103,16 +100,36 @@ function createUpdateStore() {
 	const planeComponent = $derived(info?.components.find((c) => c.name === "plane") ?? null);
 
 	return {
-		get info() { return info; },
-		get hasUpdate() { return info?.any_update_available ?? false; },
-		get loading() { return loading; },
-		get loadingNotes() { return loadingNotes; },
-		get updating() { return updating; },
-		get updateError() { return updateError; },
-		get updateDone() { return updateDone; },
-		get progressMessages() { return progressMessages; },
-		get components() { return info?.components ?? []; },
-		get planeVersion() { return planeComponent?.current ?? null; },
+		get info() {
+			return info;
+		},
+		get hasUpdate() {
+			return info?.any_update_available ?? false;
+		},
+		get loading() {
+			return loading;
+		},
+		get loadingNotes() {
+			return loadingNotes;
+		},
+		get updating() {
+			return updating;
+		},
+		get updateError() {
+			return updateError;
+		},
+		get updateDone() {
+			return updateDone;
+		},
+		get progressMessages() {
+			return progressMessages;
+		},
+		get components() {
+			return info?.components ?? [];
+		},
+		get planeVersion() {
+			return planeComponent?.current ?? null;
+		},
 		get releaseNotes() {
 			return info?.components.find((c) => c.update_available)?.changelog ?? null;
 		},
