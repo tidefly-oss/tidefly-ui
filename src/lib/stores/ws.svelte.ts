@@ -41,6 +41,12 @@ export interface ContainerDeletedPayload {
 	id: string;
 }
 
+export interface DeployProgressPayload {
+	deploy_id: string;
+	step: string;
+	message: string;
+}
+
 export interface DeployDonePayload {
 	deploy_id: string;
 	service_id: string;
@@ -78,7 +84,6 @@ export interface SystemMetricsPayload {
 
 type Listener<T = unknown> = (payload: T) => void;
 
-// States that should trigger a service list refresh
 const SERVICE_RELEVANT_STATES = new Set([
 	"running",
 	"unhealthy",
@@ -115,7 +120,6 @@ function createWSStore() {
 		on<ContainerUpdatedPayload>("container.updated", (p) => {
 			void qc.invalidateQueries({ queryKey: ["containers"] });
 			void qc.invalidateQueries({ queryKey: ["container", p.id] });
-			// Any state change refreshes services — covers deploying→running, healthy→unhealthy etc.
 			if (SERVICE_RELEVANT_STATES.has(p.state)) {
 				void qc.invalidateQueries({ queryKey: ["services"] });
 			}
@@ -143,6 +147,12 @@ function createWSStore() {
 		on("service.updated", () => qc.invalidateQueries({ queryKey: ["services"] }));
 		on("service.deleted", () => qc.invalidateQueries({ queryKey: ["services"] }));
 
+		on<DeployProgressPayload>("deploy.progress", (p) => {
+			if (p.deploy_id === "system-update") {
+				updateStore.onUpdateProgress(p.step, p.message);
+			}
+		});
+
 		on<DeployDonePayload>("deploy.done", (p) => {
 			void qc.invalidateQueries({ queryKey: ["services"] });
 			void qc.invalidateQueries({ queryKey: ["containers"] });
@@ -150,6 +160,7 @@ function createWSStore() {
 				updateStore.onUpdateDone();
 			}
 		});
+
 		on<DeployFailedPayload>("deploy.failed", (p) => {
 			void qc.invalidateQueries({ queryKey: ["services"] });
 			if (p.deploy_id === "system-update") {
