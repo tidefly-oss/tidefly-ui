@@ -24,10 +24,10 @@ let step = $state<1 | 2 | 3>(1);
 let selectedProvider = $state<GitProvider | null>(
 	(page.url.searchParams.get("provider") as GitProvider) ?? null
 );
-const name = $state("");
-const token = $state("");
-const baseURL = $state("");
-const username = $state("");
+let name = $state("");
+let token = $state("");
+let baseURL = $state("");
+let username = $state("");
 let error = $state("");
 
 const createMut = createMutation(() => ({

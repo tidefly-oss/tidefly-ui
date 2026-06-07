@@ -83,10 +83,10 @@ let gitBranch = $state("");
 let repoSearch = $state("");
 let branchSearch = $state("");
 let selectedOwner = $state("all");
-const dockerfile = $state(
+let dockerfile = $state(
 	"FROM nginx:alpine\nRUN echo '<h1>Hello from Tidefly!</h1>' > /usr/share/nginx/html/index.html\nEXPOSE 80"
 );
-const compose = $state(
+let compose = $state(
 	'services:\n  app:\n    image: nginx:alpine\n    ports:\n      - "8080:80"\n    restart: unless-stopped'
 );
 

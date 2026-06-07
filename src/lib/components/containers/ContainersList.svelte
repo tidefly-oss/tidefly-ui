@@ -27,7 +27,7 @@ import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { auth } from "$lib/stores/auth.svelte";
 
-const { initialData }: { initialData: Container[] } = $props();
+let { initialData }: { initialData: Container[] } = $props();
 
 const queryClient = useQueryClient();
 const isAdmin = $derived(auth.user?.role === "admin");
@@ -95,8 +95,8 @@ const actionMutation = createMutation(() => ({
 }));
 
 type Filter = "all" | "running" | "stopped";
-const filter = $state<Filter>("all");
-const globalFilter = $state("");
+let filter = $state<Filter>("all");
+let globalFilter = $state("");
 
 const statusDot: Record<ContainerStatus, string> = {
 	running: "#22c55e",

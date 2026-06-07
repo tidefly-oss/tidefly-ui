@@ -4,7 +4,7 @@ import { onDestroy } from "svelte";
 import { containersApi } from "$lib/api/v1/containers";
 
 type Props = { containerId: string; containerStatus: string };
-const { containerId, containerStatus }: Props = $props();
+let { containerId, containerStatus } = $props();
 
 type StatEntry = {
 	cpu_percent: number;

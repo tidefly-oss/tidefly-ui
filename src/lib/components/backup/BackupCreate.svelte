@@ -8,11 +8,11 @@ import { Label } from "$lib/components/ui/label/index.js";
 
 let loading = $state(false);
 
-const dbName = $state("");
-const dbHost = $state("localhost");
-const dbPort = $state("5432");
-const dbUser = $state("postgres");
-const dbPassword = $state("");
+let dbName = $state("");
+let dbHost = $state("localhost");
+let dbPort = $state("5432");
+let dbUser = $state("postgres");
+let dbPassword = $state("");
 
 const isValid = $derived(
 	dbName.trim().length > 0 && dbUser.trim().length > 0 && dbPassword.trim().length > 0

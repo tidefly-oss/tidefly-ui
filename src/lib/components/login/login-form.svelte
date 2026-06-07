@@ -1,51 +1,52 @@
 <script lang="ts">
-import type { HTMLFormAttributes } from "svelte/elements";
-import { goto } from "$app/navigation";
-import { authApi } from "$lib/api/v1/auth";
-import { Button } from "$lib/components/ui/button/index.js";
-import {
-	Field,
-	FieldDescription,
-	FieldGroup,
-	FieldLabel,
-	FieldSeparator,
-} from "$lib/components/ui/field/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import { cn, type WithElementRef } from "$lib/utils.js";
+    import type { HTMLFormAttributes } from "svelte/elements";
+    import { goto } from "$app/navigation";
+    import { authApi } from "$lib/api/v1/auth";
+    import { Button } from "$lib/components/ui/button/index.js";
+    import {
+        Field,
+        FieldGroup,
+        FieldLabel,
+    } from "$lib/components/ui/field/index.js";
+    import { Input } from "$lib/components/ui/input/index.js";
+    import { cn, type WithElementRef } from "$lib/utils.js";
 
-const {
-	ref = $bindable(null),
-	class: className,
-	...restProps
-}: WithElementRef<HTMLFormAttributes> = $props();
+    let {
+        ref = $bindable(null),
+        class: className,
+        ...restProps
+    }: WithElementRef<HTMLFormAttributes> = $props();
 
-const id = $props.id();
+    const id = $props.id();
 
-const email = $state("");
-const password = $state("");
-let error = $state("");
-let loading = $state(false);
+    let email = $state("");
+    let password = $state("");
+    let error = $state("");
+    let loading = $state(false);
 
-async function handleSubmit() {
-	error = "";
-	loading = true;
-	try {
-		await authApi.login({ email, password });
-		await goto("/dashboard");
-	} catch (e) {
-		console.error("Login error:", e);
-		error = "Login fehlgeschlagen";
-	} finally {
-		loading = false;
-	}
-}
+    async function handleSubmit() {
+        error = "";
+        loading = true;
+        try {
+            await authApi.login({ email, password });
+            await goto("/dashboard");
+        } catch (e) {
+            console.error("Login error:", e);
+            error = "Login fehlgeschlagen";
+        } finally {
+            loading = false;
+        }
+    }
 </script>
 
 <form
-        class={cn("flex flex-col gap-6", className)}
-        bind:this={ref}
-        onsubmit={(e) => { e.preventDefault(); handleSubmit(); }}
-        {...restProps}
+    class={cn("flex flex-col gap-6", className)}
+    bind:this={ref}
+    onsubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+    }}
+    {...restProps}
 >
     <FieldGroup>
         <div class="flex flex-col items-center gap-1 text-center">
@@ -59,15 +60,26 @@ async function handleSubmit() {
         {/if}
         <Field>
             <FieldLabel for="email-{id}">Email</FieldLabel>
-            <Input id="email-{id}" type="email" placeholder="m@example.com" required bind:value={email} />
+            <Input
+                id="email-{id}"
+                type="email"
+                placeholder="m@example.com"
+                required
+                bind:value={email}
+            />
         </Field>
         <Field>
             <FieldLabel for="password-{id}">Password</FieldLabel>
-            <Input id="password-{id}" type="password" required bind:value={password} />
+            <Input
+                id="password-{id}"
+                type="password"
+                required
+                bind:value={password}
+            />
         </Field>
         <Field>
             <Button type="submit" disabled={loading} class="w-full">
-                {loading ? 'Logging in…' : 'Login'}
+                {loading ? "Logging in…" : "Login"}
             </Button>
         </Field>
     </FieldGroup>

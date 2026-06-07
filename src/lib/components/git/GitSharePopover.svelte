@@ -7,7 +7,7 @@ import { projectsApi } from "$lib/api/v1/projects";
 import type { GitIntegration } from "$lib/api/v1/types/git.js";
 import { Button } from "$lib/components/ui/button/index.js";
 
-const { integration }: { integration: GitIntegration } = $props();
+let { integration }: { integration: GitIntegration } = $props();
 
 const qc = useQueryClient();
 
@@ -21,7 +21,7 @@ const allProjects = $derived(projectsQuery.data ?? []);
 
 let selected = $state<Set<string>>(new Set<string>());
 let open = $state(false);
-const triggerEl = $state<HTMLButtonElement | null>(null);
+let triggerEl = $state<HTMLButtonElement | null>(null);
 let pos = $state({ top: 0, left: 0 });
 
 $effect(() => {

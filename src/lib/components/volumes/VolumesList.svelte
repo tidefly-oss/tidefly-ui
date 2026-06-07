@@ -17,7 +17,7 @@ import * as Table from "$lib/components/ui/table/index.js";
 import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 import { auth } from "$lib/stores/auth.svelte";
 
-const { initialData }: { initialData: Volume[] } = $props();
+let { initialData }: { initialData: Volume[] } = $props();
 
 const queryClient = useQueryClient();
 const isAdmin = $derived(auth.user?.role === "admin");
@@ -40,8 +40,8 @@ const deleteMutation = createMutation(() => ({
 
 let globalFilter = $state("");
 let columnFilters = $state<ColumnFiltersState>([]);
-const usedBy = $state<Record<string, { id: string; name: string }[]>>({});
-const deleteTarget = $state<Volume | null>(null);
+let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+let deleteTarget = $state<Volume | null>(null);
 
 $effect(() => {
 	(query.data ?? []).forEach((v) => {

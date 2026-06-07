@@ -9,7 +9,7 @@ type Props = {
 	containerStatus: string;
 };
 
-const { containerId, containerName, containerStatus }: Props = $props();
+let { containerId, containerName, containerStatus } = $props();
 
 type LogEntry = { stream: "stdout" | "stderr"; line: string; ts?: string };
 
@@ -17,7 +17,7 @@ let logs = $state<LogEntry[]>([]);
 let logsEs: EventSource | null = null;
 let streaming = $state(false);
 let autoScroll = $state(true);
-const logsContainer = $state<HTMLElement | null>(null);
+let logsContainer = $state<HTMLElement | null>(null);
 
 function scrollToBottom() {
 	if (logsContainer && autoScroll) logsContainer.scrollTop = logsContainer.scrollHeight;

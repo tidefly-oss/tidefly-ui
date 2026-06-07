@@ -8,7 +8,7 @@ import SystemTab from "$lib/components/monitoring/SystemTab.svelte";
 import { appLogsStore, auditLogsStore } from "$lib/stores/logs.svelte.js";
 
 type Tab = "system" | "app" | "audit" | "proxy";
-const activeTab = $state<Tab>("system");
+let activeTab = $state<Tab>("system");
 
 onMount(() => {
 	appLogsStore.load({ reset: true });

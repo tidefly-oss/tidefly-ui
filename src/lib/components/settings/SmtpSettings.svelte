@@ -32,7 +32,7 @@ let smtpUsername = $state("");
 let smtpPassword = $state("");
 let smtpFrom = $state("");
 let smtpTLS = $state(false);
-const showPassword = $state(false);
+let showPassword = $state(false);
 
 $effect(() => {
 	if (settings) {

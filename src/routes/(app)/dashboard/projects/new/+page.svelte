@@ -24,9 +24,9 @@ const COLORS = [
 	"#78716c",
 ];
 
-const name = $state("");
-const description = $state("");
-const color = $state("#6366f1");
+let name = $state("");
+let description = $state("");
+let color = $state("#6366f1");
 let error = $state<string | null>(null);
 
 const networkPreview = $derived(

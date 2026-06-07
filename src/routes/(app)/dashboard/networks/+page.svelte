@@ -2,7 +2,7 @@
 import NetworksList from "$lib/components/networks/NetworksList.svelte";
 import type { PageData } from "./$types";
 
-const { data }: { data: PageData } = $props();
+let { data }: { data: PageData } = $props();
 </script>
 
 <div class="space-y-4">

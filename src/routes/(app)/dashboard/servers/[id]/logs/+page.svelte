@@ -35,7 +35,7 @@ let logs = $state<LogEntry[]>([]);
 let logsEs: EventSource | null = null;
 let streaming = $state(false);
 let autoScroll = $state(true);
-const logsContainer = $state<HTMLElement | null>(null);
+let logsContainer = $state<HTMLElement | null>(null);
 
 function scrollToBottom() {
 	if (logsContainer && autoScroll) logsContainer.scrollTop = logsContainer.scrollHeight;
