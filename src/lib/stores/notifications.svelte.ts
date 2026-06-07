@@ -75,6 +75,16 @@ class NotificationsStore {
 		this.items = this.items.filter((n) => !n.acknowledged_at);
 	}
 
+	async clearAll() {
+		// Acknowledge all unread first, then delete everything
+		const unreadIds = this.unread.map((n) => n.id);
+		if (unreadIds.length > 0) {
+			await notificationsApi.acknowledgeAll(unreadIds);
+		}
+		await notificationsApi.clearAcknowledged();
+		this.items = [];
+	}
+
 	private upsertLocal(incoming: Notification) {
 		const idx = this.items.findIndex((n) => n.id === incoming.id);
 		if (idx >= 0) {
