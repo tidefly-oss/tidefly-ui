@@ -1,7 +1,5 @@
 // ── Users ──────────────────────────────────────────────────────────────────
-
 export type UserRole = "admin" | "member";
-
 export type AdminUser = {
 	id: string;
 	email: string;
@@ -12,33 +10,27 @@ export type AdminUser = {
 	created_at: string;
 	project_ids: string[];
 };
-
 export interface CreateUserRequest {
 	email: string;
 	name: string;
-	role?: UserRole; // defaults to 'member' on backend
+	role?: UserRole;
 }
-
 export interface UpdateUserRequest {
 	name?: string;
 	role?: UserRole;
 }
-
 export interface ResetPasswordResponse {
 	temp_password: string;
 }
-
 export interface ProjectMemberEntry {
 	project_id: string;
 	role: "admin" | "member";
 }
-
 export interface SetProjectMembersRequest {
 	projects: ProjectMemberEntry[];
 }
 
 // ── Settings ───────────────────────────────────────────────────────────────
-
 export type RegistrationMode = "open" | "invite" | "disabled";
 
 export interface SystemSettings {
@@ -52,6 +44,7 @@ export interface SystemSettings {
 	smtp_tls_enabled: boolean;
 	session_timeout_hours: number;
 	notifications_enabled: boolean;
+	external_notifications_enabled: boolean;
 	slack_webhook_url: string;
 	discord_webhook_url: string;
 	notify_on_deploy: boolean;
@@ -73,6 +66,7 @@ export interface UpdateSettingsRequest {
 	smtp_tls_enabled?: boolean;
 	session_timeout_hours?: number;
 	notifications_enabled?: boolean;
+	external_notifications_enabled?: boolean;
 	slack_webhook_url?: string;
 	discord_webhook_url?: string;
 	notify_on_deploy?: boolean;
@@ -90,12 +84,10 @@ export interface User {
 	force_password_change: boolean;
 	project_ids: string[];
 }
-
 export interface LoginPayload {
 	email: string;
 	password: string;
 }
-
 export interface AuthResponse {
 	user: User;
 }
