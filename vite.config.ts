@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 export default defineConfig(({ mode }) => {
 	return {
 		plugins: [tailwindcss(), sveltekit()],
+		cacheDir: "node_modules/.vite",
 		server: {
 			...(mode === "development" && {
 				proxy: {
