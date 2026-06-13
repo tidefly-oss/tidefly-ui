@@ -69,7 +69,7 @@ const latestProgress = $derived(
 </script>
 
 <Dialog.Root bind:open>
-	<Dialog.Content class="max-w-3xl flex flex-col max-h-[85vh]">
+	<Dialog.Content class="max-w-3xl flex flex-col max-h-[85vh] overflow-hidden">
 		<Dialog.Header class="shrink-0 pb-4">
 			<div class="flex items-center gap-4">
 				<div
@@ -250,9 +250,7 @@ const latestProgress = $derived(
 			</div>
 		{/if}
 
-		<Dialog.Footer
-			class="shrink-0 border-t border-border pt-4 flex-row gap-2"
-		>
+		<Dialog.Footer class="shrink-0 border-t border-border pt-4 flex-row gap-2 mt-auto">
 			{#if updateStore.updateDone}
 				<Button onclick={() => (open = false)} class="flex-1"
 					>Close</Button
