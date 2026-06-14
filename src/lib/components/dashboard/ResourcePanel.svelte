@@ -1,53 +1,59 @@
 <script lang="ts">
-    import { ActivityIcon, ChevronRightIcon, CircleAlert, CpuIcon, HardDriveIcon } from "@lucide/svelte";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import type { SystemMetricsPayload } from "$lib/stores/ws.svelte";
+import {
+	ActivityIcon,
+	ChevronRightIcon,
+	CircleAlert,
+	CpuIcon,
+	HardDriveIcon,
+} from "@lucide/svelte";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+import type { SystemMetricsPayload } from "$lib/stores/ws.svelte";
 
-    interface Props {
-        metrics: SystemMetricsPayload | null;
-    }
+interface Props {
+	metrics: SystemMetricsPayload | null;
+}
 
-    const { metrics }: Props = $props();
+const { metrics }: Props = $props();
 
-    const cpuPct = $derived(metrics?.cpu_percent ?? 0);
-    const memPct = $derived(metrics?.mem_percent ?? 0);
-    const diskPct = $derived(
-        metrics?.disk_used && metrics.disk_total ? (metrics.disk_used / metrics.disk_total) * 100 : 0
-    );
+const cpuPct = $derived(metrics?.cpu_percent ?? 0);
+const memPct = $derived(metrics?.mem_percent ?? 0);
+const diskPct = $derived(
+	metrics?.disk_used && metrics.disk_total ? (metrics.disk_used / metrics.disk_total) * 100 : 0
+);
 
-    const hasWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
+const hasWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
 
-    function resourceBarColor(pct: number) {
-        return pct > 80 ? "bg-destructive" : pct > 60 ? "bg-amber-500" : "bg-primary";
-    }
+function resourceBarColor(pct: number) {
+	return pct > 80 ? "bg-destructive" : pct > 60 ? "bg-amber-500" : "bg-primary";
+}
 
-    function resourceTextColor(pct: number) {
-        return pct > 80 ? "text-destructive" : pct > 60 ? "text-amber-500" : "text-foreground";
-    }
+function resourceTextColor(pct: number) {
+	return pct > 80 ? "text-destructive" : pct > 60 ? "text-amber-500" : "text-foreground";
+}
 
-    const resourceMetrics = $derived([
-        {
-            label: "CPU",
-            icon: CpuIcon,
-            value: cpuPct,
-            text: cpuPct > 0 ? `${cpuPct.toFixed(1)}%` : "—",
-            tooltip: "Current CPU usage of the host machine",
-        },
-        {
-            label: "Memory",
-            icon: ActivityIcon,
-            value: memPct,
-            text: memPct > 0 ? `${memPct.toFixed(1)}%` : "—",
-            tooltip: "RAM usage — high usage can slow down containers",
-        },
-        {
-            label: "Disk",
-            icon: HardDriveIcon,
-            value: diskPct,
-            text: diskPct > 0 ? `${diskPct.toFixed(1)}%` : "—",
-            tooltip: "Disk space used — images and volumes consume storage",
-        },
-    ]);
+const resourceMetrics = $derived([
+	{
+		label: "CPU",
+		icon: CpuIcon,
+		value: cpuPct,
+		text: cpuPct > 0 ? `${cpuPct.toFixed(1)}%` : "—",
+		tooltip: "Current CPU usage of the host machine",
+	},
+	{
+		label: "Memory",
+		icon: ActivityIcon,
+		value: memPct,
+		text: memPct > 0 ? `${memPct.toFixed(1)}%` : "—",
+		tooltip: "RAM usage — high usage can slow down containers",
+	},
+	{
+		label: "Disk",
+		icon: HardDriveIcon,
+		value: diskPct,
+		text: diskPct > 0 ? `${diskPct.toFixed(1)}%` : "—",
+		tooltip: "Disk space used — images and volumes consume storage",
+	},
+]);
 </script>
 
 <div class="bg-card border rounded-xl overflow-hidden {hasWarning ? 'border-amber-500/20' : ''}">

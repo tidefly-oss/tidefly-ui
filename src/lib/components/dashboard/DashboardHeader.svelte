@@ -1,18 +1,18 @@
 <script lang="ts">
-    import { DatabaseIcon, PlusIcon } from "@lucide/svelte";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
+import { DatabaseIcon, PlusIcon } from "@lucide/svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
-    interface Props {
-        cpuPct: number;
-        memPct: number;
-        diskPct: number;
-        hasWarning: boolean;
-        systemHealthy: boolean;
-        unreadCount: number;
-    }
+interface Props {
+	cpuPct: number;
+	memPct: number;
+	diskPct: number;
+	hasWarning: boolean;
+	systemHealthy: boolean;
+	unreadCount: number;
+}
 
-    const { cpuPct, memPct, diskPct, hasWarning, systemHealthy, unreadCount }: Props = $props();
+const { cpuPct, memPct, diskPct, hasWarning, systemHealthy, unreadCount }: Props = $props();
 </script>
 
 <div class="flex items-center justify-between">

@@ -1,70 +1,74 @@
 <script lang="ts">
-    import {
-        BoxIcon,
-        ChevronRightIcon,
-        ContainerIcon,
-        ImageIcon,
-        InfoIcon,
-        NetworkIcon,
-    } from "@lucide/svelte";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import type {Container, Image as DockerImage, Network as DockerNetwork, Volume as DockerVolume} from "$lib/api/v1";
+import {
+	BoxIcon,
+	ChevronRightIcon,
+	ContainerIcon,
+	ImageIcon,
+	InfoIcon,
+	NetworkIcon,
+} from "@lucide/svelte";
+import type {
+	Container,
+	Image as DockerImage,
+	Network as DockerNetwork,
+	Volume as DockerVolume,
+} from "$lib/api/v1";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
+interface Props {
+	isPending: boolean;
+	containers: Container[];
+	images: DockerImage[];
+	networks: DockerNetwork[];
+	volumes: DockerVolume[];
+}
 
-    interface Props {
-        isPending: boolean;
-        containers: Container[];
-        images: DockerImage[];
-        networks: DockerNetwork[];
-        volumes: DockerVolume[];
-    }
+const { isPending, containers, images, networks, volumes }: Props = $props();
 
-    const { isPending, containers, images, networks, volumes }: Props = $props();
+const runningCount = $derived(containers.filter((c) => c.status === "running").length);
+const stoppedCount = $derived(containers.filter((c) => c.status !== "running").length);
 
-    const runningCount = $derived(containers.filter((c) => c.status === "running").length);
-    const stoppedCount = $derived(containers.filter((c) => c.status !== "running").length);
-
-    const statCards = $derived([
-        {
-            href: "/dashboard/containers",
-            icon: ContainerIcon,
-            value: containers.length,
-            label: "Containers",
-            tooltip: "Docker containers running on this host",
-            sub:
-                containers.length > 0
-                    ? `${runningCount} running${stoppedCount > 0 ? ` · ${stoppedCount} stopped` : ""}`
-                    : "None yet",
-            bar: containers.length > 0 ? runningCount / containers.length : null,
-        },
-        {
-            href: "/dashboard/images",
-            icon: ImageIcon,
-            value: images.length,
-            label: "Images",
-            tooltip: "Downloaded Docker images available locally",
-            sub: "Local registry",
-            bar: null,
-        },
-        {
-            href: "/dashboard/volumes",
-            icon: BoxIcon,
-            value: volumes.length,
-            label: "Volumes",
-            tooltip: "Persistent storage attached to containers",
-            sub: "Persistent storage",
-            bar: null,
-        },
-        {
-            href: "/dashboard/networks",
-            icon: NetworkIcon,
-            value: networks.length,
-            label: "Networks",
-            tooltip: "Docker networks for container isolation",
-            sub: "Project isolation",
-            bar: null,
-        },
-    ]);
+const statCards = $derived([
+	{
+		href: "/dashboard/containers",
+		icon: ContainerIcon,
+		value: containers.length,
+		label: "Containers",
+		tooltip: "Docker containers running on this host",
+		sub:
+			containers.length > 0
+				? `${runningCount} running${stoppedCount > 0 ? ` · ${stoppedCount} stopped` : ""}`
+				: "None yet",
+		bar: containers.length > 0 ? runningCount / containers.length : null,
+	},
+	{
+		href: "/dashboard/images",
+		icon: ImageIcon,
+		value: images.length,
+		label: "Images",
+		tooltip: "Downloaded Docker images available locally",
+		sub: "Local registry",
+		bar: null,
+	},
+	{
+		href: "/dashboard/volumes",
+		icon: BoxIcon,
+		value: volumes.length,
+		label: "Volumes",
+		tooltip: "Persistent storage attached to containers",
+		sub: "Persistent storage",
+		bar: null,
+	},
+	{
+		href: "/dashboard/networks",
+		icon: NetworkIcon,
+		value: networks.length,
+		label: "Networks",
+		tooltip: "Docker networks for container isolation",
+		sub: "Project isolation",
+		bar: null,
+	},
+]);
 </script>
 
 <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">

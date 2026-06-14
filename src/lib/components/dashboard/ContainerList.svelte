@@ -1,33 +1,33 @@
 <script lang="ts">
-    import { ChevronRightIcon, CircleIcon, PlayIcon, SquareIcon } from "@lucide/svelte";
-    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import type {Container, ContainerStatus} from "$lib/api/v1/types";
+import { ChevronRightIcon, CircleIcon, PlayIcon, SquareIcon } from "@lucide/svelte";
+import type { Container, ContainerStatus } from "$lib/api/v1/types";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
-    interface Props {
-        isPending: boolean;
-        containers: Container[];
-        onAction: (id: string, action: "start" | "stop") => void;
-        pendingId?: string;
-    }
+interface Props {
+	isPending: boolean;
+	containers: Container[];
+	onAction: (id: string, action: "start" | "stop") => void;
+	pendingId?: string;
+}
 
-    const { isPending, containers, onAction, pendingId }: Props = $props();
+const { isPending, containers, onAction, pendingId }: Props = $props();
 
-    const runningCount = $derived(containers.filter((c) => c.status === "running").length);
+const runningCount = $derived(containers.filter((c) => c.status === "running").length);
 
-    function statusColor(status: ContainerStatus) {
-        const m: Record<ContainerStatus, string> = {
-            running: "#22c55e",
-            stopped: "#6b7280",
-            exited: "#6b7280",
-            dead: "#ef4444",
-            paused: "#f59e0b",
-            restarting: "#3b82f6",
-            created: "#3b82f6",
-            unknown: "#6b7280",
-        };
-        return m[status] ?? "#6b7280";
-    }
+function statusColor(status: ContainerStatus) {
+	const m: Record<ContainerStatus, string> = {
+		running: "#22c55e",
+		stopped: "#6b7280",
+		exited: "#6b7280",
+		dead: "#ef4444",
+		paused: "#f59e0b",
+		restarting: "#3b82f6",
+		created: "#3b82f6",
+		unknown: "#6b7280",
+	};
+	return m[status] ?? "#6b7280";
+}
 </script>
 
 <div class="bg-card border rounded-xl overflow-hidden">
