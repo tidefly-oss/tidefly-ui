@@ -1,6 +1,7 @@
 export * from "./admin.js";
 export * from "./backup.ts";
 export * from "./containers.js";
+export * from "./dashboard.js";
 export * from "./git.js";
 export * from "./images.js";
 export * from "./logs.js";

@@ -118,6 +118,7 @@ function createWSStore() {
 		const qc = getQueryClient();
 
 		on<ContainerUpdatedPayload>("container.updated", (p) => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
 			void qc.invalidateQueries({ queryKey: ["containers"] });
 			void qc.invalidateQueries({ queryKey: ["container", p.id] });
 			if (SERVICE_RELEVANT_STATES.has(p.state)) {
@@ -126,6 +127,7 @@ function createWSStore() {
 		});
 
 		on<ContainerDeletedPayload>("container.deleted", (p) => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
 			void qc.invalidateQueries({ queryKey: ["containers"] });
 			qc.removeQueries({ queryKey: ["container", p.id] });
 			void qc.invalidateQueries({ queryKey: ["services"] });
@@ -136,9 +138,18 @@ function createWSStore() {
 			void qc.invalidateQueries({ queryKey: ["worker", p.id] });
 		});
 
-		on("image.deleted", () => qc.invalidateQueries({ queryKey: ["images"] }));
-		on("network.deleted", () => qc.invalidateQueries({ queryKey: ["networks"] }));
-		on("volume.deleted", () => qc.invalidateQueries({ queryKey: ["volumes"] }));
+		on("image.deleted", () => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+			void qc.invalidateQueries({ queryKey: ["images"] });
+		});
+		on("network.deleted", () => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+			void qc.invalidateQueries({ queryKey: ["networks"] });
+		});
+		on("volume.deleted", () => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
+			void qc.invalidateQueries({ queryKey: ["volumes"] });
+		});
 
 		on("git.integration.created", () => qc.invalidateQueries({ queryKey: ["git-integrations"] }));
 		on("git.integration.deleted", () => qc.invalidateQueries({ queryKey: ["git-integrations"] }));
@@ -154,6 +165,7 @@ function createWSStore() {
 		});
 
 		on<DeployDonePayload>("deploy.done", (p) => {
+			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
 			void qc.invalidateQueries({ queryKey: ["services"] });
 			void qc.invalidateQueries({ queryKey: ["containers"] });
 			if (p.deploy_id === "system-update") {
