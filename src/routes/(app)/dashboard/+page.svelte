@@ -9,6 +9,7 @@ import StatCards from "$lib/components/dashboard/StatCards.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { notificationsStore } from "$lib/stores/notifications.svelte";
 import { systemStore } from "$lib/stores/system.svelte";
+import { untrack } from "svelte";
 
 const overviewQuery = createOverviewQuery();
 const actionMutation = createActionMutation();
@@ -23,9 +24,10 @@ const volumes = $derived(data?.volumes ?? []);
 
 // Notifications: seed from overview on load, then live via notificationsStore (WS)
 $effect(() => {
-	if (data?.notifications && notificationsStore.items.length === 0) {
-		notificationsStore.items = data.notifications;
-	}
+    const notifs = data?.notifications;
+    if (notifs && untrack(() => notificationsStore.items.length === 0)) {
+        notificationsStore.items = notifs;
+    }
 });
 const notifications = $derived(notificationsStore.items.slice(0, 6));
 
