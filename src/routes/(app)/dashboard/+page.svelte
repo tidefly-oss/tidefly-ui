@@ -1,5 +1,6 @@
 <script lang="ts">
 import { ContainerIcon, DatabaseIcon, PlusIcon } from "@lucide/svelte";
+import { untrack } from "svelte";
 import ContainerList from "$lib/components/dashboard/ContainerList.svelte";
 import DashboardHeader from "$lib/components/dashboard/DashboardHeader.svelte";
 import { createActionMutation, createOverviewQuery } from "$lib/components/dashboard/queries";
@@ -9,7 +10,6 @@ import StatCards from "$lib/components/dashboard/StatCards.svelte";
 import { Button } from "$lib/components/ui/button/index.js";
 import { notificationsStore } from "$lib/stores/notifications.svelte";
 import { systemStore } from "$lib/stores/system.svelte";
-import { untrack } from "svelte";
 
 const overviewQuery = createOverviewQuery();
 const actionMutation = createActionMutation();
@@ -24,10 +24,10 @@ const volumes = $derived(data?.volumes ?? []);
 
 // Notifications: seed from overview on load, then live via notificationsStore (WS)
 $effect(() => {
-    const notifs = data?.notifications;
-    if (notifs && untrack(() => notificationsStore.items.length === 0)) {
-        notificationsStore.items = notifs;
-    }
+	const notifs = data?.notifications;
+	if (notifs && untrack(() => notificationsStore.items.length === 0)) {
+		notificationsStore.items = notifs;
+	}
 });
 const notifications = $derived(notificationsStore.items.slice(0, 6));
 
