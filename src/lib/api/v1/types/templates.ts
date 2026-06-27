@@ -4,8 +4,12 @@ export interface TemplateSummary {
 	category: string;
 	icon: string;
 	description: string;
+	tags?: string[];
 	versions: string[];
 	default_version: string;
+	docs_url?: string;
+	min_tidefly?: string;
+	official?: boolean;
 }
 
 export interface TemplateField {
