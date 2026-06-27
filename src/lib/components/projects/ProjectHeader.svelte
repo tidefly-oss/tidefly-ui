@@ -1,57 +1,57 @@
 <script lang="ts">
-    import { CheckIcon, Loader, PencilIcon, Trash2Icon, XIcon } from "@lucide/svelte";
-    import { Button } from "$lib/components/ui/button/index.js";
+import { CheckIcon, Loader, PencilIcon, Trash2Icon, XIcon } from "@lucide/svelte";
+import { Button } from "$lib/components/ui/button/index.js";
 
-    const COLORS = [
-        "#6366f1",
-        "#8b5cf6",
-        "#ec4899",
-        "#ef4444",
-        "#f97316",
-        "#eab308",
-        "#22c55e",
-        "#14b8a6",
-        "#3b82f6",
-        "#06b6d4",
-        "#64748b",
-        "#78716c",
-    ];
+const COLORS = [
+	"#6366f1",
+	"#8b5cf6",
+	"#ec4899",
+	"#ef4444",
+	"#f97316",
+	"#eab308",
+	"#22c55e",
+	"#14b8a6",
+	"#3b82f6",
+	"#06b6d4",
+	"#64748b",
+	"#78716c",
+];
 
-    type Props = {
-        project: { name: string; description: string; color: string };
-        editing: boolean;
-        saving: boolean;
-        deleting: boolean;
-        editName: string;
-        editDescription: string;
-        editColor: string;
-        editError: string | null;
-        onStartEdit: () => void;
-        onSaveEdit: () => void;
-        onCancelEdit: () => void;
-        onDeleteClick: () => void;
-        onEditNameChange: (v: string) => void;
-        onEditDescriptionChange: (v: string) => void;
-        onEditColorChange: (v: string) => void;
-    };
+type Props = {
+	project: { name: string; description: string; color: string };
+	editing: boolean;
+	saving: boolean;
+	deleting: boolean;
+	editName: string;
+	editDescription: string;
+	editColor: string;
+	editError: string | null;
+	onStartEdit: () => void;
+	onSaveEdit: () => void;
+	onCancelEdit: () => void;
+	onDeleteClick: () => void;
+	onEditNameChange: (v: string) => void;
+	onEditDescriptionChange: (v: string) => void;
+	onEditColorChange: (v: string) => void;
+};
 
-    let {
-        project,
-        editing,
-        saving,
-        deleting,
-        editName,
-        editDescription,
-        editColor,
-        editError,
-        onStartEdit,
-        onSaveEdit,
-        onCancelEdit,
-        onDeleteClick,
-        onEditNameChange,
-        onEditDescriptionChange,
-        onEditColorChange,
-    }: Props = $props();
+let {
+	project,
+	editing,
+	saving,
+	deleting,
+	editName,
+	editDescription,
+	editColor,
+	editError,
+	onStartEdit,
+	onSaveEdit,
+	onCancelEdit,
+	onDeleteClick,
+	onEditNameChange,
+	onEditDescriptionChange,
+	onEditColorChange,
+}: Props = $props();
 </script>
 
 <div class="bg-card border rounded-xl px-5 py-4">
