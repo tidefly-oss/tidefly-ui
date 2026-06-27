@@ -1,39 +1,14 @@
 <script lang="ts">
-import {
-	ArrowLeftIcon,
-	CheckIcon,
-	CircleIcon,
-	ContainerIcon,
-	Loader,
-	PencilIcon,
-	Trash2Icon,
-	XIcon,
-} from "@lucide/svelte";
+import { ArrowLeftIcon, Loader } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { projectsApi } from "$lib/api";
 import { ApiError } from "$lib/api/client";
-import type { ContainerStatus } from "$lib/api/v1/types";
+import ProjectContainers from "$lib/components/projects/ProjectContainers.svelte";
+import ProjectHeader from "$lib/components/projects/ProjectHeader.svelte";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
 import { projectKeys, projectQueries } from "$lib/queries/projects.js";
-
-const COLORS = [
-	"#6366f1",
-	"#8b5cf6",
-	"#ec4899",
-	"#ef4444",
-	"#f97316",
-	"#eab308",
-	"#22c55e",
-	"#14b8a6",
-	"#3b82f6",
-	"#06b6d4",
-	"#64748b",
-	"#78716c",
-];
 
 const qc = useQueryClient();
 const id = $derived(page.params.id ?? "");
@@ -110,16 +85,6 @@ async function confirmDelete() {
 	deleteMut.mutate();
 }
 
-const statusDot: Record<ContainerStatus, string> = {
-	running: "#22c55e",
-	stopped: "#6b7280",
-	exited: "#6b7280",
-	paused: "#f59e0b",
-	created: "#3b82f6",
-	dead: "#ef4444",
-	restarting: "#3b82f6",
-	unknown: "#6b7280",
-};
 function formatDate(iso: string) {
 	return new Date(iso).toLocaleString("de-DE");
 }
@@ -143,75 +108,24 @@ function formatDate(iso: string) {
       {error}
     </div>
   {:else if project}
-    <!-- Header -->
-    <div class="bg-card border rounded-xl px-5 py-4">
-      {#if editing}
-        <div class="space-y-3">
-          {#if editError}
-            <div class="text-xs text-destructive">{editError}</div>
-          {/if}
-          <div class="flex flex-wrap gap-1.5">
-            {#each COLORS as c}
-              <button
-                      type="button"
-                      onclick={() => (editColor = c)}
-                      class="size-5 rounded-full transition-transform hover:scale-110 {editColor === c ? 'ring-2 ring-offset-1 ring-ring scale-110' : ''}"
-                      style="background: {c}"
-                      aria-label="Select color {c}"
-              ></button>
-            {/each}
-          </div>
-          <input
-                  type="text"
-                  bind:value={editName}
-                  placeholder="Project name"
-                  class="w-full px-3 py-1.5 text-sm bg-background border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-          <textarea
-                  bind:value={editDescription}
-                  placeholder="Description (optional)"
-                  rows="2"
-                  class="w-full px-3 py-1.5 text-sm bg-background border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring resize-none"
-          ></textarea>
-          <div class="flex gap-2">
-            <Button size="sm" onclick={saveEdit} disabled={saving}>
-              {#if saving}<Loader class="size-3 mr-1 animate-spin" />{:else}<CheckIcon class="size-3 mr-1" />{/if}
-              Save
-            </Button>
-            <Button size="sm" variant="outline" onclick={() => (editing = false)} disabled={saving}>
-              <XIcon class="size-3 mr-1" /> Cancel
-            </Button>
-          </div>
-        </div>
-      {:else}
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="size-4 rounded-full shrink-0" style="background: {project.color}"></div>
-            <div>
-              <h1 class="font-semibold">{project.name}</h1>
-              {#if project.description}
-                <p class="text-xs text-muted-foreground mt-0.5">{project.description}</p>
-              {/if}
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <Button variant="outline" size="sm" onclick={startEdit}>
-              <PencilIcon class="size-3 mr-1.5" /> Edit
-            </Button>
-            <Button variant="destructive" size="sm" disabled={deleting} onclick={() => showDelete = true}>
-              {#if deleting}
-                <Loader class="size-3 mr-1.5 animate-spin" />
-              {:else}
-                <Trash2Icon class="size-3 mr-1.5" />
-              {/if}
-              Delete
-            </Button>
-          </div>
-        </div>
-      {/if}
-    </div>
+    <ProjectHeader
+            {project}
+            {editing}
+            {saving}
+            {deleting}
+            {editName}
+            {editDescription}
+            {editColor}
+            {editError}
+            onStartEdit={startEdit}
+            onSaveEdit={saveEdit}
+            onCancelEdit={() => (editing = false)}
+            onDeleteClick={() => (showDelete = true)}
+            onEditNameChange={(v) => (editName = v)}
+            onEditDescriptionChange={(v) => (editDescription = v)}
+            onEditColorChange={(v) => (editColor = v)}
+    />
 
-    <!-- Info + Containers -->
     <div class="grid gap-4 lg:grid-cols-3">
       <div class="bg-card border rounded-xl overflow-hidden">
         <div class="px-4 py-3 border-b text-sm font-medium">Details</div>
@@ -225,41 +139,11 @@ function formatDate(iso: string) {
         </div>
       </div>
 
-      <div class="lg:col-span-2 bg-card border rounded-xl overflow-hidden">
-        <div class="px-4 py-3 border-b flex items-center gap-2 text-sm font-medium">
-          <ContainerIcon class="size-3.5" />
-          Containers
-          <Badge variant="secondary" class="text-xs px-1.5 py-0 h-4">{containers.length}</Badge>
-        </div>
-        <div class="divide-y">
-          {#if containers.length === 0}
-            <div class="px-4 py-8 text-center">
-              <p class="text-sm text-muted-foreground">No containers in this project's network</p>
-              <p class="text-xs text-muted-foreground mt-1">
-                Connect containers to <span class="font-mono">{project.network_name}</span>
-              </p>
-            </div>
-          {:else}
-            {#each containers as c (c.id)}
-              <div class="px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors">
-                <CircleIcon class="size-2 fill-current shrink-0" style="color: {statusDot[c.status]}" />
-                <div class="flex-1 min-w-0">
-                  <span class="text-sm font-medium">{c.name}</span>
-                  <div class="text-xs text-muted-foreground mt-0.5">{c.image}</div>
-                </div>
-                <a href="/dashboard/containers/{c.id}" class="text-xs text-muted-foreground hover:text-foreground">
-                  View →
-                </a>
-              </div>
-            {/each}
-          {/if}
-        </div>
-      </div>
+      <ProjectContainers {containers} networkName={project.network_name} />
     </div>
   {/if}
 </div>
 
-<!-- Delete Confirmation Dialog -->
 <AlertDialog.Root bind:open={showDelete}>
   <AlertDialog.Content>
     <AlertDialog.Header>

@@ -10,7 +10,7 @@ export const dashboardQueries = {
 		refetchInterval: false as const,
 		refetchOnWindowFocus: false as const,
 		refetchOnReconnect: false as const,
-		refetchOnMount: false as const,
+		refetchOnMount: true as const,
 	}),
 };
 

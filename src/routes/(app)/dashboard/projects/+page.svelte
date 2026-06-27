@@ -1,27 +1,37 @@
 <script lang="ts">
-import { ChevronRightIcon, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
+import { ChevronRightIcon, Loader, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import { getContext } from "svelte";
-import { type DashboardOverview, projectsApi } from "$lib/api";
+import { projectsApi } from "$lib/api";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
 import { dashboardQueries } from "$lib/queries/dashboard.js";
 import { projectKeys } from "$lib/queries/projects.js";
 
 const qc = useQueryClient();
-const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
 
 const dashboardQuery = createQuery(() => dashboardQueries.get());
 const projects = $derived(dashboardQuery.data?.projects ?? []);
-const isError = $derived(false);
+
+let showDelete = $state(false);
+let pendingDelete = $state<{ id: string; name: string } | null>(null);
 
 const deleteMutation = createMutation(() => ({
 	mutationFn: (id: string) => projectsApi.delete(id),
-	onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: projectKeys.all() });
+		qc.invalidateQueries({ queryKey: dashboardQueries.get().queryKey });
+		showDelete = false;
+		pendingDelete = null;
+	},
 }));
 
-async function deleteProject(id: string, name: string) {
-	if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
-	deleteMutation.mutate(id);
+function promptDelete(id: string, name: string) {
+	pendingDelete = { id, name };
+	showDelete = true;
+}
+
+function confirmDelete() {
+	if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
 }
 
 function formatDate(iso: string) {
@@ -90,7 +100,7 @@ function formatDate(iso: string) {
                       size="icon"
                       class="size-6 text-destructive hover:text-destructive"
                       disabled={deleteMutation.isPending && deleteMutation.variables === p.id}
-                      onclick={(e) => { e.preventDefault(); deleteProject(p.id, p.name); }}
+                      onclick={(e) => { e.preventDefault(); promptDelete(p.id, p.name); }}
               >
                 <Trash2Icon class="size-3" />
               </Button>
@@ -117,3 +127,29 @@ function formatDate(iso: string) {
     </div>
   {/if}
 </div>
+
+<AlertDialog.Root bind:open={showDelete}>
+  <AlertDialog.Content>
+    <AlertDialog.Header>
+      <AlertDialog.Title>Delete project?</AlertDialog.Title>
+      <AlertDialog.Description>
+        This will permanently delete <span class="font-medium text-foreground">{pendingDelete?.name}</span>
+        and its Docker network. Containers in this network will lose their project association.
+        This action cannot be undone.
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel disabled={deleteMutation.isPending}>Cancel</AlertDialog.Cancel>
+      <AlertDialog.Action
+              class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onclick={confirmDelete}
+      >
+        {#if deleteMutation.isPending}
+          <Loader class="size-3 mr-1.5 animate-spin" />
+        {/if}
+        Delete Project
+      </AlertDialog.Action>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>

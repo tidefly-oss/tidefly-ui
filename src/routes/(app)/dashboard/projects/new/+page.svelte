@@ -5,6 +5,7 @@ import { goto } from "$app/navigation";
 import { projectsApi } from "$lib/api";
 import { ApiError } from "$lib/api/client";
 import { Button } from "$lib/components/ui/button/index.js";
+import { dashboardQueries } from "$lib/queries/dashboard.js";
 import { projectKeys } from "$lib/queries/projects.js";
 
 const qc = useQueryClient();
@@ -40,7 +41,11 @@ const createMut = createMutation(() => ({
 			description: description.trim() || undefined,
 			color,
 		}),
-	onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
+	onSuccess: () => {
+		// invalidate both project list and dashboard cache so sidebar + project list update immediately
+		qc.invalidateQueries({ queryKey: projectKeys.all() });
+		qc.invalidateQueries({ queryKey: dashboardQueries.get().queryKey });
+	},
 }));
 
 const submitting = $derived(createMut.isPending);
@@ -70,17 +75,15 @@ async function submit() {
 
   <div class="bg-card border rounded-xl p-5 space-y-4">
     {#if error}
-      <div
-              class="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-3 py-2 text-sm"
-      >
+      <div class="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-3 py-2 text-sm">
         {error}
       </div>
     {/if}
 
     <div class="space-y-1.5">
-      <label class="text-sm font-medium" for="name"
-      >Name <span class="text-destructive">*</span></label
-      >
+      <label class="text-sm font-medium" for="name">
+        Name <span class="text-destructive">*</span>
+      </label>
       <input
               id="name"
               type="text"
@@ -110,19 +113,12 @@ async function submit() {
 
     <div class="space-y-1.5">
       <label class="text-sm font-medium" for="color-group">Color</label>
-      <div
-              id="color-group"
-              class="flex flex-wrap gap-2"
-              role="group"
-              aria-label="Color"
-      >
+      <div id="color-group" class="flex flex-wrap gap-2" role="group" aria-label="Color">
         {#each COLORS as c}
           <button
                   type="button"
                   onclick={() => (color = c)}
-                  class="size-6 rounded-full transition-transform hover:scale-110 {color === c
-              ? 'ring-2 ring-offset-2 ring-ring scale-110'
-              : ''}"
+                  class="size-6 rounded-full transition-transform hover:scale-110 {color === c ? 'ring-2 ring-offset-2 ring-ring scale-110' : ''}"
                   style="background: {c}"
                   aria-label={`Select color ${c}`}
           ></button>
