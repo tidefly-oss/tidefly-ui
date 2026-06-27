@@ -1,32 +1,32 @@
 <script lang="ts">
-    import { CircleIcon, ContainerIcon } from "@lucide/svelte";
-    import { Badge } from "$lib/components/ui/badge/index.js";
-    import type { ContainerStatus } from "$lib/api/v1/types";
+import { CircleIcon, ContainerIcon } from "@lucide/svelte";
+import type { ContainerStatus } from "$lib/api/v1/types";
+import { Badge } from "$lib/components/ui/badge/index.js";
 
-    type Container = {
-        id: string;
-        name: string;
-        image: string;
-        status: ContainerStatus;
-    };
+type Container = {
+	id: string;
+	name: string;
+	image: string;
+	status: ContainerStatus;
+};
 
-    type Props = {
-        containers: Container[];
-        networkName: string;
-    };
+type Props = {
+	containers: Container[];
+	networkName: string;
+};
 
-    let { containers, networkName }: Props = $props();
+let { containers, networkName }: Props = $props();
 
-    const statusDot: Record<ContainerStatus, string> = {
-        running: "#22c55e",
-        stopped: "#6b7280",
-        exited: "#6b7280",
-        paused: "#f59e0b",
-        created: "#3b82f6",
-        dead: "#ef4444",
-        restarting: "#3b82f6",
-        unknown: "#6b7280",
-    };
+const statusDot: Record<ContainerStatus, string> = {
+	running: "#22c55e",
+	stopped: "#6b7280",
+	exited: "#6b7280",
+	paused: "#f59e0b",
+	created: "#3b82f6",
+	dead: "#ef4444",
+	restarting: "#3b82f6",
+	unknown: "#6b7280",
+};
 </script>
 
 <div class="lg:col-span-2 bg-card border rounded-xl overflow-hidden">

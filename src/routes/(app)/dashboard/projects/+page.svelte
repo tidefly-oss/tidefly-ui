@@ -1,46 +1,46 @@
 <script lang="ts">
-  import { ChevronRightIcon, Loader, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
-  import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-  import { projectsApi } from "$lib/api";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { dashboardQueries } from "$lib/queries/dashboard.js";
-  import { projectKeys } from "$lib/queries/projects.js";
+import { ChevronRightIcon, Loader, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { projectsApi } from "$lib/api";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { dashboardQueries } from "$lib/queries/dashboard.js";
+import { projectKeys } from "$lib/queries/projects.js";
 
-  const qc = useQueryClient();
+const qc = useQueryClient();
 
-  const dashboardQuery = createQuery(() => dashboardQueries.get());
-  const projects = $derived(dashboardQuery.data?.projects ?? []);
+const dashboardQuery = createQuery(() => dashboardQueries.get());
+const projects = $derived(dashboardQuery.data?.projects ?? []);
 
-  let showDelete = $state(false);
-  let pendingDelete = $state<{ id: string; name: string } | null>(null);
+let showDelete = $state(false);
+let pendingDelete = $state<{ id: string; name: string } | null>(null);
 
-  const deleteMutation = createMutation(() => ({
-    mutationFn: (id: string) => projectsApi.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: projectKeys.all() });
-      qc.invalidateQueries({ queryKey: dashboardQueries.get().queryKey });
-      showDelete = false;
-      pendingDelete = null;
-    },
-  }));
+const deleteMutation = createMutation(() => ({
+	mutationFn: (id: string) => projectsApi.delete(id),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: projectKeys.all() });
+		qc.invalidateQueries({ queryKey: dashboardQueries.get().queryKey });
+		showDelete = false;
+		pendingDelete = null;
+	},
+}));
 
-  function promptDelete(id: string, name: string) {
-    pendingDelete = { id, name };
-    showDelete = true;
-  }
+function promptDelete(id: string, name: string) {
+	pendingDelete = { id, name };
+	showDelete = true;
+}
 
-  function confirmDelete() {
-    if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
-  }
+function confirmDelete() {
+	if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
+}
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 </script>
 
 <div class="space-y-4">

@@ -10,14 +10,15 @@ import {
 	LoaderCircleIcon,
 	TagIcon,
 } from "@lucide/svelte";
-import { createMutation } from "@tanstack/svelte-query";
+import { createMutation, useQueryClient } from "@tanstack/svelte-query";
 import type { Component } from "svelte";
-import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { gitApi } from "$lib/api/v1/git";
 import { type GitProvider, providerMeta } from "$lib/api/v1/types/git.js";
 import { Badge } from "$lib/components/ui/badge/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
+
+const qc = useQueryClient();
 
 let step = $state<1 | 2 | 3>(1);
 
@@ -42,6 +43,7 @@ const createMut = createMutation(() => ({
 		});
 	},
 	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: ["git-integrations"] });
 		step = 3;
 	},
 	onError: (err: Error) => {

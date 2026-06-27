@@ -1,93 +1,93 @@
 <script lang="ts">
-  import { ArrowLeftIcon, Loader } from "@lucide/svelte";
-  import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-  import { goto } from "$app/navigation";
-  import { page } from "$app/state";
-  import { projectsApi } from "$lib/api";
-  import { ApiError } from "$lib/api/client";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { projectKeys, projectQueries } from "$lib/queries/projects.js";
-  import ProjectHeader from "$lib/components/projects/ProjectHeader.svelte";
-  import ProjectContainers from "$lib/components/projects/ProjectContainers.svelte";
+import { ArrowLeftIcon, Loader } from "@lucide/svelte";
+import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import { projectsApi } from "$lib/api";
+import { ApiError } from "$lib/api/client";
+import ProjectContainers from "$lib/components/projects/ProjectContainers.svelte";
+import ProjectHeader from "$lib/components/projects/ProjectHeader.svelte";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { projectKeys, projectQueries } from "$lib/queries/projects.js";
 
-  const qc = useQueryClient();
-  const id = $derived(page.params.id ?? "");
+const qc = useQueryClient();
+const id = $derived(page.params.id ?? "");
 
-  const projectQuery = createQuery(() => projectQueries.detail(id));
-  const containersQuery = createQuery(() => projectQueries.containers(id));
+const projectQuery = createQuery(() => projectQueries.detail(id));
+const containersQuery = createQuery(() => projectQueries.containers(id));
 
-  const project = $derived(projectQuery.data ?? null);
-  const containers = $derived(containersQuery.data ?? []);
-  const loading = $derived(projectQuery.isPending);
-  const error = $derived(projectQuery.error?.message ?? null);
+const project = $derived(projectQuery.data ?? null);
+const containers = $derived(containersQuery.data ?? []);
+const loading = $derived(projectQuery.isPending);
+const error = $derived(projectQuery.error?.message ?? null);
 
-  let deleting = $state(false);
-  let editing = $state(false);
-  let showDelete = $state(false);
+let deleting = $state(false);
+let editing = $state(false);
+let showDelete = $state(false);
 
-  let editName = $state("");
-  let editDescription = $state("");
-  let editColor = $state("");
-  let editError = $state<string | null>(null);
+let editName = $state("");
+let editDescription = $state("");
+let editColor = $state("");
+let editError = $state<string | null>(null);
 
-  const updateMut = createMutation(() => ({
-    mutationFn: (data: { name: string; description?: string; color: string }) =>
-            projectsApi.update(id, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: projectKeys.detail(id) });
-      qc.invalidateQueries({ queryKey: projectKeys.all() });
-      editing = false;
-    },
-    onError: (e: unknown) => {
-      editError = e instanceof ApiError ? e.message : "Failed to update project";
-    },
-  }));
+const updateMut = createMutation(() => ({
+	mutationFn: (data: { name: string; description?: string; color: string }) =>
+		projectsApi.update(id, data),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: projectKeys.detail(id) });
+		qc.invalidateQueries({ queryKey: projectKeys.all() });
+		editing = false;
+	},
+	onError: (e: unknown) => {
+		editError = e instanceof ApiError ? e.message : "Failed to update project";
+	},
+}));
 
-  const deleteMut = createMutation(() => ({
-    mutationFn: () => projectsApi.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: projectKeys.all() });
-      goto("/dashboard/projects");
-    },
-    onError: (e: unknown) => {
-      console.error(e);
-      deleting = false;
-      showDelete = false;
-    },
-  }));
+const deleteMut = createMutation(() => ({
+	mutationFn: () => projectsApi.delete(id),
+	onSuccess: () => {
+		qc.invalidateQueries({ queryKey: projectKeys.all() });
+		goto("/dashboard/projects");
+	},
+	onError: (e: unknown) => {
+		console.error(e);
+		deleting = false;
+		showDelete = false;
+	},
+}));
 
-  const saving = $derived(updateMut.isPending);
+const saving = $derived(updateMut.isPending);
 
-  function startEdit() {
-    if (!project) return;
-    editName = project.name;
-    editDescription = project.description;
-    editColor = project.color;
-    editError = null;
-    editing = true;
-  }
+function startEdit() {
+	if (!project) return;
+	editName = project.name;
+	editDescription = project.description;
+	editColor = project.color;
+	editError = null;
+	editing = true;
+}
 
-  async function saveEdit() {
-    if (!editName.trim()) {
-      editError = "Name is required";
-      return;
-    }
-    editError = null;
-    updateMut.mutate({
-      name: editName.trim(),
-      description: editDescription.trim() || undefined,
-      color: editColor,
-    });
-  }
+async function saveEdit() {
+	if (!editName.trim()) {
+		editError = "Name is required";
+		return;
+	}
+	editError = null;
+	updateMut.mutate({
+		name: editName.trim(),
+		description: editDescription.trim() || undefined,
+		color: editColor,
+	});
+}
 
-  async function confirmDelete() {
-    deleting = true;
-    deleteMut.mutate();
-  }
+async function confirmDelete() {
+	deleting = true;
+	deleteMut.mutate();
+}
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleString("de-DE");
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleString("de-DE");
+}
 </script>
 
 <div class="space-y-4">
