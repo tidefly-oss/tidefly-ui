@@ -1,115 +1,115 @@
 <script lang="ts">
-import { NetworkIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import {
-	type ColumnDef,
-	type ColumnFiltersState,
-	getCoreRowModel,
-	getFilteredRowModel,
-} from "@tanstack/table-core";
-import { goto } from "$app/navigation";
-import { networksApi } from "$lib/api/v1/networks";
-import type { Network } from "$lib/api/v1/types";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { auth } from "$lib/stores/auth.svelte";
+  import { SearchIcon, Trash2Icon } from "@lucide/svelte";
+  import { createMutation } from "@tanstack/svelte-query";
+  import {
+    type ColumnDef, type ColumnFiltersState,
+    getCoreRowModel, getFilteredRowModel,
+  } from "@tanstack/table-core";
+  import { goto } from "$app/navigation";
+  import { imagesApi } from "$lib/api/v1/images/index.js";
+  import type { Image } from "$lib/api/v1/types/images.js";
+  import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+  import * as Table from "$lib/components/ui/table/index.js";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { getContext } from "svelte";
 
-let { initialData }: { initialData: Network[] } = $props();
+  const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+  const isAdmin = $derived(auth.user?.role === "admin");
 
-const queryClient = useQueryClient();
-const isAdmin = $derived(auth.user?.role === "admin");
+  let deletedIds = $state<Set<string>>(new Set());
 
-const query = createQuery(() => ({
-	queryKey: ["networks"],
-	queryFn: () => networksApi.list(),
-	initialData,
-}));
+  const deleteMutation = createMutation(() => ({
+    mutationFn: ({ id, force }: { id: string; force: boolean }) => imagesApi.delete(id, force),
+    onSuccess: (_, { id }) => {
+      deletedIds = new Set([...deletedIds, id]);
+    },
+  }));
 
-const deleteMutation = createMutation(() => ({
-	mutationFn: (id: string) => networksApi.delete(id),
-	onSuccess: (_, id) => {
-		queryClient.setQueryData<Network[]>(
-			["networks"],
-			(old) => old?.filter((n) => n.id !== id) ?? []
-		);
-	},
-}));
+  let globalFilter = $state("");
+  let columnFilters = $state<ColumnFiltersState>([]);
+  let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+  let deleteTarget = $state<Image | null>(null);
 
-let globalFilter = $state("");
-let columnFilters = $state<ColumnFiltersState>([]);
-let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
-let deleteTarget = $state<Network | null>(null);
+  const images = $derived(
+          (ctx.data?.images ?? []).filter((i) => !deletedIds.has(i.id))
+  );
+  const isPending = $derived(ctx.isPending);
 
-$effect(() => {
-	(query.data ?? []).forEach((n) => {
-		if (usedBy[n.id] === undefined) fetchContainers(n.id);
-	});
-});
+  $effect(() => {
+    images.forEach((img) => {
+      if (usedBy[img.id] === undefined) fetchContainers(img.id);
+    });
+  });
 
-async function fetchContainers(networkId: string) {
-	try {
-		usedBy[networkId] = await networksApi.containers(networkId);
-	} catch {
-		usedBy[networkId] = [];
-	}
-}
+  async function fetchContainers(imageId: string) {
+    try {
+      usedBy[imageId] = await imagesApi.containers(imageId);
+    } catch {
+      usedBy[imageId] = [];
+    }
+  }
 
-const columns: ColumnDef<Network>[] = [
-	{ accessorKey: "name", header: "Name" },
-	{ id: "usedBy", header: "Used by" },
-	{ accessorKey: "driver", header: "Driver" },
-	{ accessorKey: "scope", header: "Scope" },
-	{ id: "subnet", header: "Subnet" },
-	{ id: "actions", header: "Actions" },
-];
+  function formatSize(bytes: number) {
+    if (bytes > 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+    return `${(bytes / 1e6).toFixed(0)} MB`;
+  }
 
-const table = createSvelteTable({
-	get data() {
-		return query.data ?? [];
-	},
-	columns,
-	state: {
-		get globalFilter() {
-			return globalFilter;
-		},
-		get columnFilters() {
-			return columnFilters;
-		},
-	},
-	onGlobalFilterChange: (updater) => {
-		globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
-	},
-	onColumnFiltersChange: (updater) => {
-		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
-	},
-	getCoreRowModel: getCoreRowModel(),
-	getFilteredRowModel: getFilteredRowModel(),
-	globalFilterFn: "includesString",
-});
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+  }
+
+  const columns: ColumnDef<Image>[] = [
+    { accessorKey: "tags", header: "Tag" },
+    { id: "usedBy", header: "Used by" },
+    { accessorKey: "size", header: "Size" },
+    { accessorKey: "created", header: "Created" },
+    { id: "actions", header: "Actions" },
+  ];
+
+  const table = createSvelteTable({
+    get data() { return images; },
+    columns,
+    state: {
+      get globalFilter() { return globalFilter; },
+      get columnFilters() { return columnFilters; },
+    },
+    onGlobalFilterChange: (updater) => {
+      globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+    },
+    onColumnFiltersChange: (updater) => {
+      columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, _, filterValue) =>
+            row.original.tags.some((t: string) => t.toLowerCase().includes(filterValue.toLowerCase())),
+  });
 </script>
 
 <div class="space-y-4">
   <div class="relative max-w-xs">
     <SearchIcon class="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-    <input type="text" placeholder="Search networks..." bind:value={globalFilter}
+    <input type="text" placeholder="Search images..." bind:value={globalFilter}
            class="w-full pl-8 pr-3 py-1.5 text-sm bg-muted/50 border rounded-lg focus:outline-none focus:ring-1 focus:ring-ring" />
   </div>
 
   <div class="bg-card border rounded-xl overflow-hidden">
-    {#if query.isPending}
+    {#if isPending}
       {#each Array(4) as _, i (i)}
         <div class="px-4 py-3 border-b flex items-center gap-4 animate-pulse">
           <div class="flex-1 space-y-1.5">
-            <div class="h-3.5 bg-muted rounded w-40"></div>
+            <div class="h-3.5 bg-muted rounded w-48"></div>
             <div class="h-3 bg-muted rounded w-24"></div>
           </div>
         </div>
       {/each}
-    {:else if query.isError}
-      <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
     {:else}
       <Table.Root>
         <Table.Header>
@@ -127,14 +127,21 @@ const table = createSvelteTable({
         </Table.Header>
         <Table.Body>
           {#each table.getRowModel().rows as row (row.id)}
-            {@const n = row.original}
-            {@const containers = usedBy[n.id] ?? []}
+            {@const img = row.original}
+            {@const containers = usedBy[img.id] ?? []}
             <Table.Row class="border-b last:border-0 hover:bg-muted/30 group">
               <Table.Cell class="px-4 py-3">
-                <span class="text-sm font-medium block">{n.name}</span>
-                <span class="text-xs text-muted-foreground font-mono">{n.id.slice(0, 12)}</span>
+                <div class="flex flex-wrap gap-1">
+                  {#if img.tags.length === 0}
+                    <span class="text-xs text-muted-foreground font-mono">{img.id.slice(7, 19)}</span>
+                  {:else}
+                    {#each img.tags as tag}
+                      <Badge variant="secondary" class="text-xs font-normal">{tag}</Badge>
+                    {/each}
+                  {/if}
+                </div>
+                <div class="text-xs text-muted-foreground mt-0.5 font-mono">{img.id.slice(7, 19)}</div>
               </Table.Cell>
-
               <Table.Cell class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   {#if containers.length === 0}
@@ -149,11 +156,8 @@ const table = createSvelteTable({
                   {/if}
                 </div>
               </Table.Cell>
-
-              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground">{n.driver}</Table.Cell>
-              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground">{n.scope}</Table.Cell>
-              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground font-mono">{n.ipam?.[0]?.subnet ?? "—"}</Table.Cell>
-
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatSize(img.size)}</Table.Cell>
+              <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(img.created)}</Table.Cell>
               <Table.Cell class="px-4 py-3">
                 {#if isAdmin}
                   {#if containers.length > 0}
@@ -167,7 +171,7 @@ const table = createSvelteTable({
                     </Tooltip.Root>
                   {:else}
                     <Button variant="ghost" size="icon" class="size-7 text-destructive hover:text-destructive"
-                            onclick={() => (deleteTarget = n)}>
+                            onclick={() => (deleteTarget = img)}>
                       <Trash2Icon class="size-3" />
                     </Button>
                   {/if}
@@ -176,10 +180,7 @@ const table = createSvelteTable({
             </Table.Row>
           {:else}
             <Table.Row>
-              <Table.Cell colspan={columns.length} class="py-12 text-center">
-                <NetworkIcon class="size-8 mx-auto mb-2 text-muted-foreground opacity-30" />
-                <p class="text-sm text-muted-foreground">No networks found</p>
-              </Table.Cell>
+              <Table.Cell colspan={columns.length} class="py-12 text-center text-sm text-muted-foreground">No images found</Table.Cell>
             </Table.Row>
           {/each}
         </Table.Body>
@@ -191,9 +192,14 @@ const table = createSvelteTable({
 <AlertDialog.Root open={deleteTarget !== null} onOpenChange={(o) => { if (!o) deleteTarget = null; }}>
   <AlertDialog.Content>
     <AlertDialog.Header>
-      <AlertDialog.Title>Delete network "{deleteTarget?.name}"?</AlertDialog.Title>
+      <AlertDialog.Title>Delete image?</AlertDialog.Title>
       <AlertDialog.Description>
-        This will permanently remove the network. Containers that depend on it may lose connectivity.
+        {#if deleteTarget && deleteTarget.tags.length > 0}
+          This will permanently delete <span class="font-medium text-foreground">{deleteTarget.tags[0]}</span>.
+        {:else}
+          This will permanently delete image <span class="font-mono text-foreground">{deleteTarget?.id.slice(7, 19)}</span>.
+        {/if}
+        This action cannot be undone.
       </AlertDialog.Description>
     </AlertDialog.Header>
     <AlertDialog.Footer>
@@ -201,11 +207,11 @@ const table = createSvelteTable({
       <AlertDialog.Action
               class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onclick={() => {
-          if (deleteTarget) deleteMutation.mutate(deleteTarget.id);
+          if (deleteTarget) deleteMutation.mutate({ id: deleteTarget.id, force: true });
           deleteTarget = null;
         }}
       >
-        Delete Network
+        Delete
       </AlertDialog.Action>
     </AlertDialog.Footer>
   </AlertDialog.Content>

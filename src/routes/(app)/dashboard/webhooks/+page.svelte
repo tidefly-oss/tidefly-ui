@@ -7,18 +7,19 @@ import { Button } from "$lib/components/ui/button";
 import * as Select from "$lib/components/ui/select/index.js";
 import WebhookCreateDialog from "$lib/components/webhooks/WebhookCreateDialog.svelte";
 import WebhookRow from "$lib/components/webhooks/WebhookRow.svelte";
-import { projectQueries } from "$lib/queries/projects.js";
 import { webhookKeys, webhookQueries } from "$lib/queries/webhooks.js";
 import { auth } from "$lib/stores/auth.svelte.js";
+import type {DashboardOverview} from "$lib/api";
+import {getContext} from "svelte";
 
 const qc = useQueryClient();
 const isAdmin = $derived(auth.user?.role === "admin");
+const ctx = getContext<{ data: DashboardOverview | undefined }>("dashboard");
 
 // ── Projects ──────────────────────────────────────────────────────────────
-const projectsQuery = createQuery(() => projectQueries.list());
 const visibleProjects = $derived(() => {
-	const all = projectsQuery.data ?? [];
-	return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
+    const all = ctx.data?.projects ?? [];
+    return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
 });
 
 let selectedProjectId = $state("");

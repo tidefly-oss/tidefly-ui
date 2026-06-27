@@ -1,163 +1,150 @@
 <script lang="ts">
-import {
-	CheckIcon,
-	ChevronRightIcon,
-	CircleIcon,
-	CopyIcon,
-	DatabaseIcon,
-	GlobeIcon,
-	LoaderIcon,
-} from "@lucide/svelte";
-import { createQuery, useQueryClient } from "@tanstack/svelte-query";
-import { goto } from "$app/navigation";
-import { ApiError } from "$lib/api/client";
-import { servicesApi } from "$lib/api/v1/services";
-import { templatesApi } from "$lib/api/v1/templates";
-import type { ServiceTemplate, TemplateField, TemplateSummary } from "$lib/api/v1/types";
-import PortInput from "$lib/components/containers/PortInput.svelte";
-import { Button } from "$lib/components/ui/button";
-import { projectQueries } from "$lib/queries/projects.js";
-import { auth } from "$lib/stores/auth.svelte.js";
+    import {
+        CheckIcon, ChevronRightIcon, CircleIcon, CopyIcon, DatabaseIcon, GlobeIcon, LoaderIcon,
+    } from "@lucide/svelte";
+    import { useQueryClient } from "@tanstack/svelte-query";
+    import { getContext } from "svelte";
+    import { goto } from "$app/navigation";
+    import { ApiError } from "$lib/api/client";
+    import { servicesApi } from "$lib/api/v1/manifest";
+    import { templatesApi } from "$lib/api/v1/templates";
+    import type { ServiceTemplate, TemplateField, TemplateSummary } from "$lib/api/v1/types";
+    import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+    import PortInput from "$lib/components/containers/PortInput.svelte";
+    import { Button } from "$lib/components/ui/button";
+    import { auth } from "$lib/stores/auth.svelte.js";
+    import {wsStore} from "$lib/stores/ws.svelte.js";
 
-let { summaries }: { summaries: TemplateSummary[] } = $props();
+    let { summaries }: { summaries: TemplateSummary[] } = $props();
 
-const qc = useQueryClient();
+    const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+    const qc = useQueryClient();
 
-const projectsQuery = createQuery(() => ({
-	...projectQueries.list(),
-	enabled: !!auth.user,
-}));
+    const isAdmin = $derived(auth.user?.role === "admin");
+    const allProjects = $derived(ctx.data?.projects ?? []);
+    const visibleProjects = $derived(
+        isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
+    );
 
-const isAdmin = $derived(auth.user?.role === "admin");
-const allProjects = $derived(projectsQuery.data ?? []);
-const visibleProjects = $derived(
-	isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
-);
+    type Step = "pick" | "configure" | "deploying" | "done";
+    let step = $state<Step>("pick");
+    let selected = $state<ServiceTemplate | null>(null);
+    let selectedVersion = $state("");
+    let loadingDetail = $state(false);
+    let projectId = $state("");
+    let fields = $state<Record<string, string>>({});
+    let deployError = $state<string | null>(null);
+    let deployedName = $state<string | null>(null);
+    let deployedUrl = $state<string | null>(null);
+    let credentials = $state<Record<string, string>>({});
+    let copiedKey = $state<string | null>(null);
+    let expose = $state(false);
 
-type Step = "pick" | "configure" | "deploying" | "done";
-let step = $state<Step>("pick");
-let selected = $state<ServiceTemplate | null>(null);
-let selectedVersion = $state("");
-let loadingDetail = $state(false);
-let projectId = $state("");
-let fields = $state<Record<string, string>>({});
-let deployError = $state<string | null>(null);
-let deployedName = $state<string | null>(null);
-let deployedUrl = $state<string | null>(null);
-let credentials = $state<Record<string, string>>({});
-let copiedKey = $state<string | null>(null);
-let expose = $state(false);
+    $effect(() => {
+        if (projectId === "" && visibleProjects.length === 1) {
+            projectId = visibleProjects[0].id;
+        }
+    });
 
-$effect(() => {
-	if (projectId === "" && visibleProjects.length === 1) {
-		projectId = visibleProjects[0].id;
-	}
-});
+    const grouped = $derived(
+        summaries.reduce<Record<string, TemplateSummary[]>>((acc, t) => {
+            if (!acc[t.category]) acc[t.category] = [];
+            acc[t.category].push(t);
+            return acc;
+        }, {})
+    );
 
-const grouped = $derived(
-	summaries.reduce<Record<string, TemplateSummary[]>>((acc, t) => {
-		if (!acc[t.category]) acc[t.category] = [];
-		acc[t.category].push(t);
-		return acc;
-	}, {})
-);
+    async function selectTemplate(slug: string) {
+        loadingDetail = true;
+        try {
+            selected = await templatesApi.get(slug);
+            selectedVersion = selected.default_version ?? selected.versions?.[0] ?? "latest";
+            fields = Object.fromEntries(
+                (selected.fields ?? [])
+                    .filter((f: TemplateField) => f.type !== "credential")
+                    .map((f: TemplateField) => [f.key, String(f.default ?? "")])
+            );
+            step = "configure";
+        } catch (e) {
+            console.error(e);
+        } finally {
+            loadingDetail = false;
+        }
+    }
 
-async function selectTemplate(slug: string) {
-	loadingDetail = true;
-	try {
-		selected = await templatesApi.get(slug);
-		selectedVersion = selected.default_version ?? selected.versions?.[0] ?? "latest";
-		fields = Object.fromEntries(
-			(selected.fields ?? [])
-				.filter((f: TemplateField) => f.type !== "credential")
-				.map((f: TemplateField) => [f.key, String(f.default ?? "")])
-		);
-		step = "configure";
-	} catch (e) {
-		console.error(e);
-	} finally {
-		loadingDetail = false;
-	}
-}
+    const exposeFields = $derived(
+        (selected?.fields ?? []).filter(
+            (f: TemplateField) => f.type !== "credential" && (f.key === "domain" || f.key === "port")
+        )
+    );
 
-// expose-gated fields: port + domain only when expose active
-const exposeFields = $derived(
-	(selected?.fields ?? []).filter(
-		(f: TemplateField) => f.type !== "credential" && (f.key === "domain" || f.key === "port")
-	)
-);
+    const otherFields = $derived(
+        (selected?.fields ?? []).filter(
+            (f: TemplateField) =>
+                f.type !== "credential" &&
+                f.key !== "domain" &&
+                f.key !== "port" &&
+                (!f.depends_on || fields[f.depends_on] === "true")
+        )
+    );
 
-// other fields: everything except port, domain, credential
-const otherFields = $derived(
-	(selected?.fields ?? []).filter(
-		(f: TemplateField) =>
-			f.type !== "credential" &&
-			f.key !== "domain" &&
-			f.key !== "port" &&
-			(!f.depends_on || fields[f.depends_on] === "true")
-	)
-);
+    const isValid = $derived(
+        selected !== null &&
+        projectId !== "" &&
+        otherFields.every(
+            (f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== ""
+        ) &&
+        (!expose ||
+            exposeFields.every(
+                (f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== ""
+            ))
+    );
 
-const isValid = $derived(
-	selected !== null &&
-		projectId !== "" &&
-		otherFields.every(
-			(f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== ""
-		) &&
-		(!expose ||
-			exposeFields.every(
-				(f: TemplateField) => !f.required || String(fields[f.key] ?? "").trim() !== ""
-			))
-);
+    const selectedProject = $derived(visibleProjects.find((p) => p.id === projectId));
 
-const selectedProject = $derived(visibleProjects.find((p) => p.id === projectId));
+    async function deploy() {
+        if (!selected || !isValid) return;
+        step = "deploying";
+        deployError = null;
 
-async function deploy() {
-	if (!selected || !isValid) return;
-	step = "deploying";
-	deployError = null;
+        wsStore.setDeployDoneCallback(() => {
+            goto("/dashboard/containers");
+        });
+        try {
+            const result = await servicesApi.createFromTemplate({
+                slug: selected.slug,
+                version: selectedVersion,
+                fields,
+                project_id: projectId,
+                expose,
+            });
+            credentials = result.credentials ?? {};
+        } catch (e) {
+            deployError = e instanceof ApiError ? e.message : "Deploy failed";
+            step = "configure";
+            wsStore.setDeployDoneCallback(null as any);
+        }
+    }
 
-	try {
-		const result = await servicesApi.createFromTemplate({
-			slug: selected.slug,
-			version: selectedVersion,
-			fields,
-			project_id: projectId,
-			expose,
-		});
+    async function copyToClipboard(value: string, key: string) {
+        await navigator.clipboard.writeText(value);
+        copiedKey = key;
+        setTimeout(() => (copiedKey = null), 2000);
+    }
 
-		deployedName = result.service.name;
-		deployedUrl = result.url ?? null;
-		credentials = result.credentials ?? {};
-		step = "done";
+    const categoryLabel: Record<string, string> = {
+        database: "Databases",
+        cache: "Caches",
+        messaging: "Messaging",
+        utilities: "Utilities",
+    };
 
-		await qc.invalidateQueries({ queryKey: ["services"] });
-		await qc.invalidateQueries({ queryKey: ["containers"] });
-	} catch (e) {
-		deployError = e instanceof ApiError ? e.message : "Deploy failed";
-		step = "configure";
-	}
-}
-
-async function copyToClipboard(value: string, key: string) {
-	await navigator.clipboard.writeText(value);
-	copiedKey = key;
-	setTimeout(() => (copiedKey = null), 2000);
-}
-
-const categoryLabel: Record<string, string> = {
-	database: "Databases",
-	cache: "Caches",
-	messaging: "Messaging",
-	utilities: "Utilities",
-};
-
-const categoryColor: Record<string, string> = {
-	database: "bg-blue-500/10 text-blue-500",
-	cache: "bg-orange-500/10 text-orange-500",
-	messaging: "bg-purple-500/10 text-purple-500",
-	utilities: "bg-green-500/10 text-green-500",
-};
+    const categoryColor: Record<string, string> = {
+        database: "bg-blue-500/10 text-blue-500",
+        cache: "bg-orange-500/10 text-orange-500",
+        messaging: "bg-purple-500/10 text-purple-500",
+        utilities: "bg-green-500/10 text-green-500",
+    };
 </script>
 
 <div class="w-full {step !== 'pick' ? 'max-w-2xl mx-auto' : ''} space-y-4">
@@ -206,7 +193,6 @@ const categoryColor: Record<string, string> = {
             <p class="text-sm text-muted-foreground mt-0.5">Set up your service</p>
         </div>
 
-        <!-- Version picker -->
         {#if selected.versions && selected.versions.length > 1}
             <div class="bg-card border rounded-xl overflow-hidden">
                 <div class="px-4 py-3 border-b text-sm font-medium">Version</div>
@@ -223,17 +209,15 @@ const categoryColor: Record<string, string> = {
             </div>
         {/if}
 
-        <!-- Project + Expose + Fields all in one card -->
         <div class="bg-card border rounded-xl p-6 space-y-5">
             <div>
                 <h2 class="font-semibold">Service Configuration</h2>
                 <p class="text-sm text-muted-foreground mt-0.5">Project, network access and settings.</p>
             </div>
 
-            <!-- Project -->
             <div class="space-y-2">
                 <p class="text-xs font-medium">Project <span class="text-destructive">*</span></p>
-                {#if projectsQuery.isPending}
+                {#if ctx.isPending}
                     <div class="flex gap-2">
                         {#each Array(2) as _, i (i)}
                             <div class="h-7 w-20 bg-muted rounded-lg animate-pulse"></div>
@@ -267,7 +251,6 @@ const categoryColor: Record<string, string> = {
                 {/if}
             </div>
 
-            <!-- Expose toggle -->
             <button
                     onclick={() => { expose = !expose; if (!expose) { fields['domain'] = ''; } }}
                     class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border-2 text-left transition-all {expose ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40'}"
@@ -282,7 +265,6 @@ const categoryColor: Record<string, string> = {
                 {#if expose}<CheckIcon class="size-4 text-primary shrink-0" />{/if}
             </button>
 
-            <!-- Port + Domain — only when expose active -->
             {#if expose}
                 <div class="grid grid-cols-2 gap-4">
                     {#each exposeFields as f (f.key)}
@@ -318,7 +300,6 @@ const categoryColor: Record<string, string> = {
                 </div>
             {/if}
 
-            <!-- Other fields -->
             {#each otherFields as f (f.key)}
                 {#if f.type === "boolean"}
                     <button

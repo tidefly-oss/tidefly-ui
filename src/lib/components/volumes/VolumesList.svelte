@@ -1,103 +1,91 @@
 <script lang="ts">
-import { HardDriveIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import {
-	type ColumnDef,
-	type ColumnFiltersState,
-	getCoreRowModel,
-	getFilteredRowModel,
-} from "@tanstack/table-core";
-import { goto } from "$app/navigation";
-import type { Volume } from "$lib/api/v1/types";
-import { volumesApi } from "$lib/api/v1/volumes";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { auth } from "$lib/stores/auth.svelte";
+  import { HardDriveIcon, SearchIcon, Trash2Icon } from "@lucide/svelte";
+  import { createMutation } from "@tanstack/svelte-query";
+  import {
+    type ColumnDef, type ColumnFiltersState,
+    getCoreRowModel, getFilteredRowModel,
+  } from "@tanstack/table-core";
+  import { goto } from "$app/navigation";
+  import type { Volume } from "$lib/api/v1/types";
+  import { volumesApi } from "$lib/api/v1/volumes";
+  import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+  import * as Table from "$lib/components/ui/table/index.js";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { getContext } from "svelte";
 
-let { initialData }: { initialData: Volume[] } = $props();
+  const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+  const isAdmin = $derived(auth.user?.role === "admin");
 
-const queryClient = useQueryClient();
-const isAdmin = $derived(auth.user?.role === "admin");
+  let deletedNames = $state<Set<string>>(new Set());
 
-const query = createQuery(() => ({
-	queryKey: ["volumes"],
-	queryFn: () => volumesApi.list(),
-	initialData,
-}));
+  const deleteMutation = createMutation(() => ({
+    mutationFn: (name: string) => volumesApi.delete(name),
+    onSuccess: (_: unknown, name: string) => {
+      deletedNames = new Set([...deletedNames, name]);
+    },
+  }));
 
-const deleteMutation = createMutation(() => ({
-	mutationFn: (name: string) => volumesApi.delete(name),
-	onSuccess: (_: unknown, name: string) => {
-		queryClient.setQueryData<Volume[]>(
-			["volumes"],
-			(old) => old?.filter((v) => v.name !== name) ?? []
-		);
-	},
-}));
+  let globalFilter = $state("");
+  let columnFilters = $state<ColumnFiltersState>([]);
+  let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+  let deleteTarget = $state<Volume | null>(null);
 
-let globalFilter = $state("");
-let columnFilters = $state<ColumnFiltersState>([]);
-let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
-let deleteTarget = $state<Volume | null>(null);
+  const volumes = $derived(
+          (ctx.data?.volumes ?? []).filter((v) => !deletedNames.has(v.name))
+  );
+  const isPending = $derived(ctx.isPending);
 
-$effect(() => {
-	(query.data ?? []).forEach((v) => {
-		if (usedBy[v.name] === undefined) fetchContainers(v.name);
-	});
-});
+  $effect(() => {
+    volumes.forEach((v) => {
+      if (usedBy[v.name] === undefined) fetchContainers(v.name);
+    });
+  });
 
-async function fetchContainers(volumeName: string) {
-	try {
-		const res = await fetch(`/api/v1/volumes/${encodeURIComponent(volumeName)}/containers`);
-		usedBy[volumeName] = res.ok ? await res.json() : [];
-	} catch {
-		usedBy[volumeName] = [];
-	}
-}
+  async function fetchContainers(volumeName: string) {
+    try {
+      const res = await fetch(`/api/v1/volumes/${encodeURIComponent(volumeName)}/containers`);
+      usedBy[volumeName] = res.ok ? await res.json() : [];
+    } catch {
+      usedBy[volumeName] = [];
+    }
+  }
 
-function formatDate(iso: string) {
-	return new Date(iso).toLocaleDateString("de-DE", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	});
-}
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+  }
 
-const columns: ColumnDef<Volume>[] = [
-	{ accessorKey: "name", header: "Name" },
-	{ id: "usedBy", header: "Used by" },
-	{ accessorKey: "driver", header: "Driver" },
-	{ accessorKey: "mountpath", header: "Mountpath" },
-	{ accessorKey: "created_at", header: "Created" },
-	{ id: "actions", header: "Actions" },
-];
+  const columns: ColumnDef<Volume>[] = [
+    { accessorKey: "name", header: "Name" },
+    { id: "usedBy", header: "Used by" },
+    { accessorKey: "driver", header: "Driver" },
+    { accessorKey: "mountpath", header: "Mountpath" },
+    { accessorKey: "created_at", header: "Created" },
+    { id: "actions", header: "Actions" },
+  ];
 
-const table = createSvelteTable({
-	get data() {
-		return query.data ?? [];
-	},
-	columns,
-	state: {
-		get globalFilter() {
-			return globalFilter;
-		},
-		get columnFilters() {
-			return columnFilters;
-		},
-	},
-	onGlobalFilterChange: (updater) => {
-		globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
-	},
-	onColumnFiltersChange: (updater) => {
-		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
-	},
-	getCoreRowModel: getCoreRowModel(),
-	getFilteredRowModel: getFilteredRowModel(),
-	globalFilterFn: "includesString",
-});
+  const table = createSvelteTable({
+    get data() { return volumes; },
+    columns,
+    state: {
+      get globalFilter() { return globalFilter; },
+      get columnFilters() { return columnFilters; },
+    },
+    onGlobalFilterChange: (updater) => {
+      globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+    },
+    onColumnFiltersChange: (updater) => {
+      columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: "includesString",
+  });
 </script>
 
 <div class="space-y-4">
@@ -108,7 +96,7 @@ const table = createSvelteTable({
   </div>
 
   <div class="bg-card border rounded-xl overflow-hidden">
-    {#if query.isPending}
+    {#if isPending}
       {#each Array(3) as _, i (i)}
         <div class="px-4 py-3 border-b flex items-center gap-4 animate-pulse">
           <div class="flex-1 space-y-1.5">
@@ -117,8 +105,6 @@ const table = createSvelteTable({
           </div>
         </div>
       {/each}
-    {:else if query.isError}
-      <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
     {:else}
       <Table.Root>
         <Table.Header>
@@ -140,7 +126,6 @@ const table = createSvelteTable({
             {@const containers = usedBy[v.name] ?? []}
             <Table.Row class="border-b last:border-0 hover:bg-muted/30 group">
               <Table.Cell class="px-4 py-3 font-mono text-sm font-medium">{v.name}</Table.Cell>
-
               <Table.Cell class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   {#if containers.length === 0}
@@ -155,11 +140,9 @@ const table = createSvelteTable({
                   {/if}
                 </div>
               </Table.Cell>
-
               <Table.Cell class="px-4 py-3 text-xs text-muted-foreground">{v.driver}</Table.Cell>
               <Table.Cell class="px-4 py-3 text-xs text-muted-foreground font-mono truncate max-w-48">{v.mountpath}</Table.Cell>
               <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(v.created_at)}</Table.Cell>
-
               <Table.Cell class="px-4 py-3">
                 {#if isAdmin}
                   {#if containers.length > 0}

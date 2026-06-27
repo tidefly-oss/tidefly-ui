@@ -7,11 +7,6 @@ export const projectKeys = {
 };
 
 export const projectQueries = {
-	list: () => ({
-		queryKey: projectKeys.all(),
-		queryFn: () => projectsApi.list(),
-		staleTime: 30_000,
-	}),
 	detail: (id: string) => ({
 		queryKey: projectKeys.detail(id),
 		queryFn: () => projectsApi.get(id),

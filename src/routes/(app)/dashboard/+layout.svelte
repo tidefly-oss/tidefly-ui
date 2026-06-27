@@ -1,122 +1,157 @@
 <script lang="ts">
-import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "@lucide/svelte";
-import { QueryClientProvider } from "@tanstack/svelte-query";
-import type { Snippet } from "svelte";
-import { onDestroy } from "svelte";
-import { goto } from "$app/navigation";
-import type { User } from "$lib/api/v1/types";
-import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
-import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
-import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
-import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-import { initQueryClient } from "$lib/query";
-import { auth } from "$lib/stores/auth.svelte";
-import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
-import { notificationsStore } from "$lib/stores/notifications.svelte";
-import { systemStore } from "$lib/stores/system.svelte";
-import { theme } from "$lib/stores/theme.svelte";
-import { wsStore } from "$lib/stores/ws.svelte";
+  import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "@lucide/svelte";
+  import { createQuery, QueryClientProvider } from "@tanstack/svelte-query";
+  import type { Snippet } from "svelte";
+  import { onDestroy, setContext } from "svelte";
+  import { goto } from "$app/navigation";
+  import type { User } from "$lib/api/v1/types";
+  import LoadingScreen from "$lib/components/dashboard/LoadingScreen.svelte";
+  import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
+  import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
+  import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
+  import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+  import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+  import { initQueryClient } from "$lib/query";
+  import { dashboardQueries } from "$lib/queries/dashboard";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
+  import { notificationsStore } from "$lib/stores/notifications.svelte";
+  import { systemStore } from "$lib/stores/system.svelte";
+  import { theme } from "$lib/stores/theme.svelte";
+  import { updateStore } from "$lib/stores/update.svelte";
+  import { wsStore } from "$lib/stores/ws.svelte";
 
-let { children }: { children: Snippet } = $props();
+  let { children }: { children: Snippet } = $props();
 
-const queryClient = initQueryClient();
+  const queryClient = initQueryClient();
 
-$effect(() => {
-	theme.init();
-	wsStore.connect();
-	notificationsStore.connectWS();
-	systemStore.connectWS();
-});
+  let authenticated = $state(false);
+  $effect(() => {
+    if (auth.isAuthenticated && !authenticated) {
+      authenticated = true;
+    }
+  });
 
-onDestroy(() => {
-	wsStore.disconnect();
-	notificationsStore.disconnectWS();
-	systemStore.disconnectWS();
-});
+  const dashboardQuery = createQuery(() => ({
+    ...dashboardQueries.get(),
+    enabled: authenticated,
+  }));
 
-async function handleLogout() {
-	await auth.logout();
-	await goto("/login");
-}
+  const showLoading = $derived(!dashboardQuery.data);
 
-function getUserInitials(user: User | null | undefined) {
-	const name = user?.name ?? user?.email ?? "U";
-	return name
-		.split(" ")
-		.map((n: string) => n[0])
-		.join("")
-		.toUpperCase()
-		.slice(0, 2);
-}
+  setContext("dashboard", {
+    get data() { return dashboardQuery.data; },
+    get isPending() { return dashboardQuery.isPending; },
+    refetch: () => dashboardQuery.refetch(),
+  });
+
+  $effect(() => {
+    const d = dashboardQuery.data;
+    if (!d) return;
+    if (d.user) auth.setUser(d.user);
+    if (d.notifications) notificationsStore.seed(d.notifications);
+    if (d.version) updateStore.setVersionInfo(d.version);
+    wsStore.connect();
+    notificationsStore.connectWS();
+    systemStore.connectWS();
+  });
+
+  // Deploy done → Dashboard neu laden damit neuer Container erscheint
+  let lastDeployDoneCount = 0;
+  $effect(() => {
+    wsStore.setDeployDoneCallback(() => {
+      void dashboardQuery.refetch();
+    });
+  });
+
+  $effect(() => { theme.init(); });
+
+  onDestroy(() => {
+    wsStore.disconnect();
+    notificationsStore.disconnectWS();
+    systemStore.disconnectWS();
+  });
+
+  async function handleLogout() {
+    await auth.logout();
+    await goto("/login");
+  }
+
+  function getUserInitials(user: User | null | undefined) {
+    const name = user?.name ?? user?.email ?? "U";
+    return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+  }
 </script>
 
 <QueryClientProvider client={queryClient}>
-  <Sidebar.Provider style="--sidebar-width: 19rem;">
-    <AppSidebar />
-    <Sidebar.Inset class="min-h-screen">
-      <header class="flex h-16 shrink-0 items-center gap-2 px-4">
-        <Breadcrumb.Root>
-          <Breadcrumb.List>
-            {#each getBreadcrumb() as item, i (item.href)}
-              <Breadcrumb.Item>
-                {#if item.href}
-                  <Breadcrumb.Link href={item.href}>{item.label}</Breadcrumb.Link>
-                {:else}
-                  <Breadcrumb.Page>{item.label}</Breadcrumb.Page>
-                {/if}
-                {#if i < getBreadcrumb().length - 1}
-                  <Breadcrumb.Separator class="hidden md:block" />
-                {/if}
-              </Breadcrumb.Item>
-            {/each}
-          </Breadcrumb.List>
-        </Breadcrumb.Root>
-
-        <div class="ml-auto flex items-center gap-2">
-          <NotificationBell />
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              {#snippet child({ props })}
-                <Button
-                        variant="ghost"
-                        size="icon"
-                        class="rounded-full cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
-                        {...props}
-                >
-                  <Avatar class="size-8">
-                    <AvatarFallback class="text-xs">{getUserInitials(auth.user)}</AvatarFallback>
-                  </Avatar>
-                </Button>
-              {/snippet}
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" class="w-56">
-              <div class="px-3 py-2">
-                <p class="text-sm font-medium">{auth.user?.name ?? ""}</p>
-                <p class="text-muted-foreground truncate text-xs">{auth.user?.email ?? ""}</p>
-              </div>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item onSelect={() => goto("/dashboard/settings/profile")}>
-                <UserIcon class="mr-2 size-4" /> Profile
-              </DropdownMenu.Item>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Label class="text-muted-foreground px-3 py-1 text-xs font-normal">Theme</DropdownMenu.Label>
-              <DropdownMenu.Item onclick={() => theme.set("light")}><SunIcon class="mr-2 size-4" /> Light</DropdownMenu.Item>
-              <DropdownMenu.Item onclick={() => theme.set("dark")}><MoonIcon class="mr-2 size-4" /> Dark</DropdownMenu.Item>
-              <DropdownMenu.Item onclick={() => theme.set("system")}><MonitorIcon class="mr-2 size-4" /> System</DropdownMenu.Item>
-              <DropdownMenu.Separator />
-              <DropdownMenu.Item onclick={handleLogout} class="text-destructive focus:text-destructive">
-                <LogOutIcon class="mr-2 size-4" /> Logout
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-        </div>
-      </header>
-      <main class="p-6">
-        {@render children()}
-      </main>
-    </Sidebar.Inset>
-  </Sidebar.Provider>
+  {#if showLoading}
+    <LoadingScreen message="Setting up your dashboard" />
+  {:else}
+    <Sidebar.Provider style="--sidebar-width: 19rem;">
+      <AppSidebar />
+      <Sidebar.Inset class="min-h-screen">
+        <header class="flex h-16 shrink-0 items-center gap-2 px-4">
+          <Breadcrumb.Root>
+            <Breadcrumb.List>
+              {#each getBreadcrumb() as item, i (item.href)}
+                <Breadcrumb.Item>
+                  {#if item.href}
+                    <Breadcrumb.Link href={item.href}>{item.label}</Breadcrumb.Link>
+                  {:else}
+                    <Breadcrumb.Page>{item.label}</Breadcrumb.Page>
+                  {/if}
+                  {#if i < getBreadcrumb().length - 1}
+                    <Breadcrumb.Separator class="hidden md:block" />
+                  {/if}
+                </Breadcrumb.Item>
+              {/each}
+            </Breadcrumb.List>
+          </Breadcrumb.Root>
+          <div class="ml-auto flex items-center gap-2">
+            <NotificationBell />
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                {#snippet child({ props })}
+                  <Button
+                          variant="ghost"
+                          size="icon"
+                          class="rounded-full cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0"
+                          {...props}
+                  >
+                    <Avatar class="size-8">
+                      <AvatarFallback class="text-xs">{getUserInitials(auth.user)}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                {/snippet}
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="end" class="w-56">
+                <div class="px-3 py-2">
+                  <p class="text-sm font-medium">{auth.user?.name ?? ""}</p>
+                  <p class="text-muted-foreground truncate text-xs">{auth.user?.email ?? ""}</p>
+                </div>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item onSelect={() => goto("/dashboard/settings/profile")}>
+                  <UserIcon class="mr-2 size-4" /> Profile
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Label class="text-muted-foreground px-3 py-1 text-xs font-normal">Theme</DropdownMenu.Label>
+                <DropdownMenu.Item onclick={() => theme.set("light")}><SunIcon class="mr-2 size-4" /> Light</DropdownMenu.Item>
+                <DropdownMenu.Item onclick={() => theme.set("dark")}><MoonIcon class="mr-2 size-4" /> Dark</DropdownMenu.Item>
+                <DropdownMenu.Item onclick={() => theme.set("system")}><MonitorIcon class="mr-2 size-4" /> System</DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item onclick={handleLogout} class="text-destructive focus:text-destructive">
+                  <LogOutIcon class="mr-2 size-4" /> Logout
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </div>
+        </header>
+        <main class="p-6">
+          {@render children()}
+        </main>
+      </Sidebar.Inset>
+    </Sidebar.Provider>
+  {/if}
 </QueryClientProvider>

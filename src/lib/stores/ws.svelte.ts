@@ -1,9 +1,8 @@
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { tokenStore } from "$lib/api/client";
-import { getQueryClient } from "$lib/query";
+import { containersApi } from "$lib/api/v1/containers/index.js";
+import type { Container } from "$lib/api/v1/types";
 import { updateStore } from "./update.svelte";
-
-// ── Event Types ───────────────────────────────────────────────────────────────
 
 export type WSEventType =
 	| "container.updated"
@@ -80,27 +79,17 @@ export interface SystemMetricsPayload {
 	disk_total: number;
 }
 
-// ── Listener registry ─────────────────────────────────────────────────────────
-
 type Listener<T = unknown> = (payload: T) => void;
-
-const SERVICE_RELEVANT_STATES = new Set([
-	"running",
-	"unhealthy",
-	"restarting",
-	"dead",
-	"exited",
-	"oomkilled",
-	"created",
-	"paused",
-]);
-
-// ── Store ─────────────────────────────────────────────────────────────────────
 
 function createWSStore() {
 	let connected = $state(false);
 	let ws: ReconnectingWebSocket | null = null;
+	let onDeployDone: (() => void) | null = null;
 	const listeners = new Map<WSEventType, Set<Listener>>();
+
+	let containerPatches = $state<Record<string, string>>({});
+	let deletedContainerIds = $state<Set<string>>(new Set());
+	let liveContainers = $state<Container[] | null>(null);
 
 	function on<T>(type: WSEventType, fn: Listener<T>): () => void {
 		if (!listeners.has(type)) listeners.set(type, new Set());
@@ -109,54 +98,29 @@ function createWSStore() {
 	}
 
 	function emit(type: WSEventType, payload: unknown) {
-		listeners.get(type)?.forEach((fn) => {
-			fn(payload);
-		});
+		listeners.get(type)?.forEach((fn) => fn(payload));
 	}
 
-	function registerQueryInvalidations() {
-		const qc = getQueryClient();
+	function patchContainer(id: string, status: string) {
+		containerPatches = { ...containerPatches, [id]: status };
+	}
 
+	function markDeleted(id: string) {
+		deletedContainerIds = new Set([...deletedContainerIds, id]);
+	}
+
+	function setDeployDoneCallback(cb: () => void) {
+		onDeployDone = cb;
+	}
+
+	function registerEventHandlers() {
 		on<ContainerUpdatedPayload>("container.updated", (p) => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["containers"] });
-			void qc.invalidateQueries({ queryKey: ["container", p.id] });
-			if (SERVICE_RELEVANT_STATES.has(p.state)) {
-				void qc.invalidateQueries({ queryKey: ["services"] });
-			}
+			patchContainer(p.id, p.status);
 		});
 
 		on<ContainerDeletedPayload>("container.deleted", (p) => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["containers"] });
-			qc.removeQueries({ queryKey: ["container", p.id] });
-			void qc.invalidateQueries({ queryKey: ["services"] });
+			markDeleted(p.id);
 		});
-
-		on<WorkerUpdatedPayload>("worker.updated", (p) => {
-			void qc.invalidateQueries({ queryKey: ["workers"] });
-			void qc.invalidateQueries({ queryKey: ["worker", p.id] });
-		});
-
-		on("image.deleted", () => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["images"] });
-		});
-		on("network.deleted", () => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["networks"] });
-		});
-		on("volume.deleted", () => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["volumes"] });
-		});
-
-		on("git.integration.created", () => qc.invalidateQueries({ queryKey: ["git-integrations"] }));
-		on("git.integration.deleted", () => qc.invalidateQueries({ queryKey: ["git-integrations"] }));
-
-		on("service.created", () => qc.invalidateQueries({ queryKey: ["services"] }));
-		on("service.updated", () => qc.invalidateQueries({ queryKey: ["services"] }));
-		on("service.deleted", () => qc.invalidateQueries({ queryKey: ["services"] }));
 
 		on<DeployProgressPayload>("deploy.progress", (p) => {
 			if (p.deploy_id === "system-update") {
@@ -165,19 +129,16 @@ function createWSStore() {
 		});
 
 		on<DeployDonePayload>("deploy.done", (p) => {
-			void qc.invalidateQueries({ queryKey: ["dashboard", "overview"] });
-			void qc.invalidateQueries({ queryKey: ["services"] });
-			void qc.invalidateQueries({ queryKey: ["containers"] });
-			if (p.deploy_id === "system-update") {
-				updateStore.onUpdateDone();
+			if (p.deploy_id !== "system-update") {
+				containersApi.list(true).then((list) => {
+					liveContainers = list;
+					onDeployDone?.();
+				});
 			}
 		});
 
 		on<DeployFailedPayload>("deploy.failed", (p) => {
-			void qc.invalidateQueries({ queryKey: ["services"] });
-			if (p.deploy_id === "system-update") {
-				updateStore.onUpdateFailed(p.error);
-			}
+			if (p.deploy_id === "system-update") updateStore.onUpdateFailed(p.error);
 		});
 	}
 
@@ -190,7 +151,7 @@ function createWSStore() {
 			return;
 		}
 
-		registerQueryInvalidations();
+		registerEventHandlers();
 
 		const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 		const url = `${protocol}//${window.location.host}/api/v1/ws?token=${encodeURIComponent(token)}`;
@@ -207,9 +168,7 @@ function createWSStore() {
 			ws?.send(JSON.stringify({ type: "subscribe", topics }));
 		});
 
-		ws.addEventListener("close", () => {
-			connected = false;
-		});
+		ws.addEventListener("close", () => { connected = false; });
 
 		ws.addEventListener("message", (e: MessageEvent) => {
 			try {
@@ -224,6 +183,9 @@ function createWSStore() {
 		ws = null;
 		connected = false;
 		listeners.clear();
+		containerPatches = {};
+		deletedContainerIds = new Set();
+		liveContainers = null;
 	}
 
 	function ping() {
@@ -231,9 +193,13 @@ function createWSStore() {
 	}
 
 	return {
-		get connected() {
-			return connected;
-		},
+		get connected() { return connected; },
+		get containerPatches() { return containerPatches; },
+		get deletedContainerIds() { return deletedContainerIds; },
+		get liveContainers() { return liveContainers; },
+		setDeployDoneCallback,
+		patchContainer,
+		markDeleted,
 		connect,
 		disconnect,
 		ping,

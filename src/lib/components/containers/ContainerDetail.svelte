@@ -12,7 +12,7 @@ import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-qu
 import { goto } from "$app/navigation";
 import { page } from "$app/state";
 import { containersApi } from "$lib/api/v1/containers/index.js";
-import { servicesApi } from "$lib/api/v1/services";
+import { servicesApi } from "$lib/api/v1/manifest";
 import type { ContainerDetails, ContainerStatus } from "$lib/api/v1/types/index.js";
 import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
 import { Button } from "$lib/components/ui/button/index.js";
@@ -48,7 +48,7 @@ const actionMutation = createMutation(() => ({
 	onSuccess: (_, action) => {
 		if (action === "delete") {
 			queryClient.invalidateQueries({ queryKey: ["containers"] });
-			queryClient.invalidateQueries({ queryKey: ["services"] });
+			queryClient.invalidateQueries({ queryKey: ["manifest"] });
 			goto("/dashboard/containers");
 			return;
 		}

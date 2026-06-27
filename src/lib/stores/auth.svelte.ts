@@ -6,6 +6,7 @@ function createAuthStore() {
 	let user = $state<User | null>(null);
 	let loading = $state(false);
 	let initialized = $state(false);
+	let hasToken = $state(false);
 
 	return {
 		get user() {
@@ -23,47 +24,42 @@ function createAuthStore() {
 		get projectIds(): string[] {
 			return user?.project_ids ?? [];
 		},
-
 		hasProjectAccess(projectId: string): boolean {
 			if (!user) return false;
 			if (user.role === "admin") return true;
 			return (user.project_ids ?? []).includes(projectId);
 		},
-
 		setUser(u: User) {
 			user = u;
+			hasToken = true;
 			initialized = true;
 		},
-
-		// Called on app boot — tries to restore session via refresh cookie.
-		// If the HttpOnly cookie is still valid, we get a new access token silently.
 		async init() {
 			if (initialized) return;
 			loading = true;
 			try {
 				const res = await fetch("/api/v1/auth/refresh", {
-					// kein VITE_API_URL prefix
 					method: "POST",
 					credentials: "include",
 				});
 				if (res.ok) {
 					const data = await res.json();
 					tokenStore.set(data.access_token);
-					const meRes = await authApi.me();
-					user = meRes.user;
+					hasToken = true;
 				} else {
 					tokenStore.clear();
+					hasToken = false;
 					user = null;
 				}
 			} catch {
 				tokenStore.clear();
+				hasToken = false;
 				user = null;
 			} finally {
 				loading = false;
 				initialized = true;
 			}
 		},
-
 		async refresh() {
 			loading = true;
 			try {
@@ -75,30 +71,31 @@ function createAuthStore() {
 				loading = false;
 			}
 		},
-
 		async login(payload: LoginPayload) {
 			loading = true;
 			try {
 				await authApi.login(payload);
-				// Direkt redirecten — auth.init() holt User nach Reload via Refresh Cookie
 				window.location.assign("/dashboard");
 			} catch (e) {
 				loading = false;
 				throw e;
 			}
 		},
-
 		async logout() {
 			loading = true;
 			try {
 				await authApi.logout();
 			} finally {
 				user = null;
+				hasToken = false;
 				loading = false;
 				initialized = false;
 				tokenStore.clear();
 				window.location.href = "/login";
 			}
+		},
+		get isAuthenticated() {
+			return initialized && hasToken;
 		},
 	};
 }

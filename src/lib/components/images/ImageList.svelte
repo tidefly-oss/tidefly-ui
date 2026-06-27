@@ -1,105 +1,96 @@
 <script lang="ts">
-import { SearchIcon, Trash2Icon } from "@lucide/svelte";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import {
-	type ColumnDef,
-	type ColumnFiltersState,
-	getCoreRowModel,
-	getFilteredRowModel,
-} from "@tanstack/table-core";
-import { goto } from "$app/navigation";
-import { imagesApi } from "$lib/api/v1/images/index.js";
-import type { Image } from "$lib/api/v1/types/images.js";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
-import * as Table from "$lib/components/ui/table/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-import { auth } from "$lib/stores/auth.svelte";
+  import { SearchIcon, Trash2Icon } from "@lucide/svelte";
+  import { createMutation } from "@tanstack/svelte-query";
+  import {
+    type ColumnDef, type ColumnFiltersState,
+    getCoreRowModel, getFilteredRowModel,
+  } from "@tanstack/table-core";
+  import { goto } from "$app/navigation";
+  import { imagesApi } from "$lib/api/v1/images/index.js";
+  import type { Image } from "$lib/api/v1/types/images.js";
+  import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { createSvelteTable, FlexRender } from "$lib/components/ui/data-table/index.js";
+  import * as Table from "$lib/components/ui/table/index.js";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { getContext } from "svelte";
 
-let { initialData }: { initialData: Image[] } = $props();
+  const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+  const isAdmin = $derived(auth.user?.role === "admin");
 
-const queryClient = useQueryClient();
-const isAdmin = $derived(auth.user?.role === "admin");
+  let deletedIds = $state<Set<string>>(new Set());
 
-const query = createQuery(() => ({
-	queryKey: ["images"],
-	queryFn: () => imagesApi.list(),
-	initialData,
-}));
+  const deleteMutation = createMutation(() => ({
+    mutationFn: ({ id, force }: { id: string; force: boolean }) => imagesApi.delete(id, force),
+    onSuccess: (_, { id }) => {
+      deletedIds = new Set([...deletedIds, id]);
+    },
+  }));
 
-const deleteMutation = createMutation(() => ({
-	mutationFn: ({ id, force }: { id: string; force: boolean }) => imagesApi.delete(id, force),
-	onSuccess: (_, { id }) => {
-		queryClient.setQueryData<Image[]>(["images"], (old) => old?.filter((i) => i.id !== id) ?? []);
-	},
-}));
+  let globalFilter = $state("");
+  let columnFilters = $state<ColumnFiltersState>([]);
+  let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
+  let deleteTarget = $state<Image | null>(null);
 
-let globalFilter = $state("");
-let columnFilters = $state<ColumnFiltersState>([]);
-let usedBy = $state<Record<string, { id: string; name: string }[]>>({});
-let deleteTarget = $state<Image | null>(null);
+  const images = $derived(
+          (ctx.data?.images ?? []).filter((i) => !deletedIds.has(i.id))
+  );
+  const isPending = $derived(ctx.isPending);
 
-$effect(() => {
-	(query.data ?? []).forEach((img) => {
-		if (usedBy[img.id] === undefined) fetchContainers(img.id);
-	});
-});
+  $effect(() => {
+    images.forEach((img) => {
+      if (usedBy[img.id] === undefined) fetchContainers(img.id);
+    });
+  });
 
-async function fetchContainers(imageId: string) {
-	try {
-		usedBy[imageId] = await imagesApi.containers(imageId);
-	} catch {
-		usedBy[imageId] = [];
-	}
-}
+  async function fetchContainers(imageId: string) {
+    try {
+      usedBy[imageId] = await imagesApi.containers(imageId);
+    } catch {
+      usedBy[imageId] = [];
+    }
+  }
 
-function formatSize(bytes: number) {
-	if (bytes > 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
-	return `${(bytes / 1e6).toFixed(0)} MB`;
-}
+  function formatSize(bytes: number) {
+    if (bytes > 1e9) return `${(bytes / 1e9).toFixed(1)} GB`;
+    return `${(bytes / 1e6).toFixed(0)} MB`;
+  }
 
-function formatDate(iso: string) {
-	return new Date(iso).toLocaleDateString("de-DE", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	});
-}
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("de-DE", {
+      day: "2-digit", month: "2-digit", year: "numeric",
+    });
+  }
 
-const columns: ColumnDef<Image>[] = [
-	{ accessorKey: "tags", header: "Tag" },
-	{ id: "usedBy", header: "Used by" },
-	{ accessorKey: "size", header: "Size" },
-	{ accessorKey: "created", header: "Created" },
-	{ id: "actions", header: "Actions" },
-];
+  const columns: ColumnDef<Image>[] = [
+    { accessorKey: "tags", header: "Tag" },
+    { id: "usedBy", header: "Used by" },
+    { accessorKey: "size", header: "Size" },
+    { accessorKey: "created", header: "Created" },
+    { id: "actions", header: "Actions" },
+  ];
 
-const table = createSvelteTable({
-	get data() {
-		return query.data ?? [];
-	},
-	columns,
-	state: {
-		get globalFilter() {
-			return globalFilter;
-		},
-		get columnFilters() {
-			return columnFilters;
-		},
-	},
-	onGlobalFilterChange: (updater) => {
-		globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
-	},
-	onColumnFiltersChange: (updater) => {
-		columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
-	},
-	getCoreRowModel: getCoreRowModel(),
-	getFilteredRowModel: getFilteredRowModel(),
-	globalFilterFn: (row, _, filterValue) =>
-		row.original.tags.some((t: string) => t.toLowerCase().includes(filterValue.toLowerCase())),
-});
+  const table = createSvelteTable({
+    get data() { return images; },
+    columns,
+    state: {
+      get globalFilter() { return globalFilter; },
+      get columnFilters() { return columnFilters; },
+    },
+    onGlobalFilterChange: (updater) => {
+      globalFilter = typeof updater === "function" ? updater(globalFilter) : updater;
+    },
+    onColumnFiltersChange: (updater) => {
+      columnFilters = typeof updater === "function" ? updater(columnFilters) : updater;
+    },
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    globalFilterFn: (row, _, filterValue) =>
+            row.original.tags.some((t: string) => t.toLowerCase().includes(filterValue.toLowerCase())),
+  });
 </script>
 
 <div class="space-y-4">
@@ -110,7 +101,7 @@ const table = createSvelteTable({
   </div>
 
   <div class="bg-card border rounded-xl overflow-hidden">
-    {#if query.isPending}
+    {#if isPending}
       {#each Array(4) as _, i (i)}
         <div class="px-4 py-3 border-b flex items-center gap-4 animate-pulse">
           <div class="flex-1 space-y-1.5">
@@ -119,8 +110,6 @@ const table = createSvelteTable({
           </div>
         </div>
       {/each}
-    {:else if query.isError}
-      <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
     {:else}
       <Table.Root>
         <Table.Header>
@@ -153,7 +142,6 @@ const table = createSvelteTable({
                 </div>
                 <div class="text-xs text-muted-foreground mt-0.5 font-mono">{img.id.slice(7, 19)}</div>
               </Table.Cell>
-
               <Table.Cell class="px-4 py-3">
                 <div class="flex flex-wrap gap-1">
                   {#if containers.length === 0}
@@ -168,10 +156,8 @@ const table = createSvelteTable({
                   {/if}
                 </div>
               </Table.Cell>
-
               <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatSize(img.size)}</Table.Cell>
               <Table.Cell class="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">{formatDate(img.created)}</Table.Cell>
-
               <Table.Cell class="px-4 py-3">
                 {#if isAdmin}
                   {#if containers.length > 0}

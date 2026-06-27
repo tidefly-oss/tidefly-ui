@@ -13,10 +13,6 @@ let { open = $bindable() }: Props = $props();
 
 const isAdmin = $derived(auth.user?.role === "admin");
 
-$effect(() => {
-	if (open) updateStore.fetchNotes();
-});
-
 function renderMarkdown(md: string): string {
 	return md
 		.replace(/&/g, "&amp;")

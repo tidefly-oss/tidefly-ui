@@ -136,7 +136,7 @@ const restartPolicies = [
 		value: "unless-stopped",
 		label: "Unless Stopped",
 		desc: "Recommended default",
-		detail: "Restarts automatically unless you explicitly stopped it. Best for most services.",
+		detail: "Restarts automatically unless you explicitly stopped it. Best for most manifest.",
 	},
 ];
 
@@ -391,7 +391,7 @@ const btnInactive =
       <div class="flex items-center gap-1.5">
         <RotateCcwIcon class="size-3.5 text-muted-foreground shrink-0" />
         <Label class="text-xs font-medium">Restart Policy</Label>
-        {@render tip("What happens when the container stops. 'Unless Stopped' is recommended for most services — it restarts automatically after crashes or reboots.")}
+        {@render tip("What happens when the container stops. 'Unless Stopped' is recommended for most manifest — it restarts automatically after crashes or reboots.")}
       </div>
       <div class="grid grid-cols-2 gap-2">
         {#each restartPolicies as policy}

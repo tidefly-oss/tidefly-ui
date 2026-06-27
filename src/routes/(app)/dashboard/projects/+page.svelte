@@ -1,31 +1,35 @@
 <script lang="ts">
 import { ChevronRightIcon, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import { projectsApi } from "$lib/api";
+import {type DashboardOverview, projectsApi} from "$lib/api";
 import { Button } from "$lib/components/ui/button/index.js";
-import { projectKeys, projectQueries } from "$lib/queries/projects.js";
+import { projectKeys } from "$lib/queries/projects.js";
+import {dashboardQueries} from "$lib/queries/dashboard.js";
+import {getContext} from "svelte";
 
 const qc = useQueryClient();
+const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
 
-const projectsQuery = createQuery(() => projectQueries.list());
-const projects = $derived(projectsQuery.data ?? []);
+const dashboardQuery = createQuery(() => dashboardQueries.get());
+const projects = $derived(dashboardQuery.data?.projects ?? []);
+const isError = $derived(false);
 
 const deleteMutation = createMutation(() => ({
-	mutationFn: (id: string) => projectsApi.delete(id),
-	onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
+  mutationFn: (id: string) => projectsApi.delete(id),
+  onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
 }));
 
 async function deleteProject(id: string, name: string) {
-	if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
-	deleteMutation.mutate(id);
+  if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
+  deleteMutation.mutate(id);
 }
 
 function formatDate(iso: string) {
-	return new Date(iso).toLocaleDateString("de-DE", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	});
+  return new Date(iso).toLocaleDateString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 </script>
 
@@ -39,7 +43,7 @@ function formatDate(iso: string) {
     </a>
   </div>
 
-  {#if projectsQuery.isPending}
+  {#if dashboardQuery.isPending}
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {#each Array(3) as _, i (i)}
         <div class="bg-card border rounded-xl p-4 animate-pulse space-y-3">
@@ -52,9 +56,9 @@ function formatDate(iso: string) {
       {/each}
     </div>
 
-  {:else if projectsQuery.isError}
+  {:else if dashboardQuery.isError}
     <div class="bg-destructive/10 border border-destructive/30 text-destructive rounded-xl px-4 py-3 text-sm">
-      {projectsQuery.error?.message ?? "Failed to load projects"}
+      {dashboardQuery.error?.message ?? "Failed to load projects"}
     </div>
 
   {:else if projects.length === 0}

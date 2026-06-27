@@ -17,21 +17,23 @@ import {
 	ServerIcon,
 } from "@lucide/svelte";
 import { createQuery, useQueryClient } from "@tanstack/svelte-query";
-import type { Component } from "svelte";
+import {type Component, getContext} from "svelte";
 import { goto } from "$app/navigation";
 import { agentApi } from "$lib/api/v1/agent";
 import { gitApi } from "$lib/api/v1/git";
-import { servicesApi } from "$lib/api/v1/services";
+import { servicesApi } from "$lib/api/v1/manifest";
 import type { GitBranch, GitRepository } from "$lib/api/v1/types/git.js";
 import { providerMeta } from "$lib/api/v1/types/git.js";
-import type { ServiceCreateRequest } from "$lib/api/v1/types/services.js";
+import type { ServiceCreateRequest } from "$lib/api/v1/types/manifest.js";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
-import { projectQueries } from "$lib/queries/projects.js";
 import { auth } from "$lib/stores/auth.svelte.js";
+import { dashboardQueries} from "$lib/queries/dashboard.js";
+import type {DashboardOverview} from "$lib/api";
 
 const qc = useQueryClient();
+const ctx = getContext<{ data: DashboardOverview | undefined }>("dashboard");
 
 // ── Source types ──────────────────────────────────────────────────────────────
 type SourceType = "image" | "git" | "dockerfile" | "compose";
@@ -87,7 +89,7 @@ let dockerfile = $state(
 	"FROM nginx:alpine\nRUN echo '<h1>Hello from Tidefly!</h1>' > /usr/share/nginx/html/index.html\nEXPOSE 80"
 );
 let compose = $state(
-	'services:\n  app:\n    image: nginx:alpine\n    ports:\n      - "8080:80"\n    restart: unless-stopped'
+	'manifest:\n  app:\n    image: nginx:alpine\n    ports:\n      - "8080:80"\n    restart: unless-stopped'
 );
 
 // Config (step 3)
@@ -106,7 +108,7 @@ let deployError = $state<string | null>(null);
 let deploySuccess = $state(false);
 
 // ── Queries ───────────────────────────────────────────────────────────────────
-const projectsQuery = createQuery(() => ({ ...projectQueries.list(), enabled: !!auth.user }));
+const dashboardQuery = createQuery(() => ({ ...dashboardQueries.get(), enabled: !!auth.user }));
 const integrationsQuery = createQuery(() => ({
 	queryKey: ["git-integrations"],
 	queryFn: () => gitApi.list(),
@@ -133,9 +135,9 @@ const workersQuery = createQuery(() => ({
 // ── Derived ───────────────────────────────────────────────────────────────────
 const isAdmin = $derived(auth.user?.role === "admin");
 const visibleProjects = $derived(
-	isAdmin
-		? (projectsQuery.data ?? [])
-		: (projectsQuery.data ?? []).filter((p) => auth.projectIds.includes(p.id))
+    isAdmin
+        ? (ctx.data?.projects ?? [])
+        : (ctx.data?.projects ?? []).filter((p) => auth.projectIds.includes(p.id))
 );
 const connectedWorkers = $derived(
 	(workersQuery.data ?? []).filter((w) => w.status === "connected")
@@ -235,7 +237,7 @@ async function handleDeploy() {
 		await servicesApi.create(payload);
 		deploySuccess = true;
 		step = 5;
-		await qc.invalidateQueries({ queryKey: ["services"] });
+		await qc.invalidateQueries({ queryKey: ["manifest"] });
 		await qc.invalidateQueries({ queryKey: ["containers"] });
 	} catch (e) {
 		deployError = String(e);
@@ -495,7 +497,7 @@ function providerIcon(provider: string): Component {
                 <!-- Project -->
                 <div class="space-y-2">
                     <Label>Project <span class="text-destructive">*</span></Label>
-                    {#if projectsQuery.isPending}
+                    {#if dashboardQuery.isPending}
                         {#each Array(2) as _, i (i)}<div class="h-12 bg-muted rounded-xl animate-pulse"></div>{/each}
                     {:else if visibleProjects.length === 0}
                         <p class="text-sm text-muted-foreground">No projects. <a href="/dashboard/projects/new" class="text-primary hover:underline">Create one →</a></p>

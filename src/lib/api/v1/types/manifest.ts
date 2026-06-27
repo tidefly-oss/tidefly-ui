@@ -28,7 +28,7 @@ export interface Service {
 	worker_id?: string;
 	created_at: string;
 	updated_at: string;
-	// Merged orchestration state — present on GET /services and GET /services/:id
+	// Merged orchestration state — present on GET /manifest and GET /manifest/:id
 	runtime?: ServiceRuntimeState;
 	drift?: ServiceDriftState;
 }

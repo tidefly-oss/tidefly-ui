@@ -1,5 +1,3 @@
-import { systemApi } from "$lib/api";
-import type { HealthResponse, SystemInfo } from "$lib/api/v1/types";
 import { type SystemMetricsPayload, wsStore } from "$lib/stores/ws.svelte";
 
 interface LiveMetrics {
@@ -8,24 +6,10 @@ interface LiveMetrics {
 	disk_used: number;
 	disk_total: number;
 }
-function createSystemStore() {
-	let health = $state<HealthResponse | null>(null);
-	let info = $state<SystemInfo | null>(null);
-	let metrics = $state<LiveMetrics | null>(null);
-	let loading = $state(false);
-	let infoLoaded = false;
-	let unsub: (() => void) | null = null;
 
-	async function loadInfo(force = false) {
-		if (infoLoaded && !force) return;
-		loading = true;
-		try {
-			[health, info] = await Promise.all([systemApi.health(), systemApi.info()]);
-			infoLoaded = true;
-		} finally {
-			loading = false;
-		}
-	}
+function createSystemStore() {
+	let metrics = $state<LiveMetrics | null>(null);
+	let unsub: (() => void) | null = null;
 
 	function connectWS() {
 		if (unsub) return;
@@ -45,19 +29,7 @@ function createSystemStore() {
 	}
 
 	return {
-		get health() {
-			return health;
-		},
-		get info() {
-			return info;
-		},
-		get metrics() {
-			return metrics;
-		},
-		get loading() {
-			return loading;
-		},
-		loadInfo,
+		get metrics() { return metrics; },
 		connectWS,
 		disconnectWS,
 	};

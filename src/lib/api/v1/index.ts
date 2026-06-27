@@ -10,7 +10,7 @@ export * from "./metrics";
 export * from "./networks";
 export * from "./notifications";
 export * from "./projects";
-export * from "./services";
+export * from "./manifest";
 export * from "./system";
 export * from "./templates";
 export * from "./types";

@@ -8,12 +8,12 @@ let { children }: { children: Snippet } = $props();
 let ready = $state(false);
 
 onMount(async () => {
-	await auth.init();
-	if (!auth.user) {
-		await goto("/login");
-		return;
-	}
-	ready = true;
+    await auth.init();
+    if (!auth.isAuthenticated) {
+        await goto("/login");
+        return;
+    }
+    ready = true;
 });
 
 $effect(() => {

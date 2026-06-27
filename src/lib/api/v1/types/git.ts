@@ -1,4 +1,4 @@
-// Mirrors: backend/internal/services/git/types/types.go + models/git_integration.go
+// Mirrors: backend/internal/manifest/git/types/types.go + models/git_integration.go
 
 export type GitProvider = "github" | "gitlab" | "gitea" | "bitbucket";
 export type GitAuthType = "token" | "oauth2";

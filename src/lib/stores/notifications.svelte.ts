@@ -4,7 +4,6 @@ import { type NotificationCreatedPayload, wsStore } from "$lib/stores/ws.svelte"
 
 class NotificationsStore {
 	items = $state<Notification[]>([]);
-	loading = $state(false);
 	error = $state<string | null>(null);
 
 	get unread(): Notification[] {
@@ -16,6 +15,10 @@ class NotificationsStore {
 	}
 
 	private unsub: (() => void) | null = null;
+	
+	seed(notifications: Notification[]) {
+		this.items = notifications;
+	}
 
 	connectWS() {
 		if (this.unsub) return;
@@ -37,18 +40,6 @@ class NotificationsStore {
 	disconnectWS() {
 		this.unsub?.();
 		this.unsub = null;
-	}
-
-	async load() {
-		this.loading = true;
-		this.error = null;
-		try {
-			this.items = await notificationsApi.list();
-		} catch (e) {
-			this.error = e instanceof Error ? e.message : "Failed to load notifications";
-		} finally {
-			this.loading = false;
-		}
 	}
 
 	async acknowledge(id: string) {
@@ -76,11 +67,8 @@ class NotificationsStore {
 	}
 
 	async clearAll() {
-		// Acknowledge all unread first, then delete everything
 		const unreadIds = this.unread.map((n) => n.id);
-		if (unreadIds.length > 0) {
-			await notificationsApi.acknowledgeAll(unreadIds);
-		}
+		if (unreadIds.length > 0) await notificationsApi.acknowledgeAll(unreadIds);
 		await notificationsApi.clearAcknowledged();
 		this.items = [];
 	}

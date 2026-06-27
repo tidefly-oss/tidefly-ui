@@ -9,7 +9,7 @@ export * from "./metrics.js";
 export * from "./networks.js";
 export * from "./notifications.js";
 export * from "./projects.js";
-export * from "./services.js";
+export * from "./manifest.js";
 export * from "./system.js";
 export * from "./templates.js";
 export * from "./volumes.js";

@@ -1,167 +1,131 @@
 <script lang="ts">
-import {
-	ActivityIcon,
-	CalendarIcon,
-	ChevronRightIcon,
-	CircleIcon,
-	DatabaseIcon,
-	FileCodeIcon,
-	FileImageIcon,
-	FolderPenIcon,
-	HardDriveIcon,
-	LayersIcon,
-	LoaderCircle,
-	NetworkIcon,
-	PlayIcon,
-	RotateCcwIcon,
-	SearchIcon,
-	SquareIcon,
-	Trash2Icon,
-} from "@lucide/svelte";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import { containersApi } from "$lib/api/v1/containers/index.js";
-import { servicesApi } from "$lib/api/v1/services";
-import type { Container, ContainerStatus } from "$lib/api/v1/types";
-import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-import { Badge } from "$lib/components/ui/badge/index.js";
-import { Button } from "$lib/components/ui/button/index.js";
-import { auth } from "$lib/stores/auth.svelte";
+  import {
+    ActivityIcon, CalendarIcon, ChevronRightIcon, CircleIcon, DatabaseIcon,
+    FileCodeIcon, FileImageIcon, FolderPenIcon, HardDriveIcon, LayersIcon,
+    LoaderCircle, NetworkIcon, PlayIcon, RotateCcwIcon, SearchIcon, SquareIcon, Trash2Icon,
+  } from "@lucide/svelte";
+  import { createMutation, useQueryClient } from "@tanstack/svelte-query";
+  import { getContext } from "svelte";
+  import { containersApi } from "$lib/api/v1/containers/index.js";
+  import { servicesApi } from "$lib/api/v1/manifest";
+  import type { Container, ContainerStatus } from "$lib/api/v1/types";
+  import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+  import { Badge } from "$lib/components/ui/badge/index.js";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { auth } from "$lib/stores/auth.svelte";
+  import { wsStore } from "$lib/stores/ws.svelte";
 
-let { initialData }: { initialData: Container[] } = $props();
+  const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+  const queryClient = useQueryClient();
+  const isAdmin = $derived(auth.user?.role === "admin");
 
-const queryClient = useQueryClient();
-const isAdmin = $derived(auth.user?.role === "admin");
+  function canDelete(c: Container): boolean {
+    return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
+  }
 
-function canDelete(c: { labels?: Record<string, string> | null }): boolean {
-	return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
-}
+  const actionMutation = createMutation(() => ({
+    mutationFn: async ({
+                         id, action, serviceId,
+                       }: {
+      id: string;
+      action: "start" | "stop" | "restart" | "delete";
+      serviceId?: string;
+    }): Promise<{ status: ContainerStatus }> => {
+      if (action === "start") {
+        const result = await containersApi.start(id);
+        await new Promise((r) => setTimeout(r, 1500));
+        return result;
+      }
+      if (action === "stop") {
+        const result = await containersApi.stop(id);
+        await new Promise((r) => setTimeout(r, 1500));
+        return result;
+      }
+      if (action === "restart") {
+        const result = await containersApi.restart(id);
+        await new Promise((r) => setTimeout(r, 2000));
+        return result;
+      }
+      if (serviceId) await servicesApi.delete(serviceId);
+      return { status: "exited" };
+    },
+    onSuccess: (result, { id, action }) => {
+      if (action === "delete") {
+        wsStore.markDeleted(id);
+      } else if (action === "stop") {
+        wsStore.patchContainer(id, "exited");
+      } else if (action === "start") {
+        wsStore.patchContainer(id, "running");
+      } else if (action === "restart") {
+        wsStore.patchContainer(id, "restarting");
+      }
+    },
+  }));
 
-const query = createQuery(() => ({
-	queryKey: ["containers"],
-	queryFn: () => containersApi.list(true),
-	initialData,
-	refetchInterval: 10_000,
-}));
+  type Filter = "all" | "running" | "stopped";
+  let filter = $state<Filter>("all");
+  let globalFilter = $state("");
 
-const actionMutation = createMutation(() => ({
-	mutationFn: async ({
-		id,
-		action,
-		serviceId,
-	}: {
-		id: string;
-		action: "start" | "stop" | "restart" | "delete";
-		serviceId?: string;
-	}): Promise<{ status: ContainerStatus }> => {
-		if (action === "start") {
-			const result = await containersApi.start(id);
-			await new Promise((r) => setTimeout(r, 1500));
-			return result;
-		}
-		if (action === "stop") {
-			const result = await containersApi.stop(id);
-			await new Promise((r) => setTimeout(r, 1500));
-			return result;
-		}
-		if (action === "restart") {
-			const result = await containersApi.restart(id);
-			await new Promise((r) => setTimeout(r, 2000));
-			return result;
-		}
-		// delete
-		if (serviceId) {
-			await servicesApi.delete(serviceId);
-		}
-		return { status: "exited" };
-	},
-	onSuccess: (_, { id, action }) => {
-		if (action === "delete") {
-			queryClient.setQueryData<Container[]>(
-				["containers"],
-				(old) => old?.filter((c) => c.id !== id) ?? []
-			);
-		} else if (action === "stop") {
-			queryClient.setQueryData<Container[]>(
-				["containers"],
-				(old) => old?.map((c) => (c.id === id ? { ...c, status: "exited" } : c)) ?? []
-			);
-		} else {
-			queryClient.invalidateQueries({ queryKey: ["containers"] });
-		}
-	},
-	onSettled: () => {
-		queryClient.invalidateQueries({ queryKey: ["containers"] });
-	},
-}));
+  const statusDot: Record<ContainerStatus, string> = {
+    running: "#22c55e", stopped: "#6b7280", exited: "#6b7280",
+    dead: "#ef4444", paused: "#f59e0b", restarting: "#3b82f6",
+    created: "#3b82f6", unknown: "#6b7280",
+  };
 
-type Filter = "all" | "running" | "stopped";
-let filter = $state<Filter>("all");
-let globalFilter = $state("");
+  const statusColor: Record<ContainerStatus, string> = {
+    running: "text-green-500", stopped: "text-muted-foreground", exited: "text-muted-foreground",
+    dead: "text-red-500", paused: "text-yellow-500", restarting: "text-blue-400",
+    created: "text-blue-500", unknown: "text-muted-foreground",
+  };
 
-const statusDot: Record<ContainerStatus, string> = {
-	running: "#22c55e",
-	stopped: "#6b7280",
-	exited: "#6b7280",
-	dead: "#ef4444",
-	paused: "#f59e0b",
-	restarting: "#3b82f6",
-	created: "#3b82f6",
-	unknown: "#6b7280",
-};
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
 
-const statusColor: Record<ContainerStatus, string> = {
-	running: "text-green-500",
-	stopped: "text-muted-foreground",
-	exited: "text-muted-foreground",
-	dead: "text-red-500",
-	paused: "text-yellow-500",
-	restarting: "text-blue-400",
-	created: "text-blue-500",
-	unknown: "text-muted-foreground",
-};
+  function doAction(id: string, action: "start" | "stop" | "restart" | "delete", serviceId?: string) {
+    actionMutation.mutate({ id, action, serviceId });
+  }
 
-function formatDate(iso: string) {
-	return new Date(iso).toLocaleDateString("de-DE", {
-		day: "2-digit",
-		month: "2-digit",
-		year: "numeric",
-	});
-}
+  function isPending(id: string) {
+    return actionMutation.isPending && actionMutation.variables?.id === id;
+  }
 
-function doAction(id: string, action: "start" | "stop" | "restart" | "delete", serviceId?: string) {
-	actionMutation.mutate({ id, action, serviceId });
-}
+  function pendingAction(id: string) {
+    if (!isPending(id)) return null;
+    return actionMutation.variables?.action ?? null;
+  }
 
-function isPending(id: string) {
-	return actionMutation.isPending && actionMutation.variables?.id === id;
-}
+  const allContainers = $derived(
+          (wsStore.liveContainers ?? ctx.data?.containers ?? [])
+                  .filter((c) => !wsStore.deletedContainerIds.has(c.id))
+                  .map((c) =>
+                          wsStore.containerPatches[c.id]
+                                  ? { ...c, status: wsStore.containerPatches[c.id] as ContainerStatus }
+                                  : c
+                  )
+  );
+  const isLoading = $derived(ctx.isPending);
 
-function pendingAction(id: string) {
-	if (!isPending(id)) return null;
-	return actionMutation.variables?.action ?? null;
-}
+  const filteredData = $derived(
+          allContainers.filter((c) => {
+            const matchesFilter =
+                    filter === "all" ||
+                    (filter === "running" && c.status === "running") ||
+                    (filter === "stopped" && c.status !== "running");
+            const matchesSearch =
+                    !globalFilter ||
+                    c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+                    c.image.toLowerCase().includes(globalFilter.toLowerCase());
+            return matchesFilter && matchesSearch;
+          })
+  );
 
-const allContainers = $derived(query.data ?? []);
-
-const filteredData = $derived(
-	allContainers.filter((c) => {
-		const matchesFilter =
-			filter === "all" ||
-			(filter === "running" && c.status === "running") ||
-			(filter === "stopped" && c.status !== "running");
-		const matchesSearch =
-			!globalFilter ||
-			c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-			c.image.toLowerCase().includes(globalFilter.toLowerCase());
-		return matchesFilter && matchesSearch;
-	})
-);
-
-const runningCount = $derived(allContainers.filter((c) => c.status === "running").length);
+  const runningCount = $derived(allContainers.filter((c) => c.status === "running").length);
 </script>
 
 <div class="space-y-4">
-  {#if query.isPending}
+  {#if isLoading}
     <div class="bg-card border rounded-xl overflow-hidden">
       {#each Array(4) as _, i (i)}
         <div class="px-4 py-3 border-b flex items-center gap-4 animate-pulse">
@@ -234,9 +198,7 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
     </div>
 
     <div class="bg-card border rounded-xl overflow-hidden">
-      {#if query.isError}
-        <div class="px-4 py-8 text-center text-sm text-destructive">{query.error.message}</div>
-      {:else if filteredData.length === 0}
+      {#if filteredData.length === 0}
         <div class="px-4 py-10 text-center space-y-3">
           <p class="text-sm text-muted-foreground">No containers match your filter</p>
           <div class="flex items-center justify-center gap-2 flex-wrap">
@@ -272,7 +234,6 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
                 {/if}
               </div>
 
-              <!-- Name + ports -->
               <div class="min-w-0">
                 <a href="/dashboard/containers/{c.id}" class="text-sm font-medium hover:underline block truncate">{c.name}</a>
                 {#if isPending(c.id)}
@@ -292,14 +253,12 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
                 {/if}
               </div>
 
-              <!-- Image -->
               <div>
                 <Badge variant="outline" class="text-xs font-normal rounded-sm border-green-500/30 text-green-500 bg-green-500/10 max-w-full truncate">
                   {c.image}
                 </Badge>
               </div>
 
-              <!-- Volumes -->
               <div class="flex flex-wrap gap-1 min-w-0">
                 {#if c.mounts && c.mounts.length > 0}
                   {#each c.mounts.slice(0, 2) as m}
@@ -313,7 +272,6 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
                 {/if}
               </div>
 
-              <!-- Networks -->
               <div class="flex flex-wrap gap-1 min-w-0">
                 {#if c.networks && c.networks.length > 0}
                   {#each c.networks.filter((n: string) => !["bridge", "host", "none"].includes(n)).slice(0, 2) as n}
@@ -327,35 +285,21 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
                 {/if}
               </div>
 
-              <!-- Created -->
               <div>
                 <span class="text-xs text-muted-foreground whitespace-nowrap">{formatDate(c.created)}</span>
               </div>
 
-              <!-- Actions -->
               <div class="flex items-center gap-0.5">
                 {#if c.status === "running"}
                   <Button variant="ghost" size="icon" class="size-7 cursor-pointer" disabled={isPending(c.id)} onclick={() => doAction(c.id, "stop")}>
-                    {#if pendingAction(c.id) === "stop"}
-                      <LoaderCircle class="size-3 animate-spin" />
-                    {:else}
-                      <SquareIcon class="size-3" />
-                    {/if}
+                    {#if pendingAction(c.id) === "stop"}<LoaderCircle class="size-3 animate-spin" />{:else}<SquareIcon class="size-3" />{/if}
                   </Button>
                   <Button variant="ghost" size="icon" class="size-7 cursor-pointer" disabled={isPending(c.id)} onclick={() => doAction(c.id, "restart")}>
-                    {#if pendingAction(c.id) === "restart"}
-                      <LoaderCircle class="size-3 animate-spin" />
-                    {:else}
-                      <RotateCcwIcon class="size-3" />
-                    {/if}
+                    {#if pendingAction(c.id) === "restart"}<LoaderCircle class="size-3 animate-spin" />{:else}<RotateCcwIcon class="size-3" />{/if}
                   </Button>
                 {:else}
                   <Button variant="ghost" size="icon" class="size-7 cursor-pointer" disabled={isPending(c.id)} onclick={() => doAction(c.id, "start")}>
-                    {#if pendingAction(c.id) === "start"}
-                      <LoaderCircle class="size-3 animate-spin" />
-                    {:else}
-                      <PlayIcon class="size-3" />
-                    {/if}
+                    {#if pendingAction(c.id) === "start"}<LoaderCircle class="size-3 animate-spin" />{:else}<PlayIcon class="size-3" />{/if}
                   </Button>
                   <span class="inline-block w-7"></span>
                 {/if}
@@ -432,19 +376,11 @@ const runningCount = $derived(allContainers.filter((c) => c.status === "running"
               <div class="flex items-center gap-0.5 shrink-0">
                 {#if c.status === "running"}
                   <Button variant="ghost" size="icon" class="size-7" disabled={isPending(c.id)} onclick={() => doAction(c.id, "stop")}>
-                    {#if pendingAction(c.id) === "stop"}
-                      <LoaderCircle class="size-3 animate-spin" />
-                    {:else}
-                      <SquareIcon class="size-3" />
-                    {/if}
+                    {#if pendingAction(c.id) === "stop"}<LoaderCircle class="size-3 animate-spin" />{:else}<SquareIcon class="size-3" />{/if}
                   </Button>
                 {:else}
                   <Button variant="ghost" size="icon" class="size-7" disabled={isPending(c.id)} onclick={() => doAction(c.id, "start")}>
-                    {#if pendingAction(c.id) === "start"}
-                      <LoaderCircle class="size-3 animate-spin" />
-                    {:else}
-                      <PlayIcon class="size-3" />
-                    {/if}
+                    {#if pendingAction(c.id) === "start"}<LoaderCircle class="size-3 animate-spin" />{:else}<PlayIcon class="size-3" />{/if}
                   </Button>
                 {/if}
                 {#if canDelete(c)}

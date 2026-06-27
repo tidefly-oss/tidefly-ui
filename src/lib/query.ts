@@ -1,11 +1,19 @@
 import { QueryClient } from "@tanstack/svelte-query";
 
-let client: QueryClient;
+let client: QueryClient | null = null;
 
 export function initQueryClient() {
-	client = new QueryClient({
-		defaultOptions: { queries: { staleTime: 60_000 } },
-	});
+	if (!client) {
+		client = new QueryClient({
+			defaultOptions: {
+				queries: {
+					staleTime: Infinity,
+					refetchOnWindowFocus: false,
+					refetchOnReconnect: false,
+				},
+			},
+		});
+	}
 	return client;
 }
 
