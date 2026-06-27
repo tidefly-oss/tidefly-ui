@@ -1,11 +1,11 @@
 <script lang="ts">
-    import { LoaderCircle } from "@lucide/svelte";
+import { LoaderCircle } from "@lucide/svelte";
 
-    interface Props {
-        message?: string;
-    }
+interface Props {
+	message?: string;
+}
 
-    let { message = "Loading..." }: Props = $props();
+let { message = "Loading..." }: Props = $props();
 </script>
 
 <div class="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-background">

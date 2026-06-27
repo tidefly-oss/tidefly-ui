@@ -1,6 +1,8 @@
 <script lang="ts">
 import { PlusIcon, ZapIcon } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+import { getContext } from "svelte";
+import type { DashboardOverview } from "$lib/api";
 import type { CreateWebhookRequest, Webhook, WebhookDelivery } from "$lib/api/v1/types/webhooks.js";
 import { webhooksApi } from "$lib/api/v1/webhooks/index.js";
 import { Button } from "$lib/components/ui/button";
@@ -9,8 +11,6 @@ import WebhookCreateDialog from "$lib/components/webhooks/WebhookCreateDialog.sv
 import WebhookRow from "$lib/components/webhooks/WebhookRow.svelte";
 import { webhookKeys, webhookQueries } from "$lib/queries/webhooks.js";
 import { auth } from "$lib/stores/auth.svelte.js";
-import type {DashboardOverview} from "$lib/api";
-import {getContext} from "svelte";
 
 const qc = useQueryClient();
 const isAdmin = $derived(auth.user?.role === "admin");
@@ -18,8 +18,8 @@ const ctx = getContext<{ data: DashboardOverview | undefined }>("dashboard");
 
 // ── Projects ──────────────────────────────────────────────────────────────
 const visibleProjects = $derived(() => {
-    const all = ctx.data?.projects ?? [];
-    return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
+	const all = ctx.data?.projects ?? [];
+	return isAdmin ? all : all.filter((p) => auth.projectIds.includes(p.id));
 });
 
 let selectedProjectId = $state("");

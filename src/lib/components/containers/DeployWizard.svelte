@@ -17,8 +17,9 @@ import {
 	ServerIcon,
 } from "@lucide/svelte";
 import { createQuery, useQueryClient } from "@tanstack/svelte-query";
-import {type Component, getContext} from "svelte";
+import { type Component, getContext } from "svelte";
 import { goto } from "$app/navigation";
+import type { DashboardOverview } from "$lib/api";
 import { agentApi } from "$lib/api/v1/agent";
 import { gitApi } from "$lib/api/v1/git";
 import { servicesApi } from "$lib/api/v1/manifest";
@@ -28,9 +29,8 @@ import type { ServiceCreateRequest } from "$lib/api/v1/types/manifest.js";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { dashboardQueries } from "$lib/queries/dashboard.js";
 import { auth } from "$lib/stores/auth.svelte.js";
-import { dashboardQueries} from "$lib/queries/dashboard.js";
-import type {DashboardOverview} from "$lib/api";
 
 const qc = useQueryClient();
 const ctx = getContext<{ data: DashboardOverview | undefined }>("dashboard");
@@ -135,9 +135,9 @@ const workersQuery = createQuery(() => ({
 // ── Derived ───────────────────────────────────────────────────────────────────
 const isAdmin = $derived(auth.user?.role === "admin");
 const visibleProjects = $derived(
-    isAdmin
-        ? (ctx.data?.projects ?? [])
-        : (ctx.data?.projects ?? []).filter((p) => auth.projectIds.includes(p.id))
+	isAdmin
+		? (ctx.data?.projects ?? [])
+		: (ctx.data?.projects ?? []).filter((p) => auth.projectIds.includes(p.id))
 );
 const connectedWorkers = $derived(
 	(workersQuery.data ?? []).filter((w) => w.status === "connected")

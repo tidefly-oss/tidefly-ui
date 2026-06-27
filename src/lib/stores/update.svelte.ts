@@ -63,14 +63,30 @@ function createUpdateStore() {
 	}
 
 	return {
-		get info() { return info; },
-		get hasUpdate() { return info?.any_update_available ?? false; },
-		get loadingNotes() { return loadingNotes; },
-		get updating() { return updating; },
-		get updateError() { return updateError; },
-		get updateDone() { return updateDone; },
-		get progressMessages() { return progressMessages; },
-		get components() { return info?.components ?? []; },
+		get info() {
+			return info;
+		},
+		get hasUpdate() {
+			return info?.any_update_available ?? false;
+		},
+		get loadingNotes() {
+			return loadingNotes;
+		},
+		get updating() {
+			return updating;
+		},
+		get updateError() {
+			return updateError;
+		},
+		get updateDone() {
+			return updateDone;
+		},
+		get progressMessages() {
+			return progressMessages;
+		},
+		get components() {
+			return info?.components ?? [];
+		},
 		get releaseNotes() {
 			return info?.components.find((c) => c.update_available)?.changelog ?? null;
 		},

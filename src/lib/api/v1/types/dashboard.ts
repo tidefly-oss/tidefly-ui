@@ -4,10 +4,11 @@ import type {
 	Network,
 	Notification,
 	Project,
-	SystemSettings,
 	SystemInfo,
+	SystemSettings,
 	User,
-	Volume, VersionInfo,
+	VersionInfo,
+	Volume,
 } from "$lib/api/v1/types";
 
 export interface SystemInfoSnapshot extends SystemInfo {

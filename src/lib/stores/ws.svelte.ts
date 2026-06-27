@@ -98,9 +98,10 @@ function createWSStore() {
 	}
 
 	function emit(type: WSEventType, payload: unknown) {
-		listeners.get(type)?.forEach((fn) => fn(payload));
+		listeners.get(type)?.forEach((fn) => {
+			fn(payload);
+		});
 	}
-
 	function patchContainer(id: string, status: string) {
 		containerPatches = { ...containerPatches, [id]: status };
 	}
@@ -109,7 +110,7 @@ function createWSStore() {
 		deletedContainerIds = new Set([...deletedContainerIds, id]);
 	}
 
-	function setDeployDoneCallback(cb: () => void) {
+	function setDeployDoneCallback(cb: (() => void) | null) {
 		onDeployDone = cb;
 	}
 
@@ -168,7 +169,9 @@ function createWSStore() {
 			ws?.send(JSON.stringify({ type: "subscribe", topics }));
 		});
 
-		ws.addEventListener("close", () => { connected = false; });
+		ws.addEventListener("close", () => {
+			connected = false;
+		});
 
 		ws.addEventListener("message", (e: MessageEvent) => {
 			try {
@@ -193,10 +196,18 @@ function createWSStore() {
 	}
 
 	return {
-		get connected() { return connected; },
-		get containerPatches() { return containerPatches; },
-		get deletedContainerIds() { return deletedContainerIds; },
-		get liveContainers() { return liveContainers; },
+		get connected() {
+			return connected;
+		},
+		get containerPatches() {
+			return containerPatches;
+		},
+		get deletedContainerIds() {
+			return deletedContainerIds;
+		},
+		get liveContainers() {
+			return liveContainers;
+		},
 		setDeployDoneCallback,
 		patchContainer,
 		markDeleted,

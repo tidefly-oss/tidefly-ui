@@ -1,88 +1,99 @@
 <script lang="ts">
-  import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "@lucide/svelte";
-  import { createQuery, QueryClientProvider } from "@tanstack/svelte-query";
-  import type { Snippet } from "svelte";
-  import { onDestroy, setContext } from "svelte";
-  import { goto } from "$app/navigation";
-  import type { User } from "$lib/api/v1/types";
-  import LoadingScreen from "$lib/components/dashboard/LoadingScreen.svelte";
-  import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
-  import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
-  import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
-  import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-  import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-  import { initQueryClient } from "$lib/query";
-  import { dashboardQueries } from "$lib/queries/dashboard";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
-  import { notificationsStore } from "$lib/stores/notifications.svelte";
-  import { systemStore } from "$lib/stores/system.svelte";
-  import { theme } from "$lib/stores/theme.svelte";
-  import { updateStore } from "$lib/stores/update.svelte";
-  import { wsStore } from "$lib/stores/ws.svelte";
+import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, UserIcon } from "@lucide/svelte";
+import { createQuery, QueryClientProvider } from "@tanstack/svelte-query";
+import type { Snippet } from "svelte";
+import { onDestroy, setContext } from "svelte";
+import { goto } from "$app/navigation";
+import type { User } from "$lib/api/v1/types";
+import LoadingScreen from "$lib/components/dashboard/LoadingScreen.svelte";
+import NotificationBell from "$lib/components/notifications/NotificationBell.svelte";
+import AppSidebar from "$lib/components/sidebar/app-sidebar.svelte";
+import { Avatar, AvatarFallback } from "$lib/components/ui/avatar/index.js";
+import * as Breadcrumb from "$lib/components/ui/breadcrumb/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { dashboardQueries } from "$lib/queries/dashboard";
+import { initQueryClient } from "$lib/query";
+import { auth } from "$lib/stores/auth.svelte";
+import { getBreadcrumb } from "$lib/stores/breadcrumb.svelte";
+import { notificationsStore } from "$lib/stores/notifications.svelte";
+import { systemStore } from "$lib/stores/system.svelte";
+import { theme } from "$lib/stores/theme.svelte";
+import { updateStore } from "$lib/stores/update.svelte";
+import { wsStore } from "$lib/stores/ws.svelte";
 
-  let { children }: { children: Snippet } = $props();
+let { children }: { children: Snippet } = $props();
 
-  const queryClient = initQueryClient();
+const queryClient = initQueryClient();
 
-  let authenticated = $state(false);
-  $effect(() => {
-    if (auth.isAuthenticated && !authenticated) {
-      authenticated = true;
-    }
-  });
+let authenticated = $state(false);
+$effect(() => {
+	if (auth.isAuthenticated && !authenticated) {
+		authenticated = true;
+	}
+});
 
-  const dashboardQuery = createQuery(() => ({
-    ...dashboardQueries.get(),
-    enabled: authenticated,
-  }));
+const dashboardQuery = createQuery(() => ({
+	...dashboardQueries.get(),
+	enabled: authenticated,
+}));
 
-  const showLoading = $derived(!dashboardQuery.data);
+const showLoading = $derived(!dashboardQuery.data);
 
-  setContext("dashboard", {
-    get data() { return dashboardQuery.data; },
-    get isPending() { return dashboardQuery.isPending; },
-    refetch: () => dashboardQuery.refetch(),
-  });
+setContext("dashboard", {
+	get data() {
+		return dashboardQuery.data;
+	},
+	get isPending() {
+		return dashboardQuery.isPending;
+	},
+	refetch: () => dashboardQuery.refetch(),
+});
 
-  $effect(() => {
-    const d = dashboardQuery.data;
-    if (!d) return;
-    if (d.user) auth.setUser(d.user);
-    if (d.notifications) notificationsStore.seed(d.notifications);
-    if (d.version) updateStore.setVersionInfo(d.version);
-    wsStore.connect();
-    notificationsStore.connectWS();
-    systemStore.connectWS();
-  });
+$effect(() => {
+	const d = dashboardQuery.data;
+	if (!d) return;
+	if (d.user) auth.setUser(d.user);
+	if (d.notifications) notificationsStore.seed(d.notifications);
+	if (d.version) updateStore.setVersionInfo(d.version);
+	wsStore.connect();
+	notificationsStore.connectWS();
+	systemStore.connectWS();
+});
 
-  // Deploy done → Dashboard neu laden damit neuer Container erscheint
-  let lastDeployDoneCount = 0;
-  $effect(() => {
-    wsStore.setDeployDoneCallback(() => {
-      void dashboardQuery.refetch();
-    });
-  });
+// Deploy done → Dashboard neu laden damit neuer Container erscheint
+let lastDeployDoneCount = 0;
+$effect(() => {
+	wsStore.setDeployDoneCallback(() => {
+		void dashboardQuery.refetch();
+	});
+});
 
-  $effect(() => { theme.init(); });
+$effect(() => {
+	theme.init();
+});
 
-  onDestroy(() => {
-    wsStore.disconnect();
-    notificationsStore.disconnectWS();
-    systemStore.disconnectWS();
-  });
+onDestroy(() => {
+	wsStore.disconnect();
+	notificationsStore.disconnectWS();
+	systemStore.disconnectWS();
+});
 
-  async function handleLogout() {
-    await auth.logout();
-    await goto("/login");
-  }
+async function handleLogout() {
+	await auth.logout();
+	await goto("/login");
+}
 
-  function getUserInitials(user: User | null | undefined) {
-    const name = user?.name ?? user?.email ?? "U";
-    return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
-  }
+function getUserInitials(user: User | null | undefined) {
+	const name = user?.name ?? user?.email ?? "U";
+	return name
+		.split(" ")
+		.map((n: string) => n[0])
+		.join("")
+		.toUpperCase()
+		.slice(0, 2);
+}
 </script>
 
 <QueryClientProvider client={queryClient}>

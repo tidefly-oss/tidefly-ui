@@ -1,11 +1,11 @@
 <script lang="ts">
 import { ChevronRightIcon, NetworkIcon, PlusIcon, Trash2Icon } from "@lucide/svelte";
 import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import {type DashboardOverview, projectsApi} from "$lib/api";
+import { getContext } from "svelte";
+import { type DashboardOverview, projectsApi } from "$lib/api";
 import { Button } from "$lib/components/ui/button/index.js";
+import { dashboardQueries } from "$lib/queries/dashboard.js";
 import { projectKeys } from "$lib/queries/projects.js";
-import {dashboardQueries} from "$lib/queries/dashboard.js";
-import {getContext} from "svelte";
 
 const qc = useQueryClient();
 const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
@@ -15,21 +15,21 @@ const projects = $derived(dashboardQuery.data?.projects ?? []);
 const isError = $derived(false);
 
 const deleteMutation = createMutation(() => ({
-  mutationFn: (id: string) => projectsApi.delete(id),
-  onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
+	mutationFn: (id: string) => projectsApi.delete(id),
+	onSuccess: () => qc.invalidateQueries({ queryKey: projectKeys.all() }),
 }));
 
 async function deleteProject(id: string, name: string) {
-  if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
-  deleteMutation.mutate(id);
+	if (!confirm(`Delete project "${name}" and its network? This cannot be undone.`)) return;
+	deleteMutation.mutate(id);
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("de-DE", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  });
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
 }
 </script>
 

@@ -1,123 +1,117 @@
 <script lang="ts">
-    import {
-        ActivityIcon,
-        ArrowUp,
-        BoxIcon,
-        ChevronDownIcon,
-        CircleIcon,
-        ContainerIcon,
-        DatabaseBackupIcon,
-        DatabaseIcon,
-        FolderIcon,
-        GitBranchIcon,
-        ImageIcon,
-        LayoutDashboardIcon,
-        LoaderCircle,
-        NetworkIcon,
-        PlusIcon,
-        ServerIcon,
-        SettingsIcon,
-        UsersIcon,
-        ZapIcon,
-    } from "@lucide/svelte";
-    import { getContext } from "svelte";
-    import { goto } from "$app/navigation";
-    import { page } from "$app/state";
-    import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
-    import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
-    import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-    import * as Sidebar from "$lib/components/ui/sidebar/index.js";
-    import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
-    import { auth } from "$lib/stores/auth.svelte";
-    import { updateStore } from "$lib/stores/update.svelte.js";
+import {
+	ActivityIcon,
+	ArrowUp,
+	BoxIcon,
+	ChevronDownIcon,
+	CircleIcon,
+	ContainerIcon,
+	DatabaseBackupIcon,
+	DatabaseIcon,
+	FolderIcon,
+	GitBranchIcon,
+	ImageIcon,
+	LayoutDashboardIcon,
+	LoaderCircle,
+	NetworkIcon,
+	PlusIcon,
+	ServerIcon,
+	SettingsIcon,
+	UsersIcon,
+	ZapIcon,
+} from "@lucide/svelte";
+import { getContext } from "svelte";
+import { goto } from "$app/navigation";
+import { page } from "$app/state";
+import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+import TideflyMascot from "$lib/assets/tidefly_mascot_icon.svg";
+import UpdateDialog from "$lib/components/sidebar/UpdateDialog.svelte";
+import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+import { auth } from "$lib/stores/auth.svelte";
+import { updateStore } from "$lib/stores/update.svelte.js";
 
-    let { ref = $bindable(null), ...restProps } = $props();
+let { ref = $bindable(null), ...restProps } = $props();
 
-    let updateDialogOpen = $state(false);
+let updateDialogOpen = $state(false);
 
-    const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
 
-    const version = $derived(ctx.data?.system_info?.tidefly_version ?? "dev");
-    const instanceName = $derived(ctx.data?.settings?.instance_name ?? "Tidefly");
-    const isPending = $derived(ctx.isPending);
+const version = $derived(ctx.data?.system_info?.tidefly_version ?? "dev");
+const instanceName = $derived(ctx.data?.settings?.instance_name ?? "Tidefly");
+const isPending = $derived(ctx.isPending);
 
-    const isAdmin = $derived(auth.user?.role === "admin");
-    const allProjects = $derived(ctx.data?.projects ?? []);
-    const visibleProjects = $derived(
-        isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
-    );
+const isAdmin = $derived(auth.user?.role === "admin");
+const allProjects = $derived(ctx.data?.projects ?? []);
+const visibleProjects = $derived(
+	isAdmin ? allProjects : allProjects.filter((p) => auth.projectIds.includes(p.id))
+);
 
-    let activeProjectId = $state<string | null>(null);
-    const activeProject = $derived(
-        visibleProjects.find((p) => p.id === activeProjectId) ?? visibleProjects[0] ?? null
-    );
+let activeProjectId = $state<string | null>(null);
+const activeProject = $derived(
+	visibleProjects.find((p) => p.id === activeProjectId) ?? visibleProjects[0] ?? null
+);
 
-    $effect(() => {
-        const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
-        if (match && match[1] !== "new") activeProjectId = match[1];
-    });
+$effect(() => {
+	const match = page.url.pathname.match(/\/dashboard\/projects\/([^/]+)/);
+	if (match && match[1] !== "new") activeProjectId = match[1];
+});
 
-    const navGroups = $derived([
-        {
-            label: "Overview",
-            items: [
-                { title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon },
-            ],
-        },
-        {
-            label: "Source",
-            items: [
-                { title: "Git Integrations", href: "/dashboard/git/", icon: GitBranchIcon },
-                { title: "Webhooks", href: "/dashboard/webhooks", icon: ZapIcon },
-            ],
-        },
-        {
-            label: "Resources",
-            items: [
-                { title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
-                { title: "Templates", href: "/dashboard/containers/templates", icon: DatabaseIcon },
-                { title: "Images", href: "/dashboard/images", icon: ImageIcon },
-                { title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
-                { title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
-            ],
-        },
-        {
-            label: "Observability",
-            items: [
-                { title: "Monitoring", href: "/dashboard/monitoring", icon: ActivityIcon },
-            ],
-        },
-        ...(isAdmin
-            ? [
-                {
-                    label: "Infrastructure",
-                    items: [
-                        { title: "Servers", href: "/dashboard/servers", icon: ServerIcon },
-                    ],
-                },
-                {
-                    label: "Administration",
-                    items: [
-                        { title: "Backups", href: "/dashboard/backups", icon: DatabaseBackupIcon },
-                        { title: "Users", href: "/dashboard/users", icon: UsersIcon },
-                        { title: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
-                    ],
-                },
-            ]
-            : []),
-    ]);
+const navGroups = $derived([
+	{
+		label: "Overview",
+		items: [{ title: "Dashboard", href: "/dashboard", icon: LayoutDashboardIcon }],
+	},
+	{
+		label: "Source",
+		items: [
+			{ title: "Git Integrations", href: "/dashboard/git/", icon: GitBranchIcon },
+			{ title: "Webhooks", href: "/dashboard/webhooks", icon: ZapIcon },
+		],
+	},
+	{
+		label: "Resources",
+		items: [
+			{ title: "Containers", href: "/dashboard/containers", icon: ContainerIcon },
+			{ title: "Templates", href: "/dashboard/containers/templates", icon: DatabaseIcon },
+			{ title: "Images", href: "/dashboard/images", icon: ImageIcon },
+			{ title: "Volumes", href: "/dashboard/volumes", icon: BoxIcon },
+			{ title: "Networks", href: "/dashboard/networks", icon: NetworkIcon },
+		],
+	},
+	{
+		label: "Observability",
+		items: [{ title: "Monitoring", href: "/dashboard/monitoring", icon: ActivityIcon }],
+	},
+	...(isAdmin
+		? [
+				{
+					label: "Infrastructure",
+					items: [{ title: "Servers", href: "/dashboard/servers", icon: ServerIcon }],
+				},
+				{
+					label: "Administration",
+					items: [
+						{ title: "Backups", href: "/dashboard/backups", icon: DatabaseBackupIcon },
+						{ title: "Users", href: "/dashboard/users", icon: UsersIcon },
+						{ title: "Settings", href: "/dashboard/settings", icon: SettingsIcon },
+					],
+				},
+			]
+		: []),
+]);
 
-    function isActive(href: string) {
-        if (href === "/dashboard") return page.url.pathname === href;
-        if (href === "/dashboard/containers") {
-            return (
-                page.url.pathname === href ||
-                (page.url.pathname.startsWith(href) &&
-                    !page.url.pathname.startsWith("/dashboard/containers/templates"))
-            );
-        }
-        return page.url.pathname.startsWith(href);
-    }
+function isActive(href: string) {
+	if (href === "/dashboard") return page.url.pathname === href;
+	if (href === "/dashboard/containers") {
+		return (
+			page.url.pathname === href ||
+			(page.url.pathname.startsWith(href) &&
+				!page.url.pathname.startsWith("/dashboard/containers/templates"))
+		);
+	}
+	return page.url.pathname.startsWith(href);
+}
 </script>
 
 <Sidebar.Root variant="floating" {...restProps}>

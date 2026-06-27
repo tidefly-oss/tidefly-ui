@@ -1,8 +1,8 @@
 <script lang="ts">
-  import { DatabaseIcon, FileCodeIcon } from "@lucide/svelte";
-  import { goto } from "$app/navigation";
-  import ContainersList from "$lib/components/containers/ContainersList.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
+import { DatabaseIcon, FileCodeIcon } from "@lucide/svelte";
+import { goto } from "$app/navigation";
+import ContainersList from "$lib/components/containers/ContainersList.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
 </script>
 
 <div class="space-y-4">

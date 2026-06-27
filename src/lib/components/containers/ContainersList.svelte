@@ -1,127 +1,157 @@
 <script lang="ts">
-  import {
-    ActivityIcon, CalendarIcon, ChevronRightIcon, CircleIcon, DatabaseIcon,
-    FileCodeIcon, FileImageIcon, FolderPenIcon, HardDriveIcon, LayersIcon,
-    LoaderCircle, NetworkIcon, PlayIcon, RotateCcwIcon, SearchIcon, SquareIcon, Trash2Icon,
-  } from "@lucide/svelte";
-  import { createMutation, useQueryClient } from "@tanstack/svelte-query";
-  import { getContext } from "svelte";
-  import { containersApi } from "$lib/api/v1/containers/index.js";
-  import { servicesApi } from "$lib/api/v1/manifest";
-  import type { Container, ContainerStatus } from "$lib/api/v1/types";
-  import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
-  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import { Badge } from "$lib/components/ui/badge/index.js";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { wsStore } from "$lib/stores/ws.svelte";
+import {
+	ActivityIcon,
+	CalendarIcon,
+	ChevronRightIcon,
+	CircleIcon,
+	DatabaseIcon,
+	FileCodeIcon,
+	FileImageIcon,
+	FolderPenIcon,
+	HardDriveIcon,
+	LayersIcon,
+	LoaderCircle,
+	NetworkIcon,
+	PlayIcon,
+	RotateCcwIcon,
+	SearchIcon,
+	SquareIcon,
+	Trash2Icon,
+} from "@lucide/svelte";
+import { createMutation, useQueryClient } from "@tanstack/svelte-query";
+import { getContext } from "svelte";
+import { containersApi } from "$lib/api/v1/containers/index.js";
+import { servicesApi } from "$lib/api/v1/manifest";
+import type { Container, ContainerStatus } from "$lib/api/v1/types";
+import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+import { Badge } from "$lib/components/ui/badge/index.js";
+import { Button } from "$lib/components/ui/button/index.js";
+import { auth } from "$lib/stores/auth.svelte";
+import { wsStore } from "$lib/stores/ws.svelte";
 
-  const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
-  const queryClient = useQueryClient();
-  const isAdmin = $derived(auth.user?.role === "admin");
+const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+const queryClient = useQueryClient();
+const isAdmin = $derived(auth.user?.role === "admin");
 
-  function canDelete(c: Container): boolean {
-    return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
-  }
+function canDelete(c: Container): boolean {
+	return isAdmin || !!c.labels?.["tidefly.project"] || !!c.labels?.["tidefly.service"];
+}
 
-  const actionMutation = createMutation(() => ({
-    mutationFn: async ({
-                         id, action, serviceId,
-                       }: {
-      id: string;
-      action: "start" | "stop" | "restart" | "delete";
-      serviceId?: string;
-    }): Promise<{ status: ContainerStatus }> => {
-      if (action === "start") {
-        const result = await containersApi.start(id);
-        await new Promise((r) => setTimeout(r, 1500));
-        return result;
-      }
-      if (action === "stop") {
-        const result = await containersApi.stop(id);
-        await new Promise((r) => setTimeout(r, 1500));
-        return result;
-      }
-      if (action === "restart") {
-        const result = await containersApi.restart(id);
-        await new Promise((r) => setTimeout(r, 2000));
-        return result;
-      }
-      if (serviceId) await servicesApi.delete(serviceId);
-      return { status: "exited" };
-    },
-    onSuccess: (result, { id, action }) => {
-      if (action === "delete") {
-        wsStore.markDeleted(id);
-      } else if (action === "stop") {
-        wsStore.patchContainer(id, "exited");
-      } else if (action === "start") {
-        wsStore.patchContainer(id, "running");
-      } else if (action === "restart") {
-        wsStore.patchContainer(id, "restarting");
-      }
-    },
-  }));
+const actionMutation = createMutation(() => ({
+	mutationFn: async ({
+		id,
+		action,
+		serviceId,
+	}: {
+		id: string;
+		action: "start" | "stop" | "restart" | "delete";
+		serviceId?: string;
+	}): Promise<{ status: ContainerStatus }> => {
+		if (action === "start") {
+			const result = await containersApi.start(id);
+			await new Promise((r) => setTimeout(r, 1500));
+			return result;
+		}
+		if (action === "stop") {
+			const result = await containersApi.stop(id);
+			await new Promise((r) => setTimeout(r, 1500));
+			return result;
+		}
+		if (action === "restart") {
+			const result = await containersApi.restart(id);
+			await new Promise((r) => setTimeout(r, 2000));
+			return result;
+		}
+		if (serviceId) await servicesApi.delete(serviceId);
+		return { status: "exited" };
+	},
+	onSuccess: (_result, { id, action }) => {
+		if (action === "delete") {
+			wsStore.markDeleted(id);
+		} else if (action === "stop") {
+			wsStore.patchContainer(id, "exited");
+		} else if (action === "start") {
+			wsStore.patchContainer(id, "running");
+		} else if (action === "restart") {
+			wsStore.patchContainer(id, "restarting");
+		}
+	},
+}));
 
-  type Filter = "all" | "running" | "stopped";
-  let filter = $state<Filter>("all");
-  let globalFilter = $state("");
+type Filter = "all" | "running" | "stopped";
+let filter = $state<Filter>("all");
+let globalFilter = $state("");
 
-  const statusDot: Record<ContainerStatus, string> = {
-    running: "#22c55e", stopped: "#6b7280", exited: "#6b7280",
-    dead: "#ef4444", paused: "#f59e0b", restarting: "#3b82f6",
-    created: "#3b82f6", unknown: "#6b7280",
-  };
+const statusDot: Record<ContainerStatus, string> = {
+	running: "#22c55e",
+	stopped: "#6b7280",
+	exited: "#6b7280",
+	dead: "#ef4444",
+	paused: "#f59e0b",
+	restarting: "#3b82f6",
+	created: "#3b82f6",
+	unknown: "#6b7280",
+};
 
-  const statusColor: Record<ContainerStatus, string> = {
-    running: "text-green-500", stopped: "text-muted-foreground", exited: "text-muted-foreground",
-    dead: "text-red-500", paused: "text-yellow-500", restarting: "text-blue-400",
-    created: "text-blue-500", unknown: "text-muted-foreground",
-  };
+const statusColor: Record<ContainerStatus, string> = {
+	running: "text-green-500",
+	stopped: "text-muted-foreground",
+	exited: "text-muted-foreground",
+	dead: "text-red-500",
+	paused: "text-yellow-500",
+	restarting: "text-blue-400",
+	created: "text-blue-500",
+	unknown: "text-muted-foreground",
+};
 
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
-  }
+function formatDate(iso: string) {
+	return new Date(iso).toLocaleDateString("de-DE", {
+		day: "2-digit",
+		month: "2-digit",
+		year: "numeric",
+	});
+}
 
-  function doAction(id: string, action: "start" | "stop" | "restart" | "delete", serviceId?: string) {
-    actionMutation.mutate({ id, action, serviceId });
-  }
+function doAction(id: string, action: "start" | "stop" | "restart" | "delete", serviceId?: string) {
+	actionMutation.mutate({ id, action, serviceId });
+}
 
-  function isPending(id: string) {
-    return actionMutation.isPending && actionMutation.variables?.id === id;
-  }
+function isPending(id: string) {
+	return actionMutation.isPending && actionMutation.variables?.id === id;
+}
 
-  function pendingAction(id: string) {
-    if (!isPending(id)) return null;
-    return actionMutation.variables?.action ?? null;
-  }
+function pendingAction(id: string) {
+	if (!isPending(id)) return null;
+	return actionMutation.variables?.action ?? null;
+}
 
-  const allContainers = $derived(
-          (wsStore.liveContainers ?? ctx.data?.containers ?? [])
-                  .filter((c) => !wsStore.deletedContainerIds.has(c.id))
-                  .map((c) =>
-                          wsStore.containerPatches[c.id]
-                                  ? { ...c, status: wsStore.containerPatches[c.id] as ContainerStatus }
-                                  : c
-                  )
-  );
-  const isLoading = $derived(ctx.isPending);
+const allContainers = $derived(
+	(wsStore.liveContainers ?? ctx.data?.containers ?? [])
+		.filter((c) => !wsStore.deletedContainerIds.has(c.id))
+		.map((c) =>
+			wsStore.containerPatches[c.id]
+				? { ...c, status: wsStore.containerPatches[c.id] as ContainerStatus }
+				: c
+		)
+);
+const isLoading = $derived(ctx.isPending);
 
-  const filteredData = $derived(
-          allContainers.filter((c) => {
-            const matchesFilter =
-                    filter === "all" ||
-                    (filter === "running" && c.status === "running") ||
-                    (filter === "stopped" && c.status !== "running");
-            const matchesSearch =
-                    !globalFilter ||
-                    c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
-                    c.image.toLowerCase().includes(globalFilter.toLowerCase());
-            return matchesFilter && matchesSearch;
-          })
-  );
+const filteredData = $derived(
+	allContainers.filter((c) => {
+		const matchesFilter =
+			filter === "all" ||
+			(filter === "running" && c.status === "running") ||
+			(filter === "stopped" && c.status !== "running");
+		const matchesSearch =
+			!globalFilter ||
+			c.name.toLowerCase().includes(globalFilter.toLowerCase()) ||
+			c.image.toLowerCase().includes(globalFilter.toLowerCase());
+		return matchesFilter && matchesSearch;
+	})
+);
 
-  const runningCount = $derived(allContainers.filter((c) => c.status === "running").length);
+const runningCount = $derived(allContainers.filter((c) => c.status === "running").length);
 </script>
 
 <div class="space-y-4">

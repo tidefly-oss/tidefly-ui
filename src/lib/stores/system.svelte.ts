@@ -29,7 +29,9 @@ function createSystemStore() {
 	}
 
 	return {
-		get metrics() { return metrics; },
+		get metrics() {
+			return metrics;
+		},
 		connectWS,
 		disconnectWS,
 	};

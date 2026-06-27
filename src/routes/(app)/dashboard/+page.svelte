@@ -1,44 +1,42 @@
 <script lang="ts">
-    import { ContainerIcon, DatabaseIcon, PlusIcon } from "@lucide/svelte";
-    import { getContext } from "svelte";
-    import ContainerList from "$lib/components/dashboard/ContainerList.svelte";
-    import DashboardHeader from "$lib/components/dashboard/DashboardHeader.svelte";
-    import RecentActivity from "$lib/components/dashboard/RecentActivity.svelte";
-    import ResourcePanel from "$lib/components/dashboard/ResourcePanel.svelte";
-    import StatCards from "$lib/components/dashboard/StatCards.svelte";
-    import { Button } from "$lib/components/ui/button/index.js";
-    import { createActionMutation } from "$lib/queries/containers";
-    import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
-    import { notificationsStore } from "$lib/stores/notifications.svelte";
-    import { systemStore } from "$lib/stores/system.svelte";
+import { ContainerIcon, DatabaseIcon, PlusIcon } from "@lucide/svelte";
+import { getContext } from "svelte";
+import type { DashboardOverview } from "$lib/api/v1/types/dashboard.js";
+import ContainerList from "$lib/components/dashboard/ContainerList.svelte";
+import DashboardHeader from "$lib/components/dashboard/DashboardHeader.svelte";
+import RecentActivity from "$lib/components/dashboard/RecentActivity.svelte";
+import ResourcePanel from "$lib/components/dashboard/ResourcePanel.svelte";
+import StatCards from "$lib/components/dashboard/StatCards.svelte";
+import { Button } from "$lib/components/ui/button/index.js";
+import { createActionMutation } from "$lib/queries/containers";
+import { notificationsStore } from "$lib/stores/notifications.svelte";
+import { systemStore } from "$lib/stores/system.svelte";
 
-    const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
-    const actionMutation = createActionMutation();
+const ctx = getContext<{ data: DashboardOverview | undefined; isPending: boolean }>("dashboard");
+const actionMutation = createActionMutation();
 
-    const data = $derived(ctx.data);
-    const isPending = $derived(ctx.isPending);
+const data = $derived(ctx.data);
+const isPending = $derived(ctx.isPending);
 
-    const containers = $derived(data?.containers ?? []);
-    const images = $derived(data?.images ?? []);
-    const networks = $derived(data?.networks ?? []);
-    const volumes = $derived(data?.volumes ?? []);
+const containers = $derived(data?.containers ?? []);
+const images = $derived(data?.images ?? []);
+const networks = $derived(data?.networks ?? []);
+const volumes = $derived(data?.volumes ?? []);
 
-    const notifications = $derived(notificationsStore.items.slice(0, 6));
-    const metrics = $derived(systemStore.metrics);
+const notifications = $derived(notificationsStore.items.slice(0, 6));
+const metrics = $derived(systemStore.metrics);
 
-    const cpuPct = $derived(metrics?.cpu_percent ?? 0);
-    const memPct = $derived(metrics?.mem_percent ?? 0);
-    const diskPct = $derived(
-        metrics?.disk_used && metrics.disk_total
-            ? (metrics.disk_used / metrics.disk_total) * 100
-            : 0
-    );
-    const hasResourceWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
-    const systemHealthy = $derived(
-        !hasResourceWarning && notifications.filter((n) => !n.acknowledged_at).length === 0
-    );
-    const isEmpty = $derived(!isPending && containers.length === 0);
-    const pendingId = $derived(actionMutation.isPending ? actionMutation.variables?.id : undefined);
+const cpuPct = $derived(metrics?.cpu_percent ?? 0);
+const memPct = $derived(metrics?.mem_percent ?? 0);
+const diskPct = $derived(
+	metrics?.disk_used && metrics.disk_total ? (metrics.disk_used / metrics.disk_total) * 100 : 0
+);
+const hasResourceWarning = $derived(cpuPct > 80 || memPct > 80 || diskPct > 85);
+const systemHealthy = $derived(
+	!hasResourceWarning && notifications.filter((n) => !n.acknowledged_at).length === 0
+);
+const isEmpty = $derived(!isPending && containers.length === 0);
+const pendingId = $derived(actionMutation.isPending ? actionMutation.variables?.id : undefined);
 </script>
 
 <div class="space-y-5">

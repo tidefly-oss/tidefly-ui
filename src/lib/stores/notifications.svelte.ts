@@ -15,7 +15,7 @@ class NotificationsStore {
 	}
 
 	private unsub: (() => void) | null = null;
-	
+
 	seed(notifications: Notification[]) {
 		this.items = notifications;
 	}
