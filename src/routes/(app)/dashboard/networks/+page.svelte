@@ -10,5 +10,5 @@ let { data }: { data: PageData } = $props();
     <h1 class="text-lg font-semibold">Networks</h1>
     <p class="text-sm text-muted-foreground">{data.networks.length} total</p>
   </div>
-  <NetworksList initialData={data.networks} />
+  <NetworksList />
 </div>

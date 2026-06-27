@@ -10,5 +10,5 @@ let { data }: { data: PageData } = $props();
     <h1 class="text-lg font-semibold">Images</h1>
     <p class="text-sm text-muted-foreground">{data.images.length} total</p>
   </div>
-  <ImageList initialData={data.images} />
+  <ImageList />
 </div>

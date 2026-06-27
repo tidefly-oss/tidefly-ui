@@ -9,5 +9,5 @@ let { data }: { data: PageData } = $props();
   <div>
     <h1 class="text-lg font-semibold">Volumes</h1>
   </div>
-  <VolumesList initialData={data.volumes} />
+  <VolumesList />
 </div>
