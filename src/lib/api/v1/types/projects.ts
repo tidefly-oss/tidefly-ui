@@ -1,5 +1,3 @@
-// Mirrors: backend/internal/api/v1/handlers/projects/handler.go
-
 export interface Project {
 	id: string;
 	name: string;

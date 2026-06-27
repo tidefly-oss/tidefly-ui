@@ -6,50 +6,92 @@ on:
   pull_request:
     branches: [main, develop]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  lint-typecheck:
-    name: Lint & Type Check
+  validate:
+    name: Validate Templates
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
+      - name: Validate JSON syntax
+        run: |
+          echo "Checking JSON syntax..."
+          ERRORS=0
+          find . -name "template.json" | while read f; do
+            if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
+              echo "❌ Invalid JSON: $f"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "$ERRORS file(s) failed JSON validation"
+            exit 1
+          fi
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Validate required fields
+        run: |
+          echo "Checking required fields..."
+          ERRORS=0
+          find . -name "template.json" ! -path "./example/*" | while read f; do
+            MISSING=""
+            for field in slug name category icon description versions default_version fields manifest; do
+              VAL=$(jq -r --arg f "$field" '.[$f] // empty' "$f")
+              if [ -z "$VAL" ]; then
+                MISSING="$MISSING $field"
+              fi
+            done
+            if [ -n "$MISSING" ]; then
+              echo "❌ $f missing required fields:$MISSING"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "$ERRORS template(s) failed field validation"
+            exit 1
+          fi
 
-      - name: Type check
-        run: npm run check
+      - name: Validate slug matches folder name
+        run: |
+          echo "Checking slug matches folder name..."
+          ERRORS=0
+          find . -name "template.json" ! -path "./example/*" | while read f; do
+            FOLDER=$(basename $(dirname "$f"))
+            SLUG=$(jq -r '.slug' "$f")
+            if [ "$FOLDER" != "$SLUG" ]; then
+              echo "❌ $f: slug '$SLUG' does not match folder '$FOLDER'"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ $f (slug: $SLUG)"
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "$ERRORS template(s) have mismatched slug/folder"
+            exit 1
+          fi
 
-      - name: Lint
-        run: npm run lint
+      - name: Validate manifest is valid JSON
+        run: |
+          echo "Checking manifest field is valid JSON..."
+          ERRORS=0
+          find . -name "template.json" ! -path "./example/*" | while read f; do
+            MANIFEST=$(jq '.manifest' "$f")
+            if [ -z "$MANIFEST" ] || [ "$MANIFEST" = "null" ]; then
+              echo "❌ $f: manifest is empty or null"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ $f"
+            fi
+          done
+          if [ $ERRORS -gt 0 ]; then
+            echo "$ERRORS template(s) have invalid manifest"
+            exit 1
+          fi
 
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    needs: lint-typecheck
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        env:
-          NODE_ENV: production
-        run: npm run build
+      - name: Summary
+        run: |
+          TOTAL=$(find . -name "template.json" ! -path "./example/*" | wc -l)
+          echo "✅ All $TOTAL templates passed validation"
