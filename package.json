@@ -16,7 +16,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "^2.5.0",
 		"@internationalized/date": "^3.12.2",
-		"@lucide/svelte": "^1.18.0",
+		"@lucide/svelte": "^1.22.0",
 		"@sveltejs/kit": "^2.65.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tailwindcss/forms": "^0.5.11",
@@ -29,7 +29,7 @@
 		"bits-ui": "^2.18.1",
 		"clsx": "^2.1.1",
 		"layerchart": "2.0.0-next.48",
-		"npm-check-updates": "^22.2.3",
+		"npm-check-updates": "^22.2.9",
 		"svelte": "^5.56.3",
 		"svelte-check": "^4.6.0",
 		"tailwind-merge": "^3.6.0",
@@ -42,7 +42,7 @@
 	"dependencies": {
 		"@icons-pack/svelte-simple-icons": "^7.2.0",
 		"@sveltejs/adapter-node": "^5.5.4",
-		"@tanstack/svelte-query": "^6.1.34",
+		"@tanstack/svelte-query": "^6.1.36",
 		"@tanstack/table-core": "^8.21.3",
 		"@xterm/addon-fit": "^0.11.0",
 		"@xterm/addon-web-links": "^0.12.0",
