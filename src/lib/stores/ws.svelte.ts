@@ -63,6 +63,7 @@ export interface WorkerUpdatedPayload {
 	status: string;
 	cpu_percent: number;
 	mem_percent: number;
+	container_count: number;  // ← neu
 }
 
 export interface NotificationCreatedPayload {
