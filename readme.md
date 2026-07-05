@@ -8,7 +8,9 @@
 
 <p align="center">
   <a href="https://github.com/tidefly-oss/tidefly-ui/releases"><img src="https://img.shields.io/github/v/release/tidefly-oss/tidefly-ui?include_prereleases&label=version&color=7c3aed" alt="Version" /></a>
-  <a href="https://github.com/tidefly-oss/tidefly-ui/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-06b6d4" alt="License" /></a>
+  <a href="https://github.com/tidefly-oss/tidefly-ui/blob/main/LICENSE">
+  <img src="https://img.shields.io/badge/license-AGPLv3-06b6d4" alt="License" />
+</a>
   <a href="https://github.com/tidefly-oss/tidefly-ui/actions"><img src="https://img.shields.io/github/actions/workflow/status/tidefly-oss/tidefly-ui/ci.yaml?branch=main&label=CI" alt="CI" /></a>
 </p>
 
