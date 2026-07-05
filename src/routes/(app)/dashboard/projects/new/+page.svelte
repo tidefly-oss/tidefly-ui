@@ -1,68 +1,69 @@
 <script lang="ts">
-import { LoaderCircle } from "@lucide/svelte";
-import { createMutation, useQueryClient } from "@tanstack/svelte-query";
-import { goto } from "$app/navigation";
-import { projectsApi } from "$lib/api";
-import { ApiError } from "$lib/api/client";
-import { Button } from "$lib/components/ui/button/index.js";
-import { dashboardQueries } from "$lib/queries/dashboard.js";
-import { projectKeys } from "$lib/queries/projects.js";
+  import { LoaderCircle } from "@lucide/svelte";
+  import { createMutation, useQueryClient } from "@tanstack/svelte-query";
+  import { goto } from "$app/navigation";
+  import { projectsApi } from "$lib/api";
+  import { ApiError } from "$lib/api/client";
+  import { Button } from "$lib/components/ui/button/index.js";
+  import { projectKeys } from "$lib/queries/projects.js";
+  import {getContext} from "svelte";
 
-const qc = useQueryClient();
+  const qc = useQueryClient();
 
-const COLORS = [
-	"#6366f1",
-	"#8b5cf6",
-	"#ec4899",
-	"#ef4444",
-	"#f97316",
-	"#eab308",
-	"#22c55e",
-	"#14b8a6",
-	"#3b82f6",
-	"#06b6d4",
-	"#64748b",
-	"#78716c",
-];
+  const dashboardCtx = getContext<{ refetch: () => Promise<unknown> }>("dashboard");
 
-let name = $state("");
-let description = $state("");
-let color = $state("#6366f1");
-let error = $state<string | null>(null);
+  const COLORS = [
+    "#6366f1",
+    "#8b5cf6",
+    "#ec4899",
+    "#ef4444",
+    "#f97316",
+    "#eab308",
+    "#22c55e",
+    "#14b8a6",
+    "#3b82f6",
+    "#06b6d4",
+    "#64748b",
+    "#78716c",
+  ];
 
-const networkPreview = $derived(
-	name ? `tidefly_${name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")}` : ""
-);
+  let name = $state("");
+  let description = $state("");
+  let color = $state("#6366f1");
+  let error = $state<string | null>(null);
 
-const createMut = createMutation(() => ({
-	mutationFn: () =>
-		projectsApi.create({
-			name: name.trim(),
-			description: description.trim() || undefined,
-			color,
-		}),
-	onSuccess: () => {
-		// invalidate both project list and dashboard cache so sidebar + project list update immediately
-		qc.invalidateQueries({ queryKey: projectKeys.all() });
-		qc.invalidateQueries({ queryKey: dashboardQueries.get().queryKey });
-	},
-}));
+  const networkPreview = $derived(
+          name ? `tidefly_${name.toLowerCase().replace(/[^a-z0-9_-]/g, "_")}` : ""
+  );
 
-const submitting = $derived(createMut.isPending);
+  const createMut = createMutation(() => ({
+    mutationFn: () =>
+            projectsApi.create({
+              name: name.trim(),
+              description: description.trim() || undefined,
+              color,
+            }),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: projectKeys.all(), refetchType: "all" });
+      await dashboardCtx.refetch();
+    },
+  }));
 
-async function submit() {
-	if (!name.trim()) {
-		error = "Name is required";
-		return;
-	}
-	error = null;
-	try {
-		const project = await createMut.mutateAsync();
-		await goto(`/dashboard/projects/${project.id}`);
-	} catch (e) {
-		error = e instanceof ApiError ? e.message : "Failed to create project";
-	}
-}
+  const submitting = $derived(createMut.isPending);
+
+  async function submit() {
+    if (!name.trim()) {
+      error = "Name is required";
+      return;
+    }
+    error = null;
+    try {
+      const project = await createMut.mutateAsync();
+      await goto(`/dashboard/projects/${project.id}`);
+    } catch (e) {
+      error = e instanceof ApiError ? e.message : "Failed to create project";
+    }
+  }
 </script>
 
 <div class="space-y-4 max-w-lg">

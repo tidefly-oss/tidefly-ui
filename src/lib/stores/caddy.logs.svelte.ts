@@ -18,7 +18,7 @@ export interface CaddyLogEntry {
 }
 function caddyLogsUrl(tail = 100): string {
 	const token = tokenStore.get();
-	const base = `/api/v1/system/caddy-logs?tail=${tail}`;
+	const base = `/api/v1/system/traefik-logs?tail=${tail}`;
 	return token ? `${base}&token=${encodeURIComponent(token)}` : base;
 }
 
