@@ -1,53 +1,59 @@
 <script lang="ts">
-import { GlobeIcon, TriangleAlertIcon } from "@lucide/svelte";
-import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
-import { toast } from "svelte-sonner";
-import { adminApi } from "$lib/api/v1/admin";
-import { Button } from "$lib/components/ui/button/index.js";
-import { Input } from "$lib/components/ui/input/index.js";
-import { Label } from "$lib/components/ui/label/index.js";
-import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+    import { GlobeIcon, RouteIcon, TriangleAlertIcon } from "@lucide/svelte";
+    import { createMutation, createQuery, useQueryClient } from "@tanstack/svelte-query";
+    import { toast } from "svelte-sonner";
+    import { adminApi } from "$lib/api/v1/admin";
+    import { Button } from "$lib/components/ui/button/index.js";
+    import { Input } from "$lib/components/ui/input/index.js";
+    import { Label } from "$lib/components/ui/label/index.js";
+    import * as Tooltip from "$lib/components/ui/tooltip/index.js";
 
-const qc = useQueryClient();
+    const qc = useQueryClient();
 
-const settingsQuery = createQuery(() => ({
-	queryKey: ["admin-settings"],
-	queryFn: () => adminApi.getSettings(),
-}));
+    const settingsQuery = createQuery(() => ({
+        queryKey: ["admin-settings"],
+        queryFn: () => adminApi.getSettings(),
+    }));
 
-const updateMutation = createMutation(() => ({
-	mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
-	onSuccess: () => {
-		qc.invalidateQueries({ queryKey: ["admin-settings"] });
-		toast.success("Settings saved");
-	},
-	onError: () => toast.error("Failed to save settings"),
-}));
+    const updateMutation = createMutation(() => ({
+        mutationFn: (data: Record<string, unknown>) => adminApi.updateSettings(data),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["admin-settings"] });
+            toast.success("Settings saved");
+        },
+        onError: () => toast.error("Failed to save settings"),
+    }));
 
-const settings = $derived(settingsQuery.data ?? null);
+    const settings = $derived(settingsQuery.data ?? null);
 
-let instanceName = $state("");
-let caddyBaseDomain = $state("");
-let apiDocsEnabled = $state(false);
+    let instanceName = $state("");
+    let traefikBaseDomain = $state("");
+    let apiDocsEnabled = $state(false);
+    let traefikDashboardEnabled = $state(false);
 
-$effect(() => {
-	if (settings) {
-		instanceName = settings.instance_name ?? "";
-		caddyBaseDomain = settings.caddy_base_domain ?? "";
-		apiDocsEnabled = settings.api_docs_enabled ?? false;
-	}
-});
+    $effect(() => {
+        if (settings) {
+            instanceName = settings.instance_name ?? "";
+            traefikBaseDomain = settings.traefik_base_domain ?? "";
+            apiDocsEnabled = settings.api_docs_enabled ?? false;
+            traefikDashboardEnabled = settings.traefik_dashboard_enabled ?? false;
+        }
+    });
 
-function save() {
-	updateMutation.mutate({
-		instance_name: instanceName,
-		caddy_base_domain: caddyBaseDomain,
-	});
-}
+    function save() {
+        updateMutation.mutate({
+            instance_name: instanceName,
+            traefik_base_domain: traefikBaseDomain,
+        });
+    }
 
-function saveApiDocs() {
-	updateMutation.mutate({ api_docs_enabled: apiDocsEnabled });
-}
+    function saveApiDocs() {
+        updateMutation.mutate({ api_docs_enabled: apiDocsEnabled });
+    }
+
+    function saveTraefikDashboard() {
+        updateMutation.mutate({ traefik_dashboard_enabled: traefikDashboardEnabled });
+    }
 </script>
 
 <div class="space-y-4">
@@ -102,7 +108,7 @@ function saveApiDocs() {
                     <Label for="caddy-domain">Base Domain</Label>
                     <Input
                             id="caddy-domain"
-                            bind:value={caddyBaseDomain}
+                            bind:value={traefikBaseDomain}
                             placeholder="apps.example.com"
                     />
                     <p class="text-xs text-muted-foreground">
@@ -163,6 +169,61 @@ function saveApiDocs() {
                     >
                         <span
                                 class="pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform {apiDocsEnabled ? 'translate-x-4' : 'translate-x-0'}"
+                        ></span>
+                    </button>
+                </div>
+            </div>
+        {/if}
+    </div>
+
+    <!-- Traefik Dashboard -->
+    <div class="rounded-xl border bg-card divide-y">
+        <div class="px-5 py-4 flex items-center gap-3">
+            <RouteIcon class="size-4 text-muted-foreground" />
+            <div>
+                <h2 class="text-sm font-semibold">Traefik Dashboard</h2>
+                <p class="text-xs text-muted-foreground mt-0.5">Expose the reverse-proxy dashboard, protected by your Tidefly login</p>
+            </div>
+        </div>
+
+        {#if !settingsQuery.isPending}
+            <div class="px-5 py-5">
+                <div class="flex items-start justify-between gap-4">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-medium">Enable Traefik Dashboard</span>
+                            <Tooltip.Root>
+                                <Tooltip.Trigger aria-label="Exposure info">
+                                    <div class="flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 cursor-default">
+                                        <TriangleAlertIcon class="size-2.5" />
+                                        Exposed
+                                    </div>
+                                </Tooltip.Trigger>
+                                <Tooltip.Content class="max-w-56 text-xs">
+                                    Publishes the Traefik dashboard on the
+                                    <span class="font-mono">traefik.</span> subdomain. Access requires a valid Tidefly login. Takes effect within a few seconds.
+                                </Tooltip.Content>
+                            </Tooltip.Root>
+                        </div>
+                        <p class="text-xs text-muted-foreground">
+                            Serves Traefik's routing dashboard at
+                            {#if traefikBaseDomain}
+                                <span class="font-mono">traefik.{traefikBaseDomain}</span>
+                            {:else}
+                                the <span class="font-mono">traefik.</span> subdomain
+                            {/if}
+                            — only reachable while you're signed in. Off by default.
+                        </p>
+                    </div>
+                    <button
+                            role="switch"
+                            aria-checked={traefikDashboardEnabled}
+                            aria-label="Enable Traefik Dashboard"
+                            onclick={() => { traefikDashboardEnabled = !traefikDashboardEnabled; saveTraefikDashboard(); }}
+                            class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 {traefikDashboardEnabled ? 'bg-primary' : 'bg-input'}"
+                    >
+                        <span
+                                class="pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform {traefikDashboardEnabled ? 'translate-x-4' : 'translate-x-0'}"
                         ></span>
                     </button>
                 </div>
