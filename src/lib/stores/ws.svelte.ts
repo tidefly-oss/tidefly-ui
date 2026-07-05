@@ -131,12 +131,21 @@ function createWSStore() {
 		});
 
 		on<DeployDonePayload>("deploy.done", (p) => {
-			if (p.deploy_id !== "system-update") {
-				containersApi.list(true).then((list) => {
-					liveContainers = list;
-					onDeployDone?.();
-				});
+			if (p.deploy_id === "system-update") {
+				// Reaches the frontend for non-self updates (e.g. UI-only),
+				// where the plane's own process never restarts and the WS
+				// stays connected the whole time. For self-updates the plane
+				// container is replaced mid-flight, so this event usually
+				// never arrives — the health-poll fallback in updateStore
+				// (armed on the "restarting" progress step) covers that case.
+				updateStore.onUpdateDone();
+				setTimeout(() => window.location.reload(), 1500);
+				return;
 			}
+			containersApi.list(true).then((list) => {
+				liveContainers = list;
+				onDeployDone?.();
+			});
 		});
 
 		on<DeployFailedPayload>("deploy.failed", (p) => {
